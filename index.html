@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Love Galaxy - Para Mi Amada Tamara 💕</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Canvas para efectos de partículas -->
+    <canvas id="hearts-canvas"></canvas>
+    <canvas id="stars-canvas"></canvas>
+
+    <!-- Pantalla de carga inicial -->
+    <div id="loading-screen">
+        <div class="loading-content">
+            <h1 class="loading-title">Love Galaxy</h1>
+            <div class="loading-heart">💕</div>
+            <p class="loading-text">Preparando algo especial para Tamara...</p>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navegación -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span class="logo-heart">💖</span>
+                <span class="logo-text">Love Galaxy</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#home" class="nav-link active">Inicio</a></li>
+                <li><a href="#timeline" class="nav-link">Nuestra Historia</a></li>
+                <li><a href="#gallery" class="nav-link">Galería</a></li>
+                <li><a href="#memories" class="nav-link">Recuerdos</a></li>
+                <li><a href="#games" class="nav-link">Juegos</a></li>
+                <li><a href="#love-meter" class="nav-link">Amor-ómetro</a></li>
+                <li><a href="#messages" class="nav-link">Mensajes</a></li>
+                <li><a href="#playlist" class="nav-link">Playlist</a></li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Sección Principal -->
+    <section id="home" class="hero-section">
+        <div class="hero-content">
+            <h1 class="hero-title animate-fade-in">
+                Para Mi Amada
+                <span class="hero-name">Tamara</span>
+            </h1>
+            <p class="hero-subtitle animate-fade-in-delay">
+                En este universo infinito, tú eres mi galaxia favorita 🌟
+            </p>
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="days-together">0</div>
+                    <div class="stat-label">Días Juntos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="hours-together">0</div>
+                    <div class="stat-label">Horas Contigo</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="heartbeats">0</div>
+                    <div class="stat-label">Latidos por Ti</div>
+                </div>
+            </div>
+            <button class="btn-primary hero-btn" onclick="showLoveModal()">
+                💕 Un Mensaje Especial
+            </button>
+        </div>
+        <div class="hero-image">
+            <div class="floating-hearts">
+                <span class="floating-heart">💖</span>
+                <span class="floating-heart">💝</span>
+                <span class="floating-heart">💕</span>
+                <span class="floating-heart">💗</span>
+                <span class="floating-heart">💓</span>
+                <span class="floating-heart">💞</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección Timeline -->
+    <section id="timeline" class="timeline-section">
+        <div class="container">
+            <h2 class="section-title">Nuestra Historia de Amor</h2>
+            <p class="section-subtitle">Cada momento contigo es un tesoro 💎</p>
+            
+            <div class="timeline">
+                <div class="timeline-item left">
+                    <div class="timeline-content">
+                        <div class="timeline-icon">👀</div>
+                        <h3>El Primer Encuentro</h3>
+                        <p class="timeline-date">El día que cambió todo</p>
+                        <p>Cuando nuestras miradas se cruzaron por primera vez, supe que habías llegado para quedarte en mi corazón para siempre.</p>
+                        <button class="btn-small" onclick="addMemory('encuentro')">Agregar Detalles</button>
+                    </div>
+                </div>
+
+                <div class="timeline-item right">
+                    <div class="timeline-content">
+                        <div class="timeline-icon">💬</div>
+                        <h3>La Primera Conversación</h3>
+                        <p class="timeline-date">Cuando las palabras fluyeron</p>
+                        <p>Cada palabra que compartimos construyó un puente entre nuestras almas. Tu risa se convirtió en mi melodía favorita.</p>
+                        <button class="btn-small" onclick="addMemory('conversacion')">Agregar Detalles</button>
+                    </div>
+                </div>
+
+                <div class="timeline-item left">
+                    <div class="timeline-content">
+                        <div class="timeline-icon">❤️</div>
+                        <h3>El Primer "Te Amo"</h3>
+                        <p class="timeline-date">Las palabras más hermosas</p>
+                        <p>Ese momento mágico cuando te dije que te amaba y el universo entero pareció sonreír con nosotros.</p>
+                        <button class="btn-small" onclick="addMemory('te-amo')">Agregar Detalles</button>
+                    </div>
+                </div>
+
+                <div class="timeline-item right">
+                    <div class="timeline-content">
+                        <div class="timeline-icon">🌟</div>
+                        <h3>Momentos Especiales</h3>
+                        <p class="timeline-date">Cada día contigo</p>
+                        <p>Desde entonces, cada segundo a tu lado ha sido un regalo que atesoro en mi corazón.</p>
+                        <button class="btn-small" onclick="addMemory('especial')">Agregar Detalles</button>
+                    </div>
+                </div>
+
+                <div class="timeline-item left">
+                    <div class="timeline-content">
+                        <div class="timeline-icon">♾️</div>
+                        <h3>Nuestro Futuro</h3>
+                        <p class="timeline-date">Por siempre juntos</p>
+                        <p>Este es solo el comienzo de una historia infinita, llena de amor, risas y sueños compartidos.</p>
+                        <button class="btn-small" onclick="addMemory('futuro')">Agregar Detalles</button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-primary" onclick="openTimelineEditor()">
+                ✨ Personalizar Nuestra Historia
+            </button>
+        </div>
+    </section>
+
+    <!-- Sección Galería -->
+    <section id="gallery" class="gallery-section">
+        <div class="container">
+            <h2 class="section-title">Galería de Momentos</h2>
+            <p class="section-subtitle">Cada foto cuenta una historia de amor 📸</p>
+            
+            <div class="gallery-filters">
+                <button class="filter-btn active" data-filter="all">Todos</button>
+                <button class="filter-btn" data-filter="juntos">Juntos</button>
+                <button class="filter-btn" data-filter="especiales">Especiales</button>
+                <button class="filter-btn" data-filter="viajes">Viajes</button>
+                <button class="filter-btn" data-filter="celebraciones">Celebraciones</button>
+            </div>
+
+            <div class="gallery-grid">
+                <div class="gallery-item" data-category="juntos">
+                    <div class="gallery-placeholder">
+                        <span class="placeholder-icon">📷</span>
+                        <p>Añade tu primera foto juntos</p>
+                    </div>
+                    <div class="gallery-overlay">
+                        <h4>Momento Especial</h4>
+                        <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+                    </div>
+                </div>
+
+                <div class="gallery-item" data-category="especiales">
+                    <div class="gallery-placeholder">
+                        <span class="placeholder-icon">💕</span>
+                        <p>Un momento que atesoras</p>
+                    </div>
+                    <div class="gallery-overlay">
+                        <h4>Recuerdo Especial</h4>
+                        <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+                    </div>
+                </div>
+
+                <div class="gallery-item" data-category="viajes">
+                    <div class="gallery-placeholder">
+                        <span class="placeholder-icon">✈️</span>
+                        <p>Aventuras juntos</p>
+                    </div>
+                    <div class="gallery-overlay">
+                        <h4>Nuestros Viajes</h4>
+                        <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+                    </div>
+                </div>
+
+                <div class="gallery-item" data-category="celebraciones">
+                    <div class="gallery-placeholder">
+                        <span class="placeholder-icon">🎉</span>
+                        <p>Celebrando el amor</p>
+                    </div>
+                    <div class="gallery-overlay">
+                        <h4>Celebraciones</h4>
+                        <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+                    </div>
+                </div>
+
+                <div class="gallery-item" data-category="juntos">
+                    <div class="gallery-placeholder">
+                        <span class="placeholder-icon">🌹</span>
+                        <p>Romance puro</p>
+                    </div>
+                    <div class="gallery-overlay">
+                        <h4>Momentos Románticos</h4>
+                        <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+                    </div>
+                </div>
+
+                <div class="gallery-item" data-category="especiales">
+                    <div class="gallery-placeholder">
+                        <span class="placeholder-icon">🎁</span>
+                        <p>Sorpresas y detalles</p>
+                    </div>
+                    <div class="gallery-overlay">
+                        <h4>Detalles Especiales</h4>
+                        <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección Recuerdos -->
+    <section id="memories" class="memories-section">
+        <div class="container">
+            <h2 class="section-title">Libro de Recuerdos</h2>
+            <p class="section-subtitle">Escribe y guarda tus momentos favoritos 📖</p>
+            
+            <div class="memories-container">
+                <div class="add-memory-card">
+                    <h3>Agregar Nuevo Recuerdo</h3>
+                    <form id="memory-form">
+                        <input type="text" id="memory-title" placeholder="Título del recuerdo" required>
+                        <input type="date" id="memory-date" required>
+                        <textarea id="memory-description" placeholder="Describe este momento especial..." rows="4" required></textarea>
+                        <select id="memory-mood">
+                            <option value="">Selecciona estado de ánimo</option>
+                            <option value="💕">Enamorado 💕</option>
+                            <option value="😊">Feliz 😊</option>
+                            <option value="🥰">Tierno 🥰</option>
+                            <option value="😍">Apasionado 😍</option>
+                            <option value="🌟">Mágico 🌟</option>
+                            <option value="💖">Especial 💖</option>
+                        </select>
+                        <button type="submit" class="btn-primary">Guardar Recuerdo</button>
+                    </form>
+                </div>
+
+                <div class="memories-list" id="memories-list">
+                    <!-- Los recuerdos se agregarán aquí dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección Juegos -->
+    <section id="games" class="games-section">
+        <div class="container">
+            <h2 class="section-title">Juegos del Amor</h2>
+            <p class="section-subtitle">Diversión romántica para compartir 🎮</p>
+            
+            <div class="games-grid">
+                <!-- Juego 1: Memoria del Amor -->
+                <div class="game-card">
+                    <div class="game-icon">🎴</div>
+                    <h3>Memoria del Amor</h3>
+                    <p>Encuentra las parejas de corazones en este clásico juego de memoria.</p>
+                    <button class="btn-game" onclick="startMemoryGame()">Jugar</button>
+                </div>
+
+                <!-- Juego 2: Pregunta del Día -->
+                <div class="game-card">
+                    <div class="game-icon">❓</div>
+                    <h3>Pregunta del Día</h3>
+                    <p>Responde preguntas románticas y conoce más sobre tu pareja.</p>
+                    <button class="btn-game" onclick="startQuestionGame()">Jugar</button>
+                </div>
+
+                <!-- Juego 3: Ruleta del Amor -->
+                <div class="game-card">
+                    <div class="game-icon">🎡</div>
+                    <h3>Ruleta del Amor</h3>
+                    <p>Gira la ruleta y descubre qué actividad romántica hacer hoy.</p>
+                    <button class="btn-game" onclick="startRouletteGame()">Jugar</button>
+                </div>
+
+                <!-- Juego 4: Test de Compatibilidad -->
+                <div class="game-card">
+                    <div class="game-icon">💞</div>
+                    <h3>Test de Compatibilidad</h3>
+                    <p>Descubre tu nivel de compatibilidad con preguntas divertidas.</p>
+                    <button class="btn-game" onclick="startCompatibilityTest()">Jugar</button>
+                </div>
+
+                <!-- Juego 5: Generador de Citas -->
+                <div class="game-card">
+                    <div class="game-icon">🌹</div>
+                    <h3>Generador de Citas</h3>
+                    <p>Obtén ideas creativas para tu próxima cita romántica.</p>
+                    <button class="btn-game" onclick="generateDateIdea()">Generar</button>
+                </div>
+
+                <!-- Juego 6: Carta de Amor Aleatoria -->
+                <div class="game-card">
+                    <div class="game-icon">💌</div>
+                    <h3>Carta Sorpresa</h3>
+                    <p>Genera una carta de amor personalizada con frases románticas.</p>
+                    <button class="btn-game" onclick="generateLoveLetter()">Generar</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección Amor-ómetro -->
+    <section id="love-meter" class="love-meter-section">
+        <div class="container">
+            <h2 class="section-title">Amor-ómetro</h2>
+            <p class="section-subtitle">Mide el amor en tiempo real 💗</p>
+            
+            <div class="love-meter-container">
+                <div class="meter-display">
+                    <svg class="meter-svg" viewBox="0 0 200 200">
+                        <defs>
+                            <linearGradient id="loveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff1493;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#ffd700;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle class="meter-bg" cx="100" cy="100" r="80"></circle>
+                        <circle class="meter-fill" cx="100" cy="100" r="80" id="love-meter-circle"></circle>
+                    </svg>
+                    <div class="meter-value">
+                        <span id="love-percentage">100</span>%
+                    </div>
+                    <div class="meter-label">Nivel de Amor</div>
+                </div>
+
+                <div class="meter-stats">
+                    <div class="meter-stat">
+                        <span class="stat-icon">💕</span>
+                        <span class="stat-text">Amor Infinito</span>
+                    </div>
+                    <div class="meter-stat">
+                        <span class="stat-icon">🔥</span>
+                        <span class="stat-text">Pasión Ardiente</span>
+                    </div>
+                    <div class="meter-stat">
+                        <span class="stat-icon">✨</span>
+                        <span class="stat-text">Magia Pura</span>
+                    </div>
+                    <div class="meter-stat">
+                        <span class="stat-icon">💖</span>
+                        <span class="stat-text">Conexión Perfecta</span>
+                    </div>
+                </div>
+
+                <div class="love-calculator">
+                    <h3>Calculadora de Amor</h3>
+                    <p>Fecha en que nos conocimos:</p>
+                    <input type="date" id="relationship-start" onchange="calculateTimeTogether()">
+                    
+                    <div class="calculator-results" id="calculator-results">
+                        <!-- Resultados se mostrarán aquí -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección Mensajes -->
+    <section id="messages" class="messages-section">
+        <div class="container">
+            <h2 class="section-title">Mensajes de Amor</h2>
+            <p class="section-subtitle">Palabras que salen del corazón 💌</p>
+            
+            <div class="messages-container">
+                <div class="message-card special-message">
+                    <div class="message-header">
+                        <span class="message-icon">💖</span>
+                        <span class="message-from">Para Tamara</span>
+                    </div>
+                    <div class="message-content">
+                        <h3>Mi Amor Eterno</h3>
+                        <p>Tamara, desde el momento en que entraste en mi vida, todo cambió. Eres la razón por la que sonrío cada mañana, la inspiración detrás de cada sueño, y el amor que llena cada rincón de mi corazón. Contigo, he descubierto lo que significa amar verdaderamente.</p>
+                        <p>Cada día a tu lado es un regalo que atesoro. Tu risa es mi melodía favorita, tus ojos son mi universo, y tu amor es mi hogar. Gracias por existir, por amarme, por ser tú.</p>
+                        <p class="message-signature">Con todo mi amor,<br>Para siempre tuyo 💕</p>
+                    </div>
+                </div>
+
+                <div class="messages-interactive">
+                    <h3>Mensajes Diarios</h3>
+                    <div class="daily-message" id="daily-message">
+                        <!-- Mensaje del día se genera aquí -->
+                    </div>
+                    <button class="btn-primary" onclick="generateDailyMessage()">
+                        Nuevo Mensaje del Día
+                    </button>
+                </div>
+
+                <div class="love-quotes">
+                    <h3>Frases de Amor</h3>
+                    <div class="quote-display" id="quote-display">
+                        <p class="quote-text">"En un océano de personas, mis ojos siempre te buscarán a ti."</p>
+                        <button class="btn-small" onclick="generateNewQuote()">Nueva Frase</button>
+                    </div>
+                </div>
+
+                <div class="custom-message">
+                    <h3>Escribe tu Mensaje</h3>
+                    <textarea id="custom-message-text" placeholder="Escribe algo especial para Tamara..." rows="4"></textarea>
+                    <button class="btn-primary" onclick="saveCustomMessage()">
+                        Guardar Mensaje
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección Playlist -->
+    <section id="playlist" class="playlist-section">
+        <div class="container">
+            <h2 class="section-title">Nuestra Playlist del Amor</h2>
+            <p class="section-subtitle">Las canciones que cuentan nuestra historia 🎵</p>
+            
+            <div class="music-player">
+                <div class="player-display">
+                    <div class="album-art">
+                        <div class="vinyl-record">
+                            <div class="vinyl-center"></div>
+                        </div>
+                    </div>
+                    <div class="player-info">
+                        <h3 id="current-song">Nuestra Canción</h3>
+                        <p id="current-artist">El soundtrack de nuestro amor</p>
+                    </div>
+                </div>
+
+                <div class="player-controls">
+                    <button class="control-btn" onclick="previousSong()">⏮️</button>
+                    <button class="control-btn play-btn" onclick="togglePlay()" id="play-btn">▶️</button>
+                    <button class="control-btn" onclick="nextSong()">⏭️</button>
+                </div>
+
+                <div class="player-progress">
+                    <span id="current-time">0:00</span>
+                    <input type="range" id="progress-bar" min="0" max="100" value="0">
+                    <span id="total-time">0:00</span>
+                </div>
+            </div>
+
+            <div class="playlist-list">
+                <h3>Canciones Especiales</h3>
+                <div class="playlist-items">
+                    <div class="playlist-item" data-song="1">
+                        <span class="song-number">1</span>
+                        <div class="song-info">
+                            <h4>Nuestra Primera Canción</h4>
+                            <p>La canción que estaba sonando cuando nos conocimos</p>
+                        </div>
+                        <button class="btn-small" onclick="setSong(1)">Reproducir</button>
+                    </div>
+                    <div class="playlist-item" data-song="2">
+                        <span class="song-number">2</span>
+                        <div class="song-info">
+                            <h4>La Que Me Recuerda a Ti</h4>
+                            <p>Cada vez que la escucho, pienso en tu sonrisa</p>
+                        </div>
+                        <button class="btn-small" onclick="setSong(2)">Reproducir</button>
+                    </div>
+                    <div class="playlist-item" data-song="3">
+                        <span class="song-number">3</span>
+                        <div class="song-info">
+                            <h4>Nuestro Himno</h4>
+                            <p>La canción que define nuestro amor</p>
+                        </div>
+                        <button class="btn-small" onclick="setSong(3)">Reproducir</button>
+                    </div>
+                </div>
+
+                <button class="btn-primary" onclick="addSongToPlaylist()">
+                    ➕ Agregar Canción
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="footer-content">
+            <div class="footer-heart">💖</div>
+            <p class="footer-text">Hecho con amor infinito para Tamara</p>
+            <p class="footer-subtext">Cada píxel de esta página lleva mi amor por ti</p>
+            <div class="footer-stats">
+                <span>💕 Love Galaxy 2026</span>
+                <span>|</span>
+                <span>✨ Por siempre y para siempre</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal de Mensaje Especial -->
+    <div id="love-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeLoveModal()">&times;</span>
+            <h2>Un Mensaje Especial Para Ti, Tamara 💕</h2>
+            <div class="modal-body">
+                <p>En este vasto universo, entre miles de millones de estrellas, encontré la más brillante de todas: tú.</p>
+                <p>Cada momento contigo es un verso de la poesía más hermosa que jamás podría escribirse. Eres mi inspiración, mi alegría, mi todo.</p>
+                <p>Este pequeño rincón digital es solo una muestra de lo infinito que es mi amor por ti. Gracias por existir, gracias por amarme, gracias por ser TÚ.</p>
+                <div class="modal-hearts">
+                    💖 💕 💗 💓 💞 💝
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Juego de Memoria -->
+    <div id="memory-game-modal" class="modal game-modal">
+        <div class="modal-content game-modal-content">
+            <span class="modal-close" onclick="closeMemoryGame()">&times;</span>
+            <h2>Juego de Memoria del Amor 🎴</h2>
+            <div class="game-stats">
+                <span>Movimientos: <span id="moves-count">0</span></span>
+                <span>Tiempo: <span id="game-time">0:00</span></span>
+                <span>Parejas: <span id="pairs-found">0</span>/8</span>
+            </div>
+            <div class="memory-game-board" id="memory-board">
+                <!-- Las cartas se generarán dinámicamente -->
+            </div>
+            <button class="btn-primary" onclick="resetMemoryGame()">Nuevo Juego</button>
+        </div>
+    </div>
+
+    <!-- Modal de Pregunta del Día -->
+    <div id="question-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeQuestionModal()">&times;</span>
+            <h2>Pregunta del Día ❓</h2>
+            <div class="question-content" id="question-content">
+                <!-- La pregunta se genera aquí -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Ruleta -->
+    <div id="roulette-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeRouletteModal()">&times;</span>
+            <h2>Ruleta del Amor 🎡</h2>
+            <div class="roulette-container">
+                <canvas id="roulette-canvas" width="400" height="400"></canvas>
+                <button class="btn-primary spin-btn" onclick="spinRoulette()">Girar</button>
+                <div class="roulette-result" id="roulette-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Test de Compatibilidad -->
+    <div id="compatibility-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeCompatibilityModal()">&times;</span>
+            <h2>Test de Compatibilidad 💞</h2>
+            <div class="compatibility-test" id="compatibility-test">
+                <!-- Test se genera aquí -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="particles.js"></script>
+    <script src="animations.js"></script>
+    <script src="games.js"></script>
+    <script src="extras.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "love-galaxy",
+  "version": "1.0.0",
+  "description": "Una aplicación web romántica e interactiva dedicada al amor",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "python -m http.server 8000"
+  },
+  "keywords": [
+    "love",
+    "romantic",
+    "web-app",
+    "interactive",
+    "tamara"
+  ],
+  "author": "Love Galaxy Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Lockowom/Love_Galaxy.git"
+  }
+}
