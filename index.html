@@ -326,6 +326,19 @@
                     <p>Genera una carta de amor personalizada con frases románticas.</p>
                     <button class="btn-game" onclick="generateLoveLetter()">Generar</button>
                 </div>
+
+                <!-- Juego 7: Galaxia del Amor -->
+                <div class="game-card featured-game">
+                    <div class="game-icon galaxy-icon">🌌</div>
+                    <h3>Galaxia del Amor</h3>
+                    <p>¡NUEVO! Viaja por una galaxia llena de corazones, captura mensajes de amor y evita obstáculos en este emocionante juego espacial.</p>
+                    <div class="game-features">
+                        <span class="feature-tag">🎮 Súper Interactivo</span>
+                        <span class="feature-tag">💕 Power-ups</span>
+                        <span class="feature-tag">🏆 Puntuaciones</span>
+                    </div>
+                    <button class="btn-game btn-featured" onclick="startGalaxyLoveGame()">🚀 Despegar</button>
+                </div>
             </div>
         </div>
     </section>
@@ -586,11 +599,28 @@
         </div>
     </div>
 
+    <!-- Modal de Galaxia del Amor -->
+    <div id="galaxy-game-modal" class="modal game-modal">
+        <div class="modal-content galaxy-modal-content">
+            <span class="modal-close" onclick="closeGalaxyGame()">&times;</span>
+            <h2>🌌 Galaxia del Amor 💕</h2>
+            <div class="galaxy-instructions">
+                <p>¡Navega por la galaxia y captura corazones y mensajes de amor!</p>
+                <p>Usa las flechas ⌨️ o el mouse 🖱️ para moverte. Presiona <strong>P</strong> para pausar.</p>
+            </div>
+            <div id="galaxy-game-container" class="galaxy-game-container">
+                <!-- El canvas del juego se generará aquí -->
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="particles.js"></script>
     <script src="animations.js"></script>
     <script src="games.js"></script>
     <script src="extras.js"></script>
+    <script src="galaxy-game.js"></script>
+    <script src="romantic-effects.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

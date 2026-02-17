@@ -1861,6 +1861,403 @@ section {
 }
 
 /* ===================================
+   GALAXIA DEL AMOR - JUEGO
+   =================================== */
+
+/* Tarjeta destacada del juego */
+.featured-game {
+    grid-column: span 2;
+    background: linear-gradient(135deg, rgba(255, 20, 147, 0.25), rgba(138, 43, 226, 0.15));
+    border: 3px solid rgba(255, 20, 147, 0.5);
+    position: relative;
+}
+
+.featured-game::after {
+    content: '✨ NUEVO ✨';
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #ff1493, #8a2be2);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.galaxy-icon {
+    background: linear-gradient(135deg, #ff1493, #8a2be2, #4b0082);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: galaxyFloat 3s ease-in-out infinite;
+}
+
+@keyframes galaxyFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-15px) rotate(5deg); }
+    50% { transform: translateY(0) rotate(0deg); }
+    75% { transform: translateY(-10px) rotate(-5deg); }
+}
+
+.game-features {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.feature-tag {
+    background: rgba(255, 20, 147, 0.2);
+    border: 1px solid rgba(255, 20, 147, 0.4);
+    padding: 0.4rem 1rem;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+}
+
+.feature-tag:hover {
+    background: rgba(255, 20, 147, 0.35);
+    transform: translateY(-2px);
+}
+
+.btn-featured {
+    background: linear-gradient(135deg, #ff1493, #8a2be2);
+    font-size: 1.1rem;
+    padding: 1rem 2.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-featured::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.btn-featured:hover::before {
+    left: 100%;
+}
+
+.btn-featured:hover {
+    box-shadow: 0 0 30px rgba(255, 20, 147, 0.7), 0 0 50px rgba(138, 43, 226, 0.5);
+}
+
+/* Modal del juego de la galaxia */
+.galaxy-modal-content {
+    max-width: 900px;
+    background: linear-gradient(135deg, rgba(10, 10, 30, 0.98), rgba(30, 10, 40, 0.98));
+    border: 3px solid rgba(255, 20, 147, 0.5);
+}
+
+.galaxy-instructions {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 20, 147, 0.1);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 20, 147, 0.3);
+}
+
+.galaxy-instructions p {
+    color: var(--text-secondary);
+    margin: 0.5rem 0;
+    line-height: 1.6;
+}
+
+.galaxy-instructions strong {
+    color: var(--primary-color);
+}
+
+.galaxy-game-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    background: #000;
+    border-radius: 15px;
+    border: 3px solid rgba(255, 20, 147, 0.5);
+    box-shadow: 0 0 40px rgba(255, 20, 147, 0.4) inset;
+}
+
+.galaxy-game-container canvas {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Efectos adicionales de fondo para el modal */
+.galaxy-modal-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(2px 2px at 20% 30%, white, transparent),
+        radial-gradient(2px 2px at 60% 70%, white, transparent),
+        radial-gradient(1px 1px at 50% 50%, white, transparent),
+        radial-gradient(1px 1px at 80% 10%, white, transparent),
+        radial-gradient(2px 2px at 90% 60%, white, transparent),
+        radial-gradient(1px 1px at 33% 80%, white, transparent);
+    background-size: 200% 200%;
+    animation: starfield 100s linear infinite;
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+@keyframes starfield {
+    from { background-position: 0 0; }
+    to { background-position: 100% 100%; }
+}
+
+/* ===================================
+   EFECTOS ROMÁNTICOS ADICIONALES
+   =================================== */
+
+/* Efecto de corazones flotantes en hover */
+.love-hover-effect {
+    position: relative;
+    overflow: visible;
+}
+
+.love-hover-effect::after {
+    content: '💕';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    animation: floatHeart 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.love-hover-effect:hover::after {
+    animation: floatHeartVisible 1.5s ease-out infinite;
+}
+
+@keyframes floatHeartVisible {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(0);
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-50px);
+    }
+}
+
+/* Efecto de brillo romántico */
+.romantic-glow {
+    position: relative;
+}
+
+.romantic-glow::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    background: linear-gradient(45deg, 
+        rgba(255, 20, 147, 0.5),
+        rgba(255, 105, 180, 0.5),
+        rgba(255, 20, 147, 0.5));
+    border-radius: inherit;
+    filter: blur(20px);
+    opacity: 0;
+    transition: opacity 0.5s;
+    z-index: -1;
+}
+
+.romantic-glow:hover::before {
+    opacity: 1;
+    animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* Efecto de texto brillante */
+.sparkle-text {
+    background: linear-gradient(90deg, 
+        #ff1493 0%,
+        #ff69b4 25%,
+        #ffd700 50%,
+        #ff69b4 75%,
+        #ff1493 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: sparkleMove 3s linear infinite;
+}
+
+@keyframes sparkleMove {
+    to { background-position: 200% center; }
+}
+
+/* Burbujas de amor flotantes */
+.love-bubbles {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.love-bubble {
+    position: absolute;
+    bottom: -100px;
+    animation: bubbleRise 15s ease-in infinite;
+    font-size: 2rem;
+    opacity: 0.6;
+}
+
+@keyframes bubbleRise {
+    0% {
+        bottom: -100px;
+        opacity: 0;
+        transform: translateX(0) scale(0.5);
+    }
+    10% {
+        opacity: 0.6;
+    }
+    90% {
+        opacity: 0.6;
+    }
+    100% {
+        bottom: 110%;
+        opacity: 0;
+        transform: translateX(100px) scale(1.2);
+    }
+}
+
+/* Efecto de lluvia de estrellas */
+.star-rain {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.falling-star {
+    position: absolute;
+    top: -50px;
+    animation: starFall 3s linear infinite;
+    font-size: 1.5rem;
+    opacity: 0.8;
+}
+
+@keyframes starFall {
+    0% {
+        top: -50px;
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.8;
+    }
+    90% {
+        opacity: 0.8;
+    }
+    100% {
+        top: 110%;
+        opacity: 0;
+    }
+}
+
+/* Efecto de partículas flotantes */
+.floating-particle {
+    position: absolute;
+    animation: particleFloat 20s ease-in-out infinite;
+    opacity: 0.4;
+}
+
+@keyframes particleFloat {
+    0%, 100% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 0.4;
+    }
+    25% {
+        transform: translate(100px, -100px) rotate(90deg);
+        opacity: 0.6;
+    }
+    50% {
+        transform: translate(200px, 0) rotate(180deg);
+        opacity: 0.4;
+    }
+    75% {
+        transform: translate(100px, 100px) rotate(270deg);
+        opacity: 0.6;
+    }
+}
+
+/* Efecto de onda romántica */
+.love-wave {
+    position: relative;
+    overflow: hidden;
+}
+
+.love-wave::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent,
+        rgba(255, 20, 147, 0.3),
+        transparent);
+    animation: waveSlide 3s ease-in-out infinite;
+}
+
+@keyframes waveSlide {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: 100%; }
+}
+
+/* Efecto de corazón pulsante */
+.heart-pulse {
+    animation: heartBeat 1.5s ease-in-out infinite;
+    display: inline-block;
+}
+
+@keyframes heartBeat {
+    0%, 100% { transform: scale(1); }
+    10%, 30% { transform: scale(1.1); }
+    20%, 40% { transform: scale(1); }
+}
+
+/* ===================================
    SCROLLBAR PERSONALIZADA
    =================================== */
 ::-webkit-scrollbar {

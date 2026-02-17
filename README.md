@@ -64,6 +64,16 @@
 4. **Test de Compatibilidad**: Cuestionario interactivo
 5. **Generador de Citas**: Ideas creativas para salir
 6. **Carta de Amor**: Genera mensajes románticos personalizados
+7. **🌌 Galaxia del Amor ¡NUEVO!**: Juego espacial altamente interactivo
+   - Navega por una galaxia llena de corazones en movimiento
+   - Captura mensajes de amor aleatorios
+   - Sistema de puntuación y combos
+   - Power-ups especiales (Escudo, Imán, x2 Puntos, Cámara Lenta, Vida Extra)
+   - Niveles de dificultad progresivos
+   - Récords guardados
+   - Controles con teclado y mouse
+   - Efectos visuales impresionantes
+   - Estadísticas de partida (nivel, tiempo, combo máximo)
 
 #### 💗 **Amor-ómetro**
 - Medidor visual del nivel de amor (sempre al 100%)
@@ -98,6 +108,16 @@
 - **3D text hover**: Efecto tridimensional en títulos
 - **Wave animations**: Ondas animadas de fondo
 - **Confetti effect**: Lluvia de confeti programable
+
+#### 💕 **Efectos Románticos Adicionales ¡NUEVO!**
+- **Burbujas de Amor Flotantes**: 15 burbujas con emojis románticos que suben constantemente
+- **Lluvia de Estrellas**: Estrellas cayendo del cielo de forma continua
+- **Corazones al Click**: Explosión de corazones al hacer clic en cualquier parte
+- **Mensajes Flotantes**: Mensajes de amor que aparecen periódicamente
+- **Cursor Romántico**: Cursor personalizado con trail de corazones
+- **Panel de Control**: Control interactivo para activar/desactivar cada efecto
+- **Efectos de Hover**: Brillo y animaciones especiales en elementos
+- **Texto Brillante**: Efecto de degradado animado en textos especiales
 - **Cursor personalizado**: Cursor con efecto de seguimiento
 - **Ripple effect**: Ondas al hacer clic
 
@@ -215,19 +235,25 @@ Love_Galaxy/
 ├── particles.js            # Sistema de partículas y efectos visuales
 ├── games.js                # Juegos interactivos
 ├── animations.js           # Animaciones avanzadas
+├── extras.js               # Características extras (logros, poemas, estadísticas)
+├── galaxy-game.js          # Juego de la Galaxia del Amor ¡NUEVO!
+├── romantic-effects.js     # Efectos románticos adicionales ¡NUEVO!
 └── README.md              # Documentación (este archivo)
 ```
 
 ### 📄 Descripción de Archivos
 
-- **index.html** (~800 líneas): Estructura completa con 8 secciones principales
-- **styles.css** (~2500 líneas): Sistema de diseño completo con variables CSS y responsive
-- **main.js** (~700 líneas): Funcionalidad principal, contadores, navegación
-- **particles.js** (~500 líneas): Efectos de partículas, mouse trail, explosiones
-- **games.js** (~600 líneas): 6 juegos completos interactivos
-- **animations.js** (~600 líneas): Biblioteca de animaciones reutilizables
+- **index.html** (~630 líneas): Estructura completa con 8 secciones principales + juego de galaxia
+- **styles.css** (~2,350 líneas): Sistema de diseño completo con variables CSS, responsive y efectos especiales
+- **main.js** (~714 líneas): Funcionalidad principal, contadores, navegación
+- **particles.js** (~459 líneas): Efectos de partículas, mouse trail, explosiones
+- **games.js** (~611 líneas): 6 juegos completos interactivos
+- **animations.js** (~682 líneas): Biblioteca de animaciones reutilizables
+- **extras.js** (~616 líneas): Sistema de logros, generador de poemas, estadísticas
+- **galaxy-game.js** (~1,048 líneas): Juego espacial completo con físicas, colisiones, power-ups
+- **romantic-effects.js** (~567 líneas): Efectos románticos interactivos y panel de control
 
-**Total: ~5,700 líneas de código profesional**
+**Total: ~7,677 líneas de código profesional**
 
 ---
 
@@ -377,6 +403,16 @@ La aplicación está optimizada para todos los tamaños de pantalla:
 - Cierra otras pestañas del navegador
 - Desactiva extensiones que puedan interferir
 - Verifica la aceleración de hardware en tu navegador
+- Usa el panel de control de efectos (botón ✨ abajo a la izquierda) para desactivar algunos efectos
+
+### Los efectos románticos afectan el rendimiento
+- Haz clic en el botón ✨ en la esquina inferior izquierda
+- Desactiva individualmente los efectos que no necesites:
+  - 💕 Burbujas de Amor
+  - ⭐ Lluvia de Estrellas
+  - 💖 Corazones al Click
+  - 💌 Mensajes Flotantes
+  - 🖱️ Cursor Romántico
 
 ### Las fotos no se guardan
 - Verifica que tienes espacio en localStorage (límite ~5MB)
@@ -398,12 +434,15 @@ La aplicación está optimizada para todos los tamaños de pantalla:
 
 Ideas para expandir la aplicación:
 
+- [x] Juego espacial interactivo (Galaxia del Amor)
+- [x] Sistema de efectos románticos personalizables
+- [x] Panel de control de efectos visuales
+- [x] Sistema de logros y insignias
 - [ ] Integración con Spotify API
 - [ ] Sistema de notificaciones de aniversarios
 - [ ] Exportar recuerdos como PDF
 - [ ] Modo oscuro/claro
 - [ ] Más juegos interactivos
-- [ ] Sistema de logros y insignias
 - [ ] Integración con redes sociales
 - [ ] PWA (Progressive Web App)
 - [ ] Backend para sincronizar entre dispositivos
