@@ -40,16 +40,27 @@
 - Estadísticas de relación animadas
 
 #### 📖 **Nuestra Historia (Timeline)**
-- Línea de tiempo interactiva con eventos clave
-- Agregar y personalizar momentos especiales
-- Diseño visual atractivo con iconos
-- Animaciones al hacer scroll
+- **Línea de tiempo interactiva** con eventos clave
+- **✨ CREAR nuevos eventos** con modalformulario elegante
+- **✏️ EDITAR eventos existentes** con todos sus detalles
+- **🗑️ ELIMINAR eventos** con confirmación
+- **Personalización completa**: título, fecha, descripción, icono emoji
+- **Almacenamiento persistente** en localStorage
+- **Diseño visual atractivo** con iconos animados
+- **Animaciones smooth** al hacer scroll
+- **Botón \"Agregar Evento\"** integrado en el timeline
+- **100% editable** - crea tu propia historia de amor
 
 #### 🖼️ **Galería de Fotos**
-- Sistema de categorías (Juntos, Especiales, Viajes, Celebraciones)
-- Subir y almacenar fotos localmente
-- Filtros interactivos
-- Vista previa con overlays
+- **Sistema de categorías completo** (Juntos, Especiales, Viajes, Celebraciones)
+- **Subir fotos con validación** (máximo 2MB)
+- **Almacenamiento persistente** con localStorage
+- **Vista fullscreen** con modal táctil
+- **Gestión completa**: Ver, Cambiar, Eliminar fotos
+- **Diseño tipo dome/cúpula** con efectos hover
+- **Carga automática** al iniciar la app
+- **Toast notifications** para feedback del usuario
+- **100% funcional en móviles** con controles táctiles
 
 #### 📝 **Libro de Recuerdos**
 - Crear y guardar recuerdos con fecha
@@ -89,24 +100,63 @@
 
 #### 🎵 **Playlist del Amor**
 - Reproductor de música visual
-- Disco de vinilo animado
-- Lista de canciones especiales
-- Controles de reproducción
-
-### ✨ **Efectos y Animaciones**
-
-#### 🎨 Sistema de Partículas
-- **Estrellas de fondo**: 100 estrellas parpadeantes que crean una atmósfera celestial
-- **Corazones flotantes**: 15 corazones que suben constantemente con movimiento natural
-- **Trail del mouse**: Partículas que siguen el cursor
-- **Explosión al hacer clic**: Efecto de fuegos artificiales con cada clic
+- **Optimización automática**: Reduce partículas en dispositivos móviles
 
 #### 🌊 Animaciones Avanzadas
-- **Parallax scrolling**: Efecto de profundidad al navegar
+- **Parallax scrolling**: Efecto de profundidad al navegar (desactivado en móvil)
 - **Scroll reveal**: Elementos que aparecen al hacer scroll
 - **Typing effect**: Texto que se escribe automáticamente
 - **3D text hover**: Efecto tridimensional en títulos
 - **Wave animations**: Ondas animadas de fondo
+- **Confetti effect**: Lluvia de confeti programable
+- **Animaciones reducidas en móvil**: Mejor rendimiento
+
+#### 💕 **Efectos Románticos Adicionales**
+- **Burbujas de Amor Flotantes**: 15 burbujas con emojis románticos que suben constantemente
+- **Lluvia de Estrellas**: Estrellas cayendo del cielo de forma continua
+- **Corazones al Click**: Explosión de corazones al hacer clic en cualquier parte
+- **Mensajes Flotantes**: Mensajes de amor que aparecen periódicamente
+- **Cursor Romántico**: Cursor personalizado con trail de corazones
+- **Panel de Control**: Control interactivo para activar/desactivar cada efecto
+- **Efectos de Hover**: Brillo y animaciones especiales en elementos
+- **Texto Brillante**: Efecto de degradado animado en textos especiales
+- **Optimizado para móviles**: Panel adaptado a pantallas pequeñas
+
+### 📱 **RESPONSIVE Y MÓVIL** ¡NUEVO!
+
+#### 🎯 Optimización Completa para Móviles
+- **✅ 100% Funcional en iOS, Android y tablets**
+- **Meta tags optimizados** para viewport móvil
+- **Viewport height fix** para iOS y Android (--vh variable)
+- **Detección automática de dispositivos** móviles
+- **Touch-friendly**: Áreas de toque mínimas 44x44px
+- **Feedback visual en touch**: Animaciones de scale al tocar
+- **Navegación móvil mejorada**: Menú hamburguesa con animaciones
+- **Soporte orientación**: Portrait y landscape
+- **Grids adaptativos**: 
+  - Desktop: 3-4 columnas
+  - Tablet (1024px): 2-3 columnas
+  - Móvil (768px): 1-2 columnas
+  - Móvil pequeño (480px): 1 columna
+
+#### 🎨 Estilos Móviles (mobile-styles.css - 700+ líneas)
+- **Toast notifications responsive**: Adaptadas a ancho de pantalla
+- **Modales fullscreen**: Optimizados para touch
+- **Galería táctil**: Swipe y zoom en fotos
+- **Timeline compacto**: Diseño vertical optimizado
+- **Juegos adaptados**: Controles táctiles mejorados
+- **Panel de efectos móvil**: Posición y tamaño optimizado
+- **Formularios touch-friendly**: Inputs grandes y accesibles
+- **Botones grandes**: Fáciles de tocar
+- **Reducción de animaciones**: Mejor performance
+- **Landscape mode**: Ajustes para orientación horizontal
+
+#### ♿ Accesibilidad
+- **Focus visible**: Navegación con teclado
+- **Prefers-reduced-motion**: Respeta preferencias de usuario
+- **Alto contraste**: Soporte para modos de contraste alto
+- **Tap highlights**: Feedback visual al tocar
+- **Áreas de toque expandidas**: Elementos pequeños con área touch mayor
 - **Confetti effect**: Lluvia de confeti programable
 
 #### 💕 **Efectos Románticos Adicionales ¡NUEVO!**
@@ -181,29 +231,32 @@ Edita las variables en `styles.css` (líneas 5-30):
     --accent-color: #ff6b9d;       /* Color de acento */
     /* ... más colores */
 }
+```obile-styles.css       # Estilos específicos para móviles ¡NUEVO!
+├── main.js                 # Lógica principal y funcionalidades
+├── particles.js            # Sistema de partículas y efectos visuales
+├── games.js                # Juegos interactivos
+├── animations.js           # Animaciones avanzadas
+├── extras.js               # Características extras (logros, poemas, estadísticas)
+├── galaxy-game.js          # Juego de la Galaxia del Amor
+├── romantic-effects.js     # Efectos románticos adicionales
+├── GUIA_JUEGO_GALAXIA.md  # Guía completa del juego espacial
+└── README.md              # Documentación (este archivo)
 ```
 
-### 💕 Cambiar el Nombre
+### 📄 Descripción de Archivos
 
-En `index.html`, busca "Tamara" y reemplázalo con el nombre deseado:
+- **index.html** (~640 líneas): Estructura completa con 8 secciones principales + juego de galaxia
+- **styles.css** (~2,310 líneas): Sistema de diseño completo con variables CSS y responsive
+- **mobile-styles.css** (~700 líneas): Estilos dedicados para móviles, tablets y touch ¡NUEVO!
+- **main.js** (~1,240 líneas): Funcionalidad principal, galería, timeline editable, controles táctiles ¡ACTUALIZADO!
+- **particles.js** (~459 líneas): Efectos de partículas, mouse trail, explosiones
+- **games.js** (~611 líneas): 6 juegos completos interactivos
+- **animations.js** (~682 líneas): Biblioteca de animaciones reutilizables
+- **extras.js** (~616 líneas): Sistema de logros, generador de poemas, estadísticas
+- **galaxy-game.js** (~1,048 líneas): Juego espacial completo con físicas, colisiones, power-ups
+- **romantic-effects.js** (~567 líneas): Efectos románticos interactivos y panel de control
 
-```html
-<span class="hero-name">Tu Nombre Aquí</span>
-```
-
-### 📅 Configurar Fecha de Inicio
-
-En `main.js` (línea 10), cambia la fecha:
-
-```javascript
-let relationshipStart = new Date('2024-01-01'); // Tu fecha
-```
-
-O usa el formulario en la sección "Amor-ómetro" para configurarlo dinámicamente.
-
-### 🎵 Personalizar Canciones
-
-En la sección Playlist del `index.html`, edita las canciones:
+**Total: ~9,02Playlist del `index.html`, edita las canciones:
 
 ```html
 <h4>Nombre de tu Canción</h4>
