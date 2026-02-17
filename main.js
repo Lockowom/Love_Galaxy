@@ -153,6 +153,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Cargar recuerdos guardados
     loadMemories();
+    
+    // Cargar fotos de la galería
+    loadGalleryPhotos();
+    
+    // Cargar eventos del timeline
+    loadTimelineEvents();
 
     // Generar mensaje del día
     generateDailyMessage();
@@ -170,6 +176,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('relationship-start').value = savedDate;
         calculateTimeTogether();
     }
+    
+    // Optimizaciones para móviles
+    initMobileOptimizations();
 });
 
 // ================================================
@@ -422,20 +431,44 @@ function uploadPhoto(button) {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
+    input.multiple = false;
+    
     input.onchange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            // Validar tamaño (máximo 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('La imagen es muy grande. Por favor, elige una imagen menor a 2MB.');
+                return;
+            }
+            
             const reader = new FileReader();
             reader.onload = function(event) {
                 const galleryItem = button.closest('.gallery-item');
                 const placeholder = galleryItem.querySelector('.gallery-placeholder');
+                const category = galleryItem.getAttribute('data-category');
+                const photoId = galleryItem.getAttribute('data-photo-id') || Date.now().toString();
+                
+                galleryItem.setAttribute('data-photo-id', photoId);
+                
+                // Actualizar visual
                 placeholder.style.backgroundImage = `url(${event.target.result})`;
                 placeholder.style.backgroundSize = 'cover';
                 placeholder.style.backgroundPosition = 'center';
                 placeholder.innerHTML = '';
+                placeholder.classList.add('has-photo');
+                
+                // Agregar clase para mostrar foto
+                galleryItem.classList.add('has-photo');
                 
                 // Guardar en localStorage
-                savePhoto(event.target.result, galleryItem.getAttribute('data-category'));
+                savePhoto(photoId, event.target.result, category);
+                
+                // Agregar botones de acción
+                updateGalleryItemButtons(galleryItem, photoId);
+                
+                // Mensaje de éxito
+                showToast('✅ Foto guardada exitosamente', 'success');
             };
             reader.readAsDataURL(file);
         }
@@ -443,10 +476,152 @@ function uploadPhoto(button) {
     input.click();
 }
 
-function savePhoto(dataUrl, category) {
-    const photos = JSON.parse(localStorage.getItem('galleryPhotos') || '[]');
-    photos.push({ dataUrl, category, date: new Date().toISOString() });
+function savePhoto(photoId, dataUrl, category) {
+    const photos = JSON.parse(localStorage.getItem('galleryPhotos') || '{}');
+    photos[photoId] = {
+        dataUrl,
+        category,
+        date: new Date().toISOString(),
+        id: photoId
+    };
     localStorage.setItem('galleryPhotos', JSON.stringify(photos));
+}
+
+function loadGalleryPhotos() {
+    const photos = JSON.parse(localStorage.getItem('galleryPhotos') || '{}');
+    const galleryItems = document.querySelectorAll('.gallery-item');
+    
+    galleryItems.forEach(item => {
+        const photoId = item.getAttribute('data-photo-id');
+        if (photoId && photos[photoId]) {
+            const photo = photos[photoId];
+            const placeholder = item.querySelector('.gallery-placeholder');
+            
+            placeholder.style.backgroundImage = `url(${photo.dataUrl})`;
+            placeholder.style.backgroundSize = 'cover';
+            placeholder.style.backgroundPosition = 'center';
+            placeholder.innerHTML = '';
+            placeholder.classList.add('has-photo');
+            item.classList.add('has-photo');
+            
+            updateGalleryItemButtons(item, photoId);
+        }
+    });
+}
+
+function updateGalleryItemButtons(galleryItem, photoId) {
+    const overlay = galleryItem.querySelector('.gallery-overlay');
+    if (!overlay) return;
+    
+    overlay.innerHTML = `
+        <button onclick="viewPhotoFullscreen('${photoId}')" class="btn-small btn-view">👁️ Ver</button>
+        <button onclick="changePhoto(this)" class="btn-small btn-change">🔄 Cambiar</button>
+        <button onclick="deletePhoto('${photoId}', this)" class="btn-small btn-delete">🗑️ Eliminar</button>
+    `;
+}
+
+function changePhoto(button) {
+    uploadPhoto(button);
+}
+
+function deletePhoto(photoId, button) {
+    if (!confirm('¿Estás seguro de eliminar esta foto?')) return;
+    
+    const photos = JSON.parse(localStorage.getItem('galleryPhotos') || '{}');
+    delete photos[photoId];
+    localStorage.setItem('galleryPhotos', JSON.stringify(photos));
+    
+    const galleryItem = button.closest('.gallery-item');
+    const placeholder = galleryItem.querySelector('.gallery-placeholder');
+    const category = galleryItem.getAttribute('data-category');
+    
+    placeholder.style.backgroundImage = '';
+    placeholder.classList.remove('has-photo');
+    galleryItem.classList.remove('has-photo');
+    galleryItem.removeAttribute('data-photo-id');
+    
+    // Restaurar placeholder original
+    const icons = {
+        'juntos': '📷',
+        'especiales': '💕',
+        'viajes': '✈️',
+        'celebraciones': '🎉'
+    };
+    
+    placeholder.innerHTML = `
+        <span class="placeholder-icon">${icons[category] || '📸'}</span>
+        <p>Añade una foto especial</p>
+    `;
+    
+    const overlay = galleryItem.querySelector('.gallery-overlay');
+    overlay.innerHTML = `
+        <h4>Subir Foto</h4>
+        <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+    `;
+    
+    showToast('🗑️ Foto eliminada', 'info');
+}
+
+function viewPhotoFullscreen(photoId) {
+    const photos = JSON.parse(localStorage.getItem('galleryPhotos') || '{}');
+    const photo = photos[photoId];
+    
+    if (!photo) return;
+    
+    // Crear modal de vista completa
+    const modal = document.createElement('div');
+    modal.className = 'photo-fullscreen-modal';
+    modal.innerHTML = `
+        <div class="photo-fullscreen-content">
+            <button class="photo-close" onclick="this.closest('.photo-fullscreen-modal').remove()">&times;</button>
+            <img src="${photo.dataUrl}" alt="Foto" />
+            <div class="photo-info">
+                <p>📅 ${new Date(photo.date).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p>📁 ${getCategoryName(photo.category)}</p>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Cerrar con click fuera de la imagen
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+    
+    // Cerrar con ESC
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            modal.remove();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+}
+
+function getCategoryName(category) {
+    const names = {
+        'juntos': 'Juntos 💑',
+        'especiales': 'Especiales 💝',
+        'viajes': 'Viajes ✈️',
+        'celebraciones': 'Celebraciones 🎉'
+    };
+    return names[category] || category;
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 
 // ================================================
@@ -704,6 +879,283 @@ function formatDate(date) {
         month: 'long',
         day: 'numeric'
     });
+}
+
+// Escapar HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ================================================
+// TIMELINE EDITABLE
+// ================================================
+
+function loadTimelineEvents() {
+    const timelineContainer = document.querySelector('.timeline');
+    if (!timelineContainer) return;
+    
+    const savedEvents = JSON.parse(localStorage.getItem('timelineEvents') || '[]');
+    
+    // Si hay eventos guardados, reemplazar los del HTML
+    if (savedEvents.length > 0) {
+        // Mantener el botón de agregar evento
+        const addButton = timelineContainer.querySelector('.timeline-add-btn');
+        timelineContainer.innerHTML = '';
+        
+        savedEvents.forEach((event, index) => {
+            const timelineItem = createTimelineItem(event, index);
+            timelineContainer.appendChild(timelineItem);
+        });
+        
+        // Re-agregar botón si existía
+        if (addButton) {
+            timelineContainer.appendChild(addButton);
+        } else {
+            addTimelineButton(timelineContainer);
+        }
+    } else {
+        // Agregar botón de añadir evento si no existe
+        if (!timelineContainer.querySelector('.timeline-add-btn')) {
+            addTimelineButton(timelineContainer);
+        }
+    }
+}
+
+function createTimelineItem(event, index) {
+    const item = document.createElement('div');
+    item.className = 'timeline-item';
+    item.setAttribute('data-event-id', index);
+    
+    item.innerHTML = `
+        <div class=\"timeline-content\">
+            <div class=\"timeline-icon\">${event.icon || '💕'}</div>
+            <h3>${escapeHtml(event.title)}</h3>
+            <p class=\"timeline-date\">${escapeHtml(event.date)}</p>
+            <p>${escapeHtml(event.description)}</p>
+            <div class=\"timeline-actions\">
+                <button onclick=\"editTimelineEvent(${index})\" class=\"btn-small\">✏️ Editar</button>
+                <button onclick=\"deleteTimelineEvent(${index})\" class=\"btn-small\">🗑️ Eliminar</button>
+            </div>
+        </div>
+    `;
+    
+    return item;
+}
+
+function addTimelineButton(container) {
+    const addBtn = document.createElement('div');
+    addBtn.className = 'timeline-item timeline-add-btn';
+    addBtn.innerHTML = `
+        <div class=\"timeline-content add-event-content\">
+            <div class=\"timeline-icon\">➕</div>
+            <h3>Agregar Evento</h3>
+            <p>Añade un momento especial a tu historia</p>
+            <button onclick=\"showAddEventModal()\" class=\"btn-primary\">Agregar Evento</button>
+        </div>
+    `;
+    container.appendChild(addBtn);
+}
+
+function showAddEventModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal timeline-modal active';
+    modal.innerHTML = `
+        <div class=\"modal-content\">
+            <span class=\"modal-close\" onclick=\"this.closest('.modal').remove()\">&times;</span>
+            <h2>✨ Agregar Evento a Nuestra Historia</h2>
+            <form id=\"timeline-event-form\">
+                <div class=\"form-group\">
+                    <label>Título del Evento</label>
+                    <input type=\"text\" id=\"event-title\" required placeholder=\"Ej: Nuestro Primer Beso\">
+                </div>
+                <div class=\"form-group\">
+                    <label>Fecha</label>
+                    <input type=\"text\" id=\"event-date\" required placeholder=\"Ej: Enero 2024\">
+                </div>
+                <div class=\"form-group\">
+                    <label>Descripción</label>
+                    <textarea id=\"event-description\" required rows=\"4\" placeholder=\"Describe este momento especial...\"></textarea>
+                </div>
+                <div class=\"form-group\">
+                    <label>Icono (Emoji)</label>
+                    <input type=\"text\" id=\"event-icon\" maxlength=\"2\" placeholder=\"💕\">
+                </div>
+                <div class=\"modal-buttons\">
+                    <button type=\"submit\" class=\"btn-primary\">💾 Guardar Evento</button>
+                    <button type=\"button\" onclick=\"this.closest('.modal').remove()\" class=\"btn-secondary\">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const form = modal.querySelector('#timeline-event-form');
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const event = {
+            title: document.getElementById('event-title').value,
+            date: document.getElementById('event-date').value,
+            description: document.getElementById('event-description').value,
+            icon: document.getElementById('event-icon').value || '💕'
+        };
+        
+        const events = JSON.parse(localStorage.getItem('timelineEvents') || '[]');
+        events.push(event);
+        localStorage.setItem('timelineEvents', JSON.stringify(events));
+        
+        modal.remove();
+        loadTimelineEvents();
+        showToast('✅ Evento agregado a tu historia', 'success');
+    });
+}
+
+function editTimelineEvent(index) {
+    const events = JSON.parse(localStorage.getItem('timelineEvents') || '[]');
+    const event = events[index];
+    
+    if (!event) return;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal timeline-modal active';
+    modal.innerHTML = `
+        <div class=\"modal-content\">
+            <span class=\"modal-close\" onclick=\"this.closest('.modal').remove()\">&times;</span>
+            <h2>✏️ Editar Evento</h2>
+            <form id=\"edit-timeline-form\">
+                <div class=\"form-group\">
+                    <label>Título del Evento</label>
+                    <input type=\"text\" id=\"edit-event-title\" required value=\"${escapeHtml(event.title)}\">
+                </div>
+                <div class=\"form-group\">
+                    <label>Fecha</label>
+                    <input type=\"text\" id=\"edit-event-date\" required value=\"${escapeHtml(event.date)}\">
+                </div>
+                <div class=\"form-group\">
+                    <label>Descripción</label>
+                    <textarea id=\"edit-event-description\" required rows=\"4\">${escapeHtml(event.description)}</textarea>
+                </div>
+                <div class=\"form-group\">
+                    <label>Icono (Emoji)</label>
+                    <input type=\"text\" id=\"edit-event-icon\" maxlength=\"2\" value=\"${event.icon || '💕'}\">
+                </div>
+                <div class=\"modal-buttons\">
+                    <button type=\"submit\" class=\"btn-primary\">💾 Guardar Cambios</button>
+                    <button type=\"button\" onclick=\"this.closest('.modal').remove()\" class=\"btn-secondary\">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const form = modal.querySelector('#edit-timeline-form');
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        events[index] = {
+            title: document.getElementById('edit-event-title').value,
+            date: document.getElementById('edit-event-date').value,
+            description: document.getElementById('edit-event-description').value,
+            icon: document.getElementById('edit-event-icon').value || '💕'
+        };
+        
+        localStorage.setItem('timelineEvents', JSON.stringify(events));
+        
+        modal.remove();
+        loadTimelineEvents();
+        showToast('✅ Evento actualizado', 'success');
+    });
+}
+
+function deleteTimelineEvent(index) {
+    if (!confirm('¿Est\u00e1s seguro de eliminar este evento?')) return;
+    
+    const events = JSON.parse(localStorage.getItem('timelineEvents') || '[]');
+    events.splice(index, 1);
+    localStorage.setItem('timelineEvents', JSON.stringify(events));
+    
+    loadTimelineEvents();
+    showToast('🗑️ Evento eliminado', 'info');
+}
+
+// ================================================
+// OPTIMIZACIONES PARA MÓVILES
+// ================================================
+
+function initMobileOptimizations() {
+    // Detect if mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+        document.body.classList.add('is-mobile');
+        
+        // Optimizar scroll
+        adjustScrollBehavior();
+        
+        // Mejorar controles táctiles
+        enhanceTouchControls();
+        
+        // Reducir efectos en móviles
+        optimizeEffectsForMobile();
+    }
+    
+    // Detectar orientación
+    handleOrientationChange();
+    window.addEventListener('orientationchange', handleOrientationChange);
+    window.addEventListener('resize', handleOrientationChange);
+}
+
+function adjustScrollBehavior() {
+    // Suavizar scroll en móviles
+    document.documentElement.style.scrollBehavior = 'smooth';
+}
+
+function enhanceTouchControls() {
+    // Agregar clases touch a botones
+    document.querySelectorAll('button, .btn-primary, .btn-secondary, .btn-game, .nav-link').forEach(el => {
+        el.classList.add('touch-friendly');
+    });
+    
+    // Mejorar área de toque para elementos pequeños
+    document.querySelectorAll('.btn-small, .filter-btn').forEach(el => {
+        el.style.minHeight = '44px'; // Tamaño mínimo recomendado para touch
+        el.style.minWidth = '44px';
+    });
+}
+
+function optimizeEffectsForMobile() {
+    // Reducir número de partículas en móviles
+    const canvasHearts = document.getElementById('hearts-canvas');
+    const canvasStars = document.getElementById('stars-canvas');
+    
+    if (canvasHearts && window.particleSystem) {
+        // Reducir partículas a la mitad en móviles
+        if (window.innerWidth < 768) {
+            window.particleSystem.maxParticles = Math.floor(window.particleSystem.maxParticles / 2);
+        }
+    }
+}
+
+function handleOrientationChange() {
+    const isLandscape = window.innerWidth > window.innerHeight;
+    
+    if (isLandscape) {
+        document.body.classList.add('landscape');
+        document.body.classList.remove('portrait');
+    } else {
+        document.body.classList.add('portrait');
+        document.body.classList.remove('landscape');
+    }
+    
+    // Ajustar viewport mobile
+    if (window.innerWidth < 768) {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
 }
 
 // Escapar HTML
