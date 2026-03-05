@@ -14,8 +14,9 @@ class GalaxyLoveGame {
         this.isPaused = false;
         this.score = 0;
         this.level = 1;
-        this.lives = 3;
-        this.highScore = parseInt(localStorage.getItem('galaxyLoveHighScore')) || 0;
+        this.lives = 3;// High Score
+        this.highScore = 0;
+        this.loadHighScore();
         
         // Jugador (nave/corazón)
         this.player = {
@@ -85,6 +86,14 @@ class GalaxyLoveGame {
         this.combo = 0;
         this.comboTime = 0;
         this.maxCombo = 0;
+    }
+
+    async loadHighScore() {
+        if (window.db && window.db.getHighScore) {
+            this.highScore = await window.db.getHighScore('galaxyLove');
+        } else {
+            this.highScore = parseInt(localStorage.getItem('galaxyLoveHighScore')) || 0;
+        }
     }
 
     init(containerId) {
@@ -703,13 +712,17 @@ class GalaxyLoveGame {
         this.ctx.fillText('Presiona P para continuar', this.width / 2, this.height / 2 + 50);
     }
 
-    gameOver() {
+    async gameOver() {
         this.isPlaying = false;
         
         // Guardar high score
         if (this.score > this.highScore) {
             this.highScore = this.score;
-            localStorage.setItem('galaxyLoveHighScore', this.highScore);
+            if (window.db && window.db.saveGameScore) {
+                await window.db.saveGameScore('galaxyLove', this.score, { level: this.level, maxCombo: this.maxCombo });
+            } else {
+                localStorage.setItem('galaxyLoveHighScore', this.highScore);
+            }
         }
         
         // Mostrar pantalla de game over

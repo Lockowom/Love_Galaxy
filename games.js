@@ -219,16 +219,23 @@ function closeQuestionModal() {
     }
 }
 
-function saveQuestionAnswer() {
+async function saveQuestionAnswer() {
     const answer = document.querySelector('.answer-input');
     if (answer && answer.value.trim()) {
-        const answers = JSON.parse(localStorage.getItem('questionAnswers') || '[]');
-        answers.push({
-            question: document.querySelector('.question-text').textContent,
-            answer: answer.value,
-            date: new Date().toISOString()
-        });
-        localStorage.setItem('questionAnswers', JSON.stringify(answers));
+        const questionText = document.querySelector('.question-text').textContent;
+        
+        if (window.db && window.db.saveQuestionAnswer) {
+            await window.db.saveQuestionAnswer(questionText, answer.value);
+        } else {
+            // Fallback
+            const answers = JSON.parse(localStorage.getItem('questionAnswers') || '[]');
+            answers.push({
+                question: questionText,
+                answer: answer.value,
+                date: new Date().toISOString()
+            });
+            localStorage.setItem('questionAnswers', JSON.stringify(answers));
+        }
         
         alert('¡Respuesta guardada! 💕\n\nTus pensamientos han sido guardados con amor.');
         closeQuestionModal();
