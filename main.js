@@ -166,8 +166,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mostrar frase de amor inicial
     generateNewQuote();
 
-    // Inicializar observadores de scroll
-    initScrollAnimations();
+    // Inicializar observadores de scroll (GSAP se encarga ahora)
+    // initScrollAnimations(); -> Reemplazado por initGsapAnimations que se auto-registra
+
 
     // Cargar fecha de relación
     loadRelationshipDate();
@@ -763,129 +764,343 @@ function generateNewQuote() {
         const randomQuote = loveQuotes[Math.floor(Math.random() * loveQuotes.length)];
         const quoteText = quoteDisplay.querySelector('.quote-text');
         if (quoteText) {
-            quoteText.style.opacity = '0';
-            setTimeout(() => {
+            gsap.to(quoteText, { opacity: 0, duration: 0.3, onComplete: () => {
                 quoteText.textContent = `"${randomQuote}"`;
-                quoteText.style.opacity = '1';
-            }, 300);
+                gsap.to(quoteText, { opacity: 1, duration: 0.5 });
+            }});
         }
+    }
+}
+
+async function loadCustomMessages() {
+    const container = document.getElementById('saved-messages-container');
+    if (!container) return;
+
+    try {
+        const messages = await db.getCustomMessages();
+        container.innerHTML = '';
+
+        if (messages.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color: #aaa; font-style: italic;">Aún no hay mensajes. ¡Sé el primero en escribir uno! 💌</p>';
+            return;
+        }
+
+        messages.forEach(msg => {
+            const msgEl = document.createElement('div');
+            msgEl.className = 'saved-message-card';
+            msgEl.style.cssText = `
+                background: rgba(255, 255, 255, 0.05);
+                border-left: 3px solid var(--primary-color);
+                padding: 1rem;
+                margin-bottom: 1rem;
+                border-radius: 8px;
+                animation: fadeIn 0.5s ease;
+            `;
+            msgEl.innerHTML = `
+                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">${escapeHtml(msg.content)}</p>
+                <small style="color: #aaa;">${new Date(msg.created_at).toLocaleDateString()} - ${new Date(msg.created_at).toLocaleTimeString()}</small>
+            `;
+            container.appendChild(msgEl);
+        });
+    } catch (e) {
+        console.error("Error cargando mensajes:", e);
     }
 }
 
 async function saveCustomMessage() {
     const messageText = document.getElementById('custom-message-text');
     if (messageText && messageText.value.trim()) {
-        // Por simplicidad, esto podría ir a la tabla custom_messages si se desea, 
-        // pero la implementación original en localStorage era simple.
-        // Si queremos usar DB, deberíamos añadirlo a db.js.
-        // Por ahora lo mantendré en localStorage para no complicar demasiado,
-        // o usar una llamada genérica si db lo soportara.
-        // Asumiremos localStorage para esto o lo dejamos como estaba.
-        
-        const messages = JSON.parse(localStorage.getItem('customMessages') || '[]');
-        messages.push({
-            text: messageText.value,
-            date: new Date().toISOString()
-        });
-        localStorage.setItem('customMessages', JSON.stringify(messages));
-        
-        messageText.value = '';
-        showNotification('¡Mensaje guardado con amor! 💌');
-    }
-}
+        const btn = document.querySelector('.custom-message .btn-primary');
+        const originalText = btn.textContent;
+        btn.textContent = "Guardando... 💖";
+        btn.disabled = true;
 
-// ================================================
-// MÚSICA
-// ================================================
-
-function togglePlay() {
-    isPlaying = !isPlaying;
-    const playBtn = document.getElementById('play-btn');
-    const vinyl = document.querySelector('.vinyl-record');
-    
-    if (playBtn) {
-        playBtn.textContent = isPlaying ? '⏸️' : '▶️';
-    }
-    
-    if (vinyl) {
-        if (isPlaying) {
-            vinyl.classList.add('playing');
-        } else {
-            vinyl.classList.remove('playing');
+        try {
+            await db.saveCustomMessage(messageText.value);
+            messageText.value = '';
+            showNotification('¡Mensaje guardado con amor! 💌');
+            await loadCustomMessages(); // Recargar lista
+        } catch (e) {
+            console.error(e);
+            showNotification('Error al guardar mensaje');
+        } finally {
+            btn.textContent = originalText;
+            btn.disabled = false;
         }
     }
 }
 
-function previousSong() {
-    const songs = document.querySelectorAll('.playlist-item');
-    currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
-    updateCurrentSong();
+// Cargar mensajes al inicio
+document.addEventListener('DOMContentLoaded', loadCustomMessages);
+
+// ================================================
+// ANIMACIONES GSAP
+// ================================================
+
+function initGsapAnimations() {
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Hero Animation
+    const heroTl = gsap.timeline();
+    heroTl.from('.hero h1', { y: 50, opacity: 0, duration: 1, ease: "back.out(1.7)" })
+          .from('.hero p', { y: 30, opacity: 0, duration: 0.8 }, "-=0.5")
+          .from('.hero-buttons', { scale: 0.8, opacity: 0, duration: 0.5 }, "-=0.3");
+
+    // Sections ScrollTrigger
+    gsap.utils.toArray('section').forEach(section => {
+        gsap.from(section, {
+            opacity: 0,
+            y: 50,
+            duration: 1,
+            ease: "power2.out",
+            scrollTrigger: {
+                trigger: section,
+                start: "top 85%",
+                toggleActions: "play none none reverse"
+            }
+        });
+    });
+
+    // Timeline Items Stagger
+    gsap.utils.toArray('.timeline-item').forEach((item, i) => {
+        gsap.from(item, {
+            opacity: 0,
+            x: i % 2 === 0 ? -50 : 50,
+            duration: 0.8,
+            scrollTrigger: {
+                trigger: item,
+                start: "top 85%"
+            }
+        });
+    });
+
+    // Floating Elements (Hearts/Stars background if any)
+    gsap.to('.floating-element', {
+        y: -20,
+        rotation: 10,
+        duration: 2,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+        stagger: 0.5
+    });
 }
 
-function nextSong() {
-    const songs = document.querySelectorAll('.playlist-item');
-    currentSongIndex = (currentSongIndex + 1) % songs.length;
-    updateCurrentSong();
-}
+// Reemplazar initScrollAnimations con GSAP
+// initScrollAnimations se llamaba en DOMContentLoaded, ahora llamaremos initGsapAnimations
+document.addEventListener('DOMContentLoaded', initGsapAnimations);
 
-function setSong(index) {
-    currentSongIndex = index - 1;
-    updateCurrentSong();
-    if (!isPlaying) {
-        togglePlay();
+// ================================================
+// MÚSICA Y PLAYLIST
+// ================================================
+
+let playlist = [];
+
+async function loadPlaylist() {
+    try {
+        const songs = await db.getPlaylist();
+        playlist = songs.length > 0 ? songs : [
+            // Canciones por defecto si no hay ninguna
+            { title: "Nuestra Primera Canción", artist: "El inicio de todo", url: "#" },
+            { title: "La Que Me Recuerda a Ti", artist: "Siempre en mi mente", url: "#" }
+        ];
+        
+        renderPlaylist();
+        
+        // Si hay canciones, preparar la primera
+        if (playlist.length > 0) {
+            updatePlayerUI(0);
+        }
+    } catch (e) {
+        console.error("Error cargando playlist:", e);
     }
 }
 
-function updateCurrentSong() {
-    const songs = [
-        { title: "Nuestra Primera Canción", artist: "El inicio de todo" },
-        { title: "La Que Me Recuerda a Ti", artist: "Siempre en mi mente" },
-        { title: "Nuestro Himno", artist: "El soundtrack del amor" }
-    ];
+function renderPlaylist() {
+    const container = document.getElementById('playlist-container');
+    if (!container) return;
     
-    const currentSong = songs[currentSongIndex];
+    container.innerHTML = '';
+    
+    playlist.forEach((song, index) => {
+        const item = document.createElement('div');
+        item.className = `playlist-item ${index === currentSongIndex ? 'active' : ''}`;
+        item.innerHTML = `
+            <span class="song-number">${index + 1}</span>
+            <div class="song-info">
+                <h4>${escapeHtml(song.title)}</h4>
+                <p>${escapeHtml(song.artist || 'Desconocido')}</p>
+            </div>
+            <button class="btn-small" onclick="setSong(${index})">
+                ${index === currentSongIndex && isPlaying ? '⏸️' : '▶️'}
+            </button>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function togglePlay() {
+    const audio = document.getElementById('bg-music'); // Asegurar que existe <audio> en HTML o crearlo
+    if (!audio) return;
+
+    if (isPlaying) {
+        audio.pause();
+    } else {
+        audio.play().catch(e => console.log("Interacción requerida para reproducir audio"));
+    }
+    
+    isPlaying = !isPlaying;
+    updatePlayerUI(currentSongIndex);
+}
+
+function updatePlayerUI(index) {
+    const playBtn = document.getElementById('play-btn');
+    const vinyl = document.querySelector('.vinyl-record');
     const titleElement = document.getElementById('current-song');
     const artistElement = document.getElementById('current-artist');
     
-    if (titleElement) titleElement.textContent = currentSong.title;
-    if (artistElement) artistElement.textContent = currentSong.artist;
+    // Actualizar Textos
+    if (playlist[index]) {
+        if (titleElement) titleElement.textContent = playlist[index].title;
+        if (artistElement) artistElement.textContent = playlist[index].artist || 'Desconocido';
+    }
+
+    // Actualizar Botón Play/Pause principal
+    if (playBtn) {
+        playBtn.textContent = isPlaying ? '⏸️' : '▶️';
+    }
+    
+    // Animación Vinilo
+    if (vinyl) {
+        if (isPlaying) vinyl.classList.add('playing');
+        else vinyl.classList.remove('playing');
+    }
+    
+    // Actualizar lista
+    renderPlaylist();
 }
 
-function addSongToPlaylist() {
-    const title = prompt('Título de la canción:');
-    const artist = prompt('Artista:');
-    const memory = prompt('¿Qué recuerdo especial tienes con esta canción?');
+function setSong(index) {
+    if (index < 0 || index >= playlist.length) return;
     
-    if (title && artist) {
-        showNotification(`¡Canción "${title}" agregada a la playlist! 🎵`);
-        // Aquí podrías guardar en localStorage
+    // Si es la misma canción, solo toggle play
+    if (currentSongIndex === index) {
+        togglePlay();
+        return;
+    }
+
+    currentSongIndex = index;
+    const song = playlist[index];
+    
+    // Actualizar fuente de audio
+    let audio = document.getElementById('bg-music');
+    if (!audio) {
+        audio = new Audio();
+        audio.id = 'bg-music';
+        audio.loop = true; // Loop por defecto, o cambiar lógica para siguiente canción
+        document.body.appendChild(audio);
+        
+        // Al terminar, pasar a la siguiente
+        audio.addEventListener('ended', nextSong);
+    }
+    
+    if (song.url && song.url !== '#') {
+        audio.src = song.url;
+        audio.play().then(() => {
+            isPlaying = true;
+            updatePlayerUI(index);
+        }).catch(e => console.error("Error reproduciendo:", e));
+    } else {
+        // Fallback para canciones dummy
+        showNotification("Canción de ejemplo (sin audio real)");
+        isPlaying = true;
+        updatePlayerUI(index);
     }
 }
 
-// ================================================
-// ANIMACIONES DE SCROLL
-// ================================================
+function nextSong() {
+    let nextIndex = (currentSongIndex + 1) % playlist.length;
+    setSong(nextIndex);
+}
 
-function initScrollAnimations() {
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -100px 0px'
-    };
+function previousSong() {
+    let prevIndex = (currentSongIndex - 1 + playlist.length) % playlist.length;
+    setSong(prevIndex);
+}
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
+// Modal de Subida
+function openSongUploadModal() {
+    const modal = document.getElementById('song-upload-modal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeSongUploadModal() {
+    const modal = document.getElementById('song-upload-modal');
+    if (modal) modal.classList.remove('active');
+}
+
+// Manejo de formulario de subida
+document.addEventListener('DOMContentLoaded', () => {
+    const songForm = document.getElementById('song-upload-form');
+    const fileInput = document.getElementById('song-file');
+    const fileNameDisplay = document.getElementById('file-name-display');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                fileNameDisplay.textContent = e.target.files[0].name;
             }
         });
-    }, observerOptions);
+    }
 
-    const timelineItems = document.querySelectorAll('.timeline-item');
-    timelineItems.forEach(item => {
-        observer.observe(item);
-    });
+    if (songForm) {
+        songForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('song-title').value;
+            const artist = document.getElementById('song-artist').value;
+            const file = document.getElementById('song-file').files[0];
+
+            if (!file) {
+                showNotification("Por favor selecciona un archivo de audio");
+                return;
+            }
+
+            const btn = songForm.querySelector('button[type="submit"]');
+            const originalText = btn.textContent;
+            btn.textContent = "Subiendo... ⏳";
+            btn.disabled = true;
+
+            try {
+                await db.saveSong(file, title, artist);
+                showNotification("¡Canción subida exitosamente! 🎵");
+                closeSongUploadModal();
+                songForm.reset();
+                fileNameDisplay.textContent = "Ningún archivo seleccionado";
+                await loadPlaylist(); // Recargar lista
+            } catch (error) {
+                console.error(error);
+                showNotification("Error al subir la canción ❌");
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        });
+    }
+    
+    // Cargar playlist al inicio
+    loadPlaylist();
+});
+
+// ================================================
+// ANIMACIONES DE SCROLL (LEGACY - REEMPLAZADO POR GSAP)
+// ================================================
+
+/*
+function initScrollAnimations() {
+   // Reemplazado por GSAP en initGsapAnimations
 }
+*/
 
 // ================================================
 // NOTIFICACIONES

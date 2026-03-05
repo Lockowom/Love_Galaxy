@@ -448,6 +448,10 @@
                         Guardar Mensaje
                     </button>
                 </div>
+                
+                <div class="saved-messages-list" id="saved-messages-container">
+                    <!-- Mensajes guardados aparecerán aquí -->
+                </div>
             </div>
         </div>
     </section>
@@ -486,39 +490,34 @@
 
             <div class="playlist-list">
                 <h3>Canciones Especiales</h3>
-                <div class="playlist-items">
-                    <div class="playlist-item" data-song="1">
-                        <span class="song-number">1</span>
-                        <div class="song-info">
-                            <h4>Nuestra Primera Canción</h4>
-                            <p>La canción que estaba sonando cuando nos conocimos</p>
-                        </div>
-                        <button class="btn-small" onclick="setSong(1)">Reproducir</button>
-                    </div>
-                    <div class="playlist-item" data-song="2">
-                        <span class="song-number">2</span>
-                        <div class="song-info">
-                            <h4>La Que Me Recuerda a Ti</h4>
-                            <p>Cada vez que la escucho, pienso en tu sonrisa</p>
-                        </div>
-                        <button class="btn-small" onclick="setSong(2)">Reproducir</button>
-                    </div>
-                    <div class="playlist-item" data-song="3">
-                        <span class="song-number">3</span>
-                        <div class="song-info">
-                            <h4>Nuestro Himno</h4>
-                            <p>La canción que define nuestro amor</p>
-                        </div>
-                        <button class="btn-small" onclick="setSong(3)">Reproducir</button>
-                    </div>
+                <div class="playlist-items" id="playlist-container">
+                    <!-- Canciones cargadas dinámicamente -->
                 </div>
 
-                <button class="btn-primary" onclick="addSongToPlaylist()">
+                <button class="btn-primary" onclick="openSongUploadModal()">
                     ➕ Agregar Canción
                 </button>
             </div>
         </div>
     </section>
+
+    <!-- Modal de Subir Canción -->
+    <div id="song-upload-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeSongUploadModal()">&times;</span>
+            <h2>Subir Nueva Canción 🎵</h2>
+            <form id="song-upload-form">
+                <input type="text" id="song-title" placeholder="Título de la canción" required class="answer-input">
+                <input type="text" id="song-artist" placeholder="Artista" required class="answer-input">
+                <div class="file-upload-container">
+                    <label for="song-file" class="btn-small">Seleccionar Archivo de Audio</label>
+                    <input type="file" id="song-file" accept="audio/*" required style="display: none;">
+                    <span id="file-name-display">Ningún archivo seleccionado</span>
+                </div>
+                <button type="submit" class="btn-primary mt-2">Subir Canción</button>
+            </form>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="main-footer">
@@ -618,6 +617,8 @@
     </div>
 
     <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
     <script src="db.js"></script>

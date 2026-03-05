@@ -353,6 +353,97 @@ const db = {
             if (!error && data) return data;
         }
         return JSON.parse(localStorage.getItem('questionAnswers') || '[]');
+    },
+
+    // ================================================
+    // MENSAJES PERSONALIZADOS
+    // ================================================
+    async saveCustomMessage(content) {
+        if (window.supabaseClient) {
+            const { data, error } = await supabaseClient
+                .from('custom_messages')
+                .insert([{ content }])
+                .select();
+            
+            if (!error) return data[0];
+            console.error('Error guardando mensaje:', error);
+        }
+
+        const messages = JSON.parse(localStorage.getItem('customMessages') || '[]');
+        const newMessage = { id: Date.now(), content, created_at: new Date().toISOString() };
+        messages.unshift(newMessage);
+        localStorage.setItem('customMessages', JSON.stringify(messages));
+        return newMessage;
+    },
+
+    async getCustomMessages() {
+        if (window.supabaseClient) {
+            const { data, error } = await supabaseClient
+                .from('custom_messages')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (!error) return data;
+        }
+        return JSON.parse(localStorage.getItem('customMessages') || '[]');
+    },
+
+    // ================================================
+    // PLAYLIST (CANCIONES)
+    // ================================================
+    async saveSong(file, title, artist) {
+        if (window.supabaseClient) {
+            try {
+                // 1. Subir audio al Storage
+                const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.mp3`;
+                const { error: uploadError } = await supabaseClient
+                    .storage
+                    .from('love_songs')
+                    .upload(fileName, file);
+
+                if (uploadError) throw uploadError;
+
+                // 2. Obtener URL pública
+                const { data: { publicUrl } } = supabaseClient
+                    .storage
+                    .from('love_songs')
+                    .getPublicUrl(fileName);
+
+                // 3. Guardar en BD
+                const { data, error: dbError } = await supabaseClient
+                    .from('playlist_songs')
+                    .insert([{
+                        title,
+                        artist,
+                        url: publicUrl,
+                        storage_path: fileName
+                    }])
+                    .select();
+
+                if (dbError) throw dbError;
+                return data[0];
+
+            } catch (error) {
+                console.error('Error subiendo canción:', error);
+                throw error;
+            }
+        }
+        
+        // No soportamos subida de archivos pesados a localStorage
+        alert('Para subir canciones, asegúrate de estar conectado a Supabase.');
+        return null;
+    },
+
+    async getPlaylist() {
+        if (window.supabaseClient) {
+            const { data, error } = await supabaseClient
+                .from('playlist_songs')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (!error) return data;
+        }
+        return []; // Playlist vacía en local por defecto (o podríamos hardcodear algunas)
     }
 };
 
