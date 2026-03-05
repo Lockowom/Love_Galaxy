@@ -19,5 +19,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/Lockowom/Love_Galaxy.git"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.98.0"
   }
 }
