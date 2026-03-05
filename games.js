@@ -428,21 +428,44 @@ function calculateCompatibility() {
     const name2 = document.getElementById('name2').value.trim().toLowerCase();
     
     if (name1 && name2) {
-        // Algoritmo determinista simple basado en los nombres
-        let combined = name1 + name2;
-        let sum = 0;
-        for (let i = 0; i < combined.length; i++) {
-            sum += combined.charCodeAt(i);
-        }
+        // Mostrar animación de "Calculando..."
+        showGameMessage('Calculando Amor...', 'Analizando ondas cerebrales...\nMidiendo latidos...\nConsultando a las estrellas... 🌟', '⏳');
         
-        // Compatibilidad entre 70% y 100% (¡porque siempre es alta!)
-        const percentage = 70 + (sum % 31);
+        setTimeout(() => {
+            // Algoritmo determinista avanzado basado en nombres y fecha actual
+            let combined = name1 + name2;
+            let sum = 0;
+            for (let i = 0; i < combined.length; i++) {
+                sum += combined.charCodeAt(i) * (i + 1);
+            }
+            
+            // Factor del día para variar ligeramente (pero consistente durante el día)
+            const today = new Date().toDateString();
+            for (let i = 0; i < today.length; i++) {
+                sum += today.charCodeAt(i);
+            }
+            
+            // Resultado entre 85% y 100% (¡Siempre alto!)
+            const percentage = 85 + (sum % 16);
+            
+            let message = "";
+            if (percentage >= 98) message = "¡Almas Gemelas! El universo conspira a su favor. 🌌";
+            else if (percentage >= 95) message = "¡Conexión Cósmica! Son tal para cual. 🚀";
+            else if (percentage >= 90) message = "¡Amor Verdadero! Una historia para la eternidad. 📖";
+            else message = "¡Pareja Perfecta! La química es innegable. 🧪";
+
+            showGameMessage(
+                'Resultado del Amor 💘',
+                `La compatibilidad entre ${document.getElementById('name1').value} y ${document.getElementById('name2').value} es del:\n\n✨ ${percentage}% ✨\n\n${message}`,
+                '💞'
+            );
+            
+            // Desbloquear logro si es la primera vez
+            if (window.achievementsManager) {
+                window.achievementsManager.unlock('love_scientist');
+            }
+        }, 2000);
         
-        showGameMessage(
-            'Resultado del Amor 💘',
-            `La compatibilidad entre ${name1} y ${name2} es del:\n\n${percentage}%\n\n¡Son la pareja perfecta! 💑`,
-            '💞'
-        );
     } else {
         showGameMessage('Ups...', 'Por favor ingresa ambos nombres para calcular el amor.', '🤔');
     }

@@ -28,7 +28,7 @@ const loveQuotes = [
     "Eres mi sol en los días grises y mi estrella en las noches oscuras."
 ];
 
-// Mensajes diarios
+// Mensajes diarios (Expandidos y mejorados)
 const dailyMessages = [
     "Buenos días, mi amor. Que tengas un día tan hermoso como tú. 💕",
     "Pensé en ti al despertar, y eso me hizo sonreír. ✨",
@@ -44,7 +44,66 @@ const dailyMessages = [
     "Tu amor es la luz que ilumina mi camino. ✨",
     "No necesito nada más en la vida, solo a ti. 💗",
     "Eres mi sueño hecho realidad. 🌙",
-    "Cada segundo contigo vale más que una eternidad sin ti. ⏰❤️"
+    "Cada segundo contigo vale más que una eternidad sin ti. ⏰❤️",
+    "Eres la casualidad más bonita de mi vida. 💫",
+    "Mi corazón late al ritmo de tu nombre. 💓",
+    "Eres mi paz en medio del caos. 🕊️",
+    "Contigo, el infinito se queda pequeño. ♾️",
+    "Tus abrazos son mi lugar seguro. 🤗",
+    "Amarte es mi pasatiempo favorito. 🎨",
+    "Eres la poesía que nunca supe escribir. 📜",
+    "Tu mirada tiene el brillo de mil galaxias. 🌌",
+    "Gracias por ser mi compañera de aventuras. 🚀",
+    "Eres el sol que calienta mis días fríos. ☀️",
+    "Mi amor por ti crece con cada latido. 📈",
+    "Eres magia pura en un mundo ordinario. ✨",
+    "Juntos somos invencibles. 🛡️",
+    "Tu voz es mi sonido favorito del universo. 🎶",
+    "Eres la pieza que le faltaba a mi rompecabezas. 🧩",
+    "Te elijo hoy, mañana y siempre. 💍",
+    "Eres mi refugio, mi hogar y mi todo. 🏠",
+    "Cada día me enamoro más de ti. 💘",
+    "Eres la estrella que guía mi norte. ⭐",
+    "Tu felicidad es mi prioridad. 😊",
+    "Gracias por llenar mi vida de colores. 🎨",
+    "Eres mi mejor amiga y mi gran amor. 👫",
+    "No cambiaría ni un segundo de nuestra historia. 📖",
+    "Eres el sueño del que no quiero despertar. 💤",
+    "Te amo más allá de las palabras. 😶",
+    "Eres mi presente y mi futuro. 🎁",
+    "Contigo, cada día es una nueva aventura. 🗺️",
+    "Tu amor es el motor de mi vida. 🚗",
+    "Eres la melodía que siempre quiero escuchar. 🎵",
+    "Mi alma reconoció a la tuya al instante. 👻",
+    "Eres perfecta tal y como eres. 💎",
+    "Te amo hasta la luna y de regreso (a pasitos de tortuga). 🐢",
+    "Eres mi serendipia favorita. 🍀",
+    "Gracias por hacerme la persona más feliz del mundo. 🌍",
+    "Tú y yo, contra el mundo. 🤜🤛"
+];
+
+// Poemas del Universo
+const cosmicPoems = [
+    {
+        title: "Gravedad",
+        content: "No es la gravedad la que me ata a la tierra,\neres tú quien me mantiene en órbita.\nTu amor es la fuerza invisible\nque da sentido a mi universo."
+    },
+    {
+        title: "Polvo de Estrellas",
+        content: "Dicen que estamos hechos de estrellas,\npero tú brillas con luz propia.\nEn la inmensidad del cosmos,\nte encontré a ti, mi supernova."
+    },
+    {
+        title: "Eclipse",
+        content: "Cuando te miro, el mundo se apaga.\nEres el eclipse que detiene mi tiempo,\nla sombra y la luz,\nel misterio que siempre quiero resolver."
+    },
+    {
+        title: "Constelación",
+        content: "Si uniera mis lunares con los tuyos,\ndibujaría el mapa del tesoro.\nEres mi constelación favorita,\nel norte que guía mis pasos."
+    },
+    {
+        title: "Infinito",
+        content: "El universo se expande sin fin,\ncomo mi amor por ti.\nNo hay límites, no hay fronteras,\nsolo tú, yo y la eternidad."
+    }
 ];
 
 // Ideas para citas
