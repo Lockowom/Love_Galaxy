@@ -1,5 +1,74 @@
 // ================================================
-// JUEGO DE MEMORIA DEL AMOR
+// UTILIDADES UI (MODALES Y EFECTOS)
+// ================================================
+
+function showGameMessage(title, message, icon = '✨') {
+    // Crear modal dinámico si no existe
+    let modal = document.getElementById('game-message-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'game-message-modal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content" style="text-align: center; max-width: 400px;">
+                <span class="modal-close" onclick="document.getElementById('game-message-modal').classList.remove('active')">&times;</span>
+                <div id="msg-icon" style="font-size: 4rem; margin-bottom: 1rem; animation: bounce 2s infinite;"></div>
+                <h2 id="msg-title" style="color: var(--primary-color); margin-bottom: 1rem;"></h2>
+                <p id="msg-text" style="font-size: 1.2rem; color: var(--text-secondary); line-height: 1.6;"></p>
+                <button class="btn-primary" onclick="document.getElementById('game-message-modal').classList.remove('active')" style="margin-top: 2rem;">¡Genial! 💖</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    document.getElementById('msg-icon').textContent = icon;
+    document.getElementById('msg-title').textContent = title;
+    document.getElementById('msg-text').innerHTML = message.replace(/\n/g, '<br>'); // Permitir saltos de línea
+    
+    modal.classList.add('active');
+    
+    // Efecto de confeti
+    createConfetti();
+}
+
+function createConfetti() {
+    const colors = ['#ff1493', '#ff69b4', '#ffd700', '#00ffff', '#ffffff'];
+    for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.style.cssText = `
+            position: fixed;
+            top: -10px;
+            left: ${Math.random() * 100}vw;
+            width: 10px;
+            height: 10px;
+            background: ${colors[Math.floor(Math.random() * colors.length)]};
+            z-index: 10001;
+            animation: fall ${2 + Math.random() * 3}s linear forwards;
+            transform: rotate(${Math.random() * 360}deg);
+        `;
+        document.body.appendChild(confetti);
+        
+        setTimeout(() => confetti.remove(), 5000);
+    }
+    
+    // Estilos para la animación si no existen
+    if (!document.getElementById('confetti-style')) {
+        const style = document.createElement('style');
+        style.id = 'confetti-style';
+        style.innerHTML = `
+            @keyframes fall {
+                to {
+                    transform: translateY(100vh) rotate(720deg);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+// ================================================
+// JUEGO DE MEMORIA DEL AMOR MEJORADO
 // ================================================
 
 class MemoryGame {
@@ -11,6 +80,7 @@ class MemoryGame {
         this.moves = 0;
         this.startTime = null;
         this.timerInterval = null;
+        this.isLocked = false; // Evitar clicks rápidos
     }
 
     init() {
@@ -31,13 +101,25 @@ class MemoryGame {
         if (!board) return;
 
         board.innerHTML = '';
+        board.style.perspective = '1000px'; // Para efecto 3D
         
         this.deck.forEach((card, index) => {
             const cardElement = document.createElement('div');
             cardElement.className = 'memory-card';
             cardElement.dataset.index = index;
             cardElement.dataset.value = card;
-            cardElement.innerHTML = '<span class="card-back">💝</span>';
+            
+            // Estructura interna para flip 3D
+            cardElement.innerHTML = `
+                <div class="card-inner" style="position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d;">
+                    <div class="card-front" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: linear-gradient(135deg, #ff1493, #ff69b4); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 2rem; border: 2px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+                        ❓
+                    </div>
+                    <div class="card-back" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: #fff; border-radius: 15px; transform: rotateY(180deg); display: flex; align-items: center; justify-content: center; font-size: 3rem; border: 2px solid #ff1493;">
+                        ${card}
+                    </div>
+                </div>
+            `;
             
             cardElement.addEventListener('click', () => this.handleCardClick(cardElement));
             board.appendChild(cardElement);
@@ -45,11 +127,14 @@ class MemoryGame {
     }
 
     handleCardClick(cardElement) {
-        if (this.flippedCards.length >= 2) return;
+        if (this.isLocked) return;
         if (cardElement.classList.contains('flipped') || cardElement.classList.contains('matched')) return;
 
+        // Voltear
         cardElement.classList.add('flipped');
-        cardElement.innerHTML = cardElement.dataset.value;
+        const inner = cardElement.querySelector('.card-inner');
+        if (inner) inner.style.transform = 'rotateY(180deg)';
+        
         this.flippedCards.push(cardElement);
 
         if (this.flippedCards.length === 2) {
@@ -60,15 +145,26 @@ class MemoryGame {
     }
 
     checkMatch() {
+        this.isLocked = true;
         const [card1, card2] = this.flippedCards;
 
         if (card1.dataset.value === card2.dataset.value) {
             setTimeout(() => {
                 card1.classList.add('matched');
                 card2.classList.add('matched');
+                
+                // Efecto visual de match
+                card1.style.transform = 'scale(1.1)';
+                card2.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    card1.style.transform = 'scale(1)';
+                    card2.style.transform = 'scale(1)';
+                }, 300);
+
                 this.matchedPairs++;
                 this.updatePairs();
                 this.flippedCards = [];
+                this.isLocked = false;
 
                 if (this.matchedPairs === this.cards.length) {
                     this.gameWon();
@@ -78,9 +174,15 @@ class MemoryGame {
             setTimeout(() => {
                 card1.classList.remove('flipped');
                 card2.classList.remove('flipped');
-                card1.innerHTML = '<span class="card-back">💝</span>';
-                card2.innerHTML = '<span class="card-back">💝</span>';
+                
+                // Voltear de regreso
+                const inner1 = card1.querySelector('.card-inner');
+                const inner2 = card2.querySelector('.card-inner');
+                if (inner1) inner1.style.transform = 'rotateY(0deg)';
+                if (inner2) inner2.style.transform = 'rotateY(0deg)';
+                
                 this.flippedCards = [];
+                this.isLocked = false;
             }, 1000);
         }
     }
@@ -117,7 +219,11 @@ class MemoryGame {
     gameWon() {
         clearInterval(this.timerInterval);
         setTimeout(() => {
-            alert(`¡Felicidades! 🎉\n\nCompletaste el juego en ${this.moves} movimientos.\n\n¡Tu memoria es tan increíble como tu amor! 💕`);
+            showGameMessage(
+                '¡Juego Completado! 🎉',
+                `Encontraste todas las parejas en ${this.moves} movimientos.\n\n¡Tu memoria es tan increíble como tu amor! 💕`,
+                '🏆'
+            );
         }, 500);
     }
 
@@ -127,6 +233,7 @@ class MemoryGame {
         this.flippedCards = [];
         this.matchedPairs = 0;
         this.moves = 0;
+        this.isLocked = false;
         
         const movesElement = document.getElementById('moves-count');
         const pairsElement = document.getElementById('pairs-found');
@@ -140,82 +247,204 @@ class MemoryGame {
     }
 }
 
-let currentMemoryGame = null;
+// ================================================
+// RULETA DEL AMOR MEJORADA
+// ================================================
 
-function startMemoryGame() {
-    const modal = document.getElementById('memory-game-modal');
-    if (modal) {
-        modal.classList.add('active');
-        currentMemoryGame = new MemoryGame();
-        currentMemoryGame.init();
+class LoveRoulette {
+    constructor() {
+        this.options = [
+            'Beso Apasionado 💋',
+            'Abrazo de Oso 🐻',
+            'Masaje de 5 min 💆‍♂️',
+            'Cena Romántica 🍝',
+            'Ver una Película 🎬',
+            'Vale por un Deseo ✨',
+            'Dedicar una Canción 🎵',
+            'Hacer un Baile Tonto 💃'
+        ];
+        this.startAngle = 0;
+        this.arc = Math.PI / (this.options.length / 2);
+        this.spinTimeout = null;
+        this.spinArcStart = 10;
+        this.spinTime = 0;
+        this.spinTimeTotal = 0;
+        this.ctx = null;
+        this.canvas = null;
     }
-}
 
-function closeMemoryGame() {
-    const modal = document.getElementById('memory-game-modal');
-    if (modal) {
-        modal.classList.remove('active');
-        if (currentMemoryGame) {
-            clearInterval(currentMemoryGame.timerInterval);
+    init() {
+        this.canvas = document.getElementById('roulette-canvas');
+        if (!this.canvas) return;
+        
+        // Ajustar resolución para pantallas retina
+        const dpr = window.devicePixelRatio || 1;
+        const rect = this.canvas.getBoundingClientRect();
+        this.canvas.width = rect.width * dpr;
+        this.canvas.height = rect.height * dpr;
+        
+        this.ctx = this.canvas.getContext('2d');
+        this.ctx.scale(dpr, dpr);
+        
+        // Ajustar tamaño lógico
+        this.canvas.style.width = `${rect.width}px`;
+        this.canvas.style.height = `${rect.height}px`;
+        
+        this.drawRouletteWheel();
+        
+        const spinBtn = document.getElementById('spin-btn');
+        if (spinBtn) {
+            spinBtn.addEventListener('click', () => this.spin());
         }
     }
-}
 
-function resetMemoryGame() {
-    if (currentMemoryGame) {
-        currentMemoryGame.reset();
+    drawRouletteWheel() {
+        if (!this.canvas || !this.ctx) return;
+        
+        const outsideRadius = 200;
+        const textRadius = 160;
+        const insideRadius = 50; // Agujero en el centro tipo dona
+        
+        const width = this.canvas.width / (window.devicePixelRatio || 1);
+        const height = this.canvas.height / (window.devicePixelRatio || 1);
+        const centerX = width / 2;
+        const centerY = height / 2;
+        
+        this.ctx.clearRect(0, 0, width, height);
+
+        // Sombra externa
+        this.ctx.save();
+        this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        this.ctx.shadowBlur = 20;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, outsideRadius, 0, 2 * Math.PI);
+        this.ctx.fillStyle = '#fff';
+        this.ctx.fill();
+        this.ctx.restore();
+
+        this.ctx.strokeStyle = "white";
+        this.ctx.lineWidth = 2;
+        this.ctx.font = 'bold 14px Arial';
+
+        for(let i = 0; i < this.options.length; i++) {
+            const angle = this.startAngle + i * this.arc;
+            
+            // Colores alternados vibrantes
+            this.ctx.fillStyle = i % 2 === 0 ? '#ff1493' : '#ff69b4';
+
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, outsideRadius, angle, angle + this.arc, false);
+            this.ctx.arc(centerX, centerY, insideRadius, angle + this.arc, angle, true);
+            this.ctx.stroke();
+            this.ctx.fill();
+
+            this.ctx.save();
+            this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            this.ctx.shadowBlur = 4;
+            this.ctx.fillStyle = "white";
+            this.ctx.translate(centerX + Math.cos(angle + this.arc / 2) * textRadius, 
+                             centerY + Math.sin(angle + this.arc / 2) * textRadius);
+            this.ctx.rotate(angle + this.arc / 2 + Math.PI / 2);
+            const text = this.options[i];
+            this.ctx.fillText(text, -this.ctx.measureText(text).width / 2, 0);
+            this.ctx.restore();
+        }
+
+        // Flecha indicadora
+        this.ctx.fillStyle = "#ffd700";
+        this.ctx.beginPath();
+        this.ctx.moveTo(centerX - 15, centerY - (outsideRadius + 20));
+        this.ctx.lineTo(centerX + 15, centerY - (outsideRadius + 20));
+        this.ctx.lineTo(centerX + 0, centerY - (outsideRadius - 10));
+        this.ctx.fill();
+        
+        // Centro decorativo
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, insideRadius, 0, 2 * Math.PI);
+        this.ctx.fillStyle = '#fff';
+        this.ctx.fill();
+        
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, insideRadius - 10, 0, 2 * Math.PI);
+        this.ctx.fillStyle = '#ff1493';
+        this.ctx.fill();
+        
+        this.ctx.font = '30px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillStyle = '#fff';
+        this.ctx.fillText('💖', centerX, centerY + 2);
+    }
+
+    spin() {
+        this.spinArcStart = Math.random() * 10 + 10;
+        this.spinTime = 0;
+        this.spinTimeTotal = Math.random() * 3 + 4 * 1000;
+        this.rotateWheel();
+    }
+
+    rotateWheel() {
+        this.spinTime += 30;
+        if(this.spinTime >= this.spinTimeTotal) {
+            this.stopRotateWheel();
+            return;
+        }
+        
+        // Easing function para desaceleración suave
+        const spinAngle = this.spinArcStart - this.easeOut(this.spinTime, 0, this.spinArcStart, this.spinTimeTotal);
+        this.startAngle += (spinAngle * Math.PI / 180);
+        this.drawRouletteWheel();
+        this.spinTimeout = setTimeout(() => this.rotateWheel(), 30);
+    }
+
+    stopRotateWheel() {
+        clearTimeout(this.spinTimeout);
+        const degrees = this.startAngle * 180 / Math.PI + 90;
+        const arcd = this.arc * 180 / Math.PI;
+        const index = Math.floor((360 - degrees % 360) / arcd);
+        this.ctx.save();
+        this.ctx.font = 'bold 30px Arial';
+        const text = this.options[index];
+        
+        // Mostrar resultado con el nuevo modal
+        showGameMessage('¡La Ruleta Dice! 🎰', `Tu premio es:\n\n✨ ${text} ✨`, '🎁');
+        
+        this.ctx.restore();
+    }
+
+    easeOut(t, b, c, d) {
+        const ts = (t/=d)*t;
+        const tc = ts*t;
+        return b+c*(tc + -3*ts + 3*t);
     }
 }
 
 // ================================================
-// PREGUNTA DEL DÍA
+// JUEGOS SIMPLES Y UTILIDADES
 // ================================================
 
-const questions = [
-    "¿Cuál fue el momento en que supiste que estabas enamorado/a?",
-    "¿Qué es lo que más admiras de tu pareja?",
-    "¿Cuál es tu recuerdo favorito juntos?",
-    "Si pudieras describir tu amor en una palabra, ¿cuál sería?",
-    "¿Qué canción describe mejor su relación?",
-    "¿Cuál es tu forma favorita de demostrar amor?",
-    "¿Qué te hace sonreír cuando piensas en tu pareja?",
-    "¿Cuál es el mejor consejo que has recibido sobre el amor?",
-    "¿Qué es lo que hace diferente a esta relación?",
-    "¿Cuál es tu sueño más grande para el futuro juntos?",
-    "¿Qué cualidad de tu pareja te hace sentir más amado/a?",
-    "¿Cuál ha sido el mejor regalo que te ha dado tu pareja?",
-    "¿Qué actividad disfrutan más hacer juntos?",
-    "¿Cuál es tu apodo favorito que te dice tu pareja?",
-    "¿Qué momento te hizo darte cuenta de que era 'la persona'?",
-    "¿Qué te hace sentir más conectado/a con tu pareja?",
-    "¿Cuál es tu tradición favorita como pareja?",
-    "¿Qué es lo primero que piensas cuando despiertas?",
-    "¿Qué es lo que más te gusta de los abrazos de tu pareja?",
-    "¿Cuál es tu sueño más romántico juntos?"
-];
-
-function startQuestionGame() {
-    const modal = document.getElementById('question-modal');
-    const content = document.getElementById('question-content');
+function calculateCompatibility() {
+    const name1 = document.getElementById('name1').value.trim().toLowerCase();
+    const name2 = document.getElementById('name2').value.trim().toLowerCase();
     
-    if (modal && content) {
-        const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+    if (name1 && name2) {
+        // Algoritmo determinista simple basado en los nombres
+        let combined = name1 + name2;
+        let sum = 0;
+        for (let i = 0; i < combined.length; i++) {
+            sum += combined.charCodeAt(i);
+        }
         
-        content.innerHTML = `
-            <div class="question-text">${randomQuestion}</div>
-            <textarea class="answer-input" placeholder="Escribe tu respuesta aquí..." rows="6"></textarea>
-            <button class="btn-primary" onclick="saveQuestionAnswer()">Guardar Respuesta 💕</button>
-            <button class="btn-small" onclick="startQuestionGame()">Otra Pregunta</button>
-        `;
+        // Compatibilidad entre 70% y 100% (¡porque siempre es alta!)
+        const percentage = 70 + (sum % 31);
         
-        modal.classList.add('active');
-    }
-}
-
-function closeQuestionModal() {
-    const modal = document.getElementById('question-modal');
-    if (modal) {
-        modal.classList.remove('active');
+        showGameMessage(
+            'Resultado del Amor 💘',
+            `La compatibilidad entre ${name1} y ${name2} es del:\n\n${percentage}%\n\n¡Son la pareja perfecta! 💑`,
+            '💞'
+        );
+    } else {
+        showGameMessage('Ups...', 'Por favor ingresa ambos nombres para calcular el amor.', '🤔');
     }
 }
 
@@ -227,7 +456,6 @@ async function saveQuestionAnswer() {
         if (window.db && window.db.saveQuestionAnswer) {
             await window.db.saveQuestionAnswer(questionText, answer.value);
         } else {
-            // Fallback
             const answers = JSON.parse(localStorage.getItem('questionAnswers') || '[]');
             answers.push({
                 question: questionText,
@@ -237,382 +465,44 @@ async function saveQuestionAnswer() {
             localStorage.setItem('questionAnswers', JSON.stringify(answers));
         }
         
-        alert('¡Respuesta guardada! 💕\n\nTus pensamientos han sido guardados con amor.');
+        showGameMessage('¡Guardado! 💌', 'Tus pensamientos han sido guardados con amor.', '📝');
         closeQuestionModal();
     } else {
-        alert('Por favor, escribe tu respuesta antes de guardar. 😊');
+        showGameMessage('Espera...', 'Por favor escribe tu respuesta antes de guardar.', '✏️');
     }
 }
-
-// ================================================
-// RULETA DEL AMOR
-// ================================================
-
-class LoveRoulette {
-    constructor() {
-        this.activities = [
-            "🌹 Envía flores sorpresa",
-            "💌 Escribe una carta de amor",
-            "🍝 Cocina su comida favorita",
-            "💆 Da un masaje relajante",
-            "🎵 Crea una playlist especial",
-            "📸 Sesión de fotos romántica",
-            "🌅 Plan para ver el amanecer",
-            "🎁 Sorpresa personalizada",
-            "💕 Día de mimos y cariño",
-            "🎬 Maratón de películas favoritas",
-            "☕ Desayuno en la cama",
-            "🌟 Noche de observar estrellas"
-        ];
-        
-        this.canvas = null;
-        this.ctx = null;
-        this.spinning = false;
-        this.rotation = 0;
-        this.targetRotation = 0;
-    }
-
-    init() {
-        this.canvas = document.getElementById('roulette-canvas');
-        if (!this.canvas) return;
-        
-        this.ctx = this.canvas.getContext('2d');
-        this.draw();
-    }
-
-    draw() {
-        if (!this.ctx) return;
-        
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
-        const radius = 180;
-        const sliceAngle = (Math.PI * 2) / this.activities.length;
-        
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // Dibujar segmentos
-        this.activities.forEach((activity, index) => {
-            const startAngle = index * sliceAngle + this.rotation;
-            const endAngle = startAngle + sliceAngle;
-            
-            // Color alternado
-            const colors = ['#ff1493', '#ff69b4', '#ff6b9d', '#c71585'];
-            this.ctx.fillStyle = colors[index % colors.length];
-            
-            this.ctx.beginPath();
-            this.ctx.moveTo(centerX, centerY);
-            this.ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-            this.ctx.closePath();
-            this.ctx.fill();
-            
-            // Borde
-            this.ctx.strokeStyle = '#fff';
-            this.ctx.lineWidth = 2;
-            this.ctx.stroke();
-            
-            // Texto
-            this.ctx.save();
-            this.ctx.translate(centerX, centerY);
-            this.ctx.rotate(startAngle + sliceAngle / 2);
-            this.ctx.textAlign = 'center';
-            this.ctx.fillStyle = '#fff';
-            this.ctx.font = 'bold 12px Arial';
-            this.ctx.fillText(activity.substring(2), radius * 0.7, 0);
-            this.ctx.restore();
-        });
-        
-        // Centro
-        this.ctx.fillStyle = '#fff';
-        this.ctx.beginPath();
-        this.ctx.arc(centerX, centerY, 30, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        this.ctx.fillStyle = '#ff1493';
-        this.ctx.font = 'bold 20px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.fillText('GIRA', centerX, centerY);
-        
-        // Indicador
-        this.ctx.fillStyle = '#ffd700';
-        this.ctx.beginPath();
-        this.ctx.moveTo(centerX, 10);
-        this.ctx.lineTo(centerX - 15, 40);
-        this.ctx.lineTo(centerX + 15, 40);
-        this.ctx.closePath();
-        this.ctx.fill();
-    }
-
-    spin() {
-        if (this.spinning) return;
-        
-        this.spinning = true;
-        const spins = 5 + Math.random() * 5;
-        const extraRotation = Math.random() * Math.PI * 2;
-        this.targetRotation = this.rotation + spins * Math.PI * 2 + extraRotation;
-        
-        this.animate();
-    }
-
-    animate() {
-        const diff = this.targetRotation - this.rotation;
-        const speed = diff * 0.05;
-        
-        this.rotation += speed;
-        this.draw();
-        
-        if (Math.abs(diff) > 0.01) {
-            requestAnimationFrame(() => this.animate());
-        } else {
-            this.rotation = this.targetRotation;
-            this.spinning = false;
-            this.showResult();
-        }
-    }
-
-    showResult() {
-        const sliceAngle = (Math.PI * 2) / this.activities.length;
-        const normalizedRotation = (this.rotation % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
-        const selectedIndex = Math.floor((Math.PI * 2 - normalizedRotation + Math.PI / 2) / sliceAngle) % this.activities.length;
-        
-        const result = this.activities[selectedIndex];
-        const resultDiv = document.getElementById('roulette-result');
-        
-        if (resultDiv) {
-            resultDiv.innerHTML = `
-                <h3 style="color: var(--primary-color); margin-bottom: 1rem;">¡Tu actividad romántica es!</h3>
-                <p style="font-size: 1.5rem;">${result}</p>
-                <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">¡Haz que este momento sea especial! 💕</p>
-            `;
-        }
-    }
-}
-
-let currentRoulette = null;
-
-function startRouletteGame() {
-    const modal = document.getElementById('roulette-modal');
-    if (modal) {
-        modal.classList.add('active');
-        if (!currentRoulette) {
-            currentRoulette = new LoveRoulette();
-        }
-        setTimeout(() => {
-            currentRoulette.init();
-        }, 100);
-    }
-}
-
-function closeRouletteModal() {
-    const modal = document.getElementById('roulette-modal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-}
-
-function spinRoulette() {
-    if (currentRoulette) {
-        currentRoulette.spin();
-    }
-}
-
-// ================================================
-// TEST DE COMPATIBILIDAD
-// ================================================
-
-const compatibilityQuestions = [
-    {
-        question: "¿Qué prefieres para una cita perfecta?",
-        options: [
-            { text: "Cena romántica a la luz de las velas", points: 25 },
-            { text: "Aventura al aire libre", points: 20 },
-            { text: "Noche de películas en casa", points: 15 },
-            { text: "Concierto o evento en vivo", points: 20 }
-        ]
-    },
-    {
-        question: "¿Cómo expresas tu amor?",
-        options: [
-            { text: "Palabras de afirmación", points: 25 },
-            { text: "Actos de servicio", points: 20 },
-            { text: "Regalos significativos", points: 15 },
-            { text: "Tiempo de calidad juntos", points: 25 }
-        ]
-    },
-    {
-        question: "¿Qué valoras más en una relación?",
-        options: [
-            { text: "Comunicación abierta", points: 25 },
-            { text: "Apoyo mutuo", points: 25 },
-            { text: "Espacio personal", points: 15 },
-            { text: "Diversión y risas", points: 20 }
-        ]
-    },
-    {
-        question: "¿Cuál es tu idea de un fin de semana perfecto juntos?",
-        options: [
-            { text: "Escapada romántica", points: 25 },
-            { text: "Relajarse en casa", points: 20 },
-            { text: "Explorar nuevos lugares", points: 20 },
-            { text: "Tiempo con amigos y familia", points: 15 }
-        ]
-    }
-];
-
-function startCompatibilityTest() {
-    const modal = document.getElementById('compatibility-modal');
-    const testDiv = document.getElementById('compatibility-test');
-    
-    if (modal && testDiv) {
-        let currentQuestion = 0;
-        let score = 0;
-        
-        function showQuestion() {
-            if (currentQuestion < compatibilityQuestions.length) {
-                const q = compatibilityQuestions[currentQuestion];
-                testDiv.innerHTML = `
-                    <div class="compatibility-question">
-                        <h4>Pregunta ${currentQuestion + 1} de ${compatibilityQuestions.length}</h4>
-                        <p style="font-size: 1.2rem; color: var(--primary-color); margin: 1rem 0 2rem;">${q.question}</p>
-                        <div class="compatibility-options">
-                            ${q.options.map((option, index) => `
-                                <div class="compatibility-option" onclick="selectCompatibilityOption(${index}, ${option.points})">
-                                    ${option.text}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            } else {
-                showCompatibilityResult();
-            }
-        }
-        
-        window.selectCompatibilityOption = function(index, points) {
-            score += points;
-            currentQuestion++;
-            showQuestion();
-        };
-        
-        function showCompatibilityResult() {
-            const percentage = Math.min(100, score);
-            let message = '';
-            
-            if (percentage >= 90) {
-                message = '¡Son la pareja perfecta! Su conexión es extraordinaria. 💕✨';
-            } else if (percentage >= 75) {
-                message = '¡Excelente compatibilidad! Tienen una relación muy especial. 💖';
-            } else if (percentage >= 60) {
-                message = '¡Buena compatibilidad! Siguen construyendo algo hermoso. 💗';
-            } else {
-                message = '¡Tienen potencial! Cada día se conocen más. 💓';
-            }
-            
-            testDiv.innerHTML = `
-                <div class="compatibility-result">
-                    <h3>Resultado del Test</h3>
-                    <div class="compatibility-percentage">${percentage}%</div>
-                    <p style="font-size: 1.2rem; margin: 2rem 0;">${message}</p>
-                    <button class="btn-primary" onclick="startCompatibilityTest()">Hacer Test Otra Vez</button>
-                </div>
-            `;
-        }
-        
-        showQuestion();
-        modal.classList.add('active');
-    }
-}
-
-function closeCompatibilityModal() {
-    const modal = document.getElementById('compatibility-modal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-}
-
-// ================================================
-// GENERADOR DE IDEAS PARA CITAS
-// ================================================
-
-const dateIdeasExtended = [
-    "🌅 Ver el amanecer juntos en un lugar especial",
-    "🎨 Tomar una clase de arte o cerámica juntos",
-    "🍕 Cocinar una pizza casera desde cero",
-    "🌳 Hacer un picnic en el parque favorito",
-    "⭐ Noche de observación de estrellas con mantas",
-    "🎬 Crear su propia película o video juntos",
-    "🚴 Paseo en bicicleta al atardecer",
-    "☕ Tour por cafeterías locales",
-    "🎵 Ir a un concierto o karaoke",
-    "📚 Visitar una librería y elegir libros mutuamente",
-    "🏖️ Día de spa casero con velas y música relajante",
-    "🎪 Visitar un mercado de pulgas o feria local",
-    "🌺 Explorar un jardín botánico",
-    "🎭 Noche de teatro o comedia en vivo",
-    "🍷 Cata de vinos o degustación de chocolates",
-    "🏛️ Visitar museos y galerías de arte",
-    "🍦 Buscar la mejor heladería de la ciudad",
-    "🌃 Paseo nocturno fotografiando la ciudad",
-    "🎮 Noche de videojuegos retro o arcade",
-    "🧘 Clase de yoga o meditación en pareja"
-];
-
-function generateDateIdea() {
-    const idea = dateIdeasExtended[Math.floor(Math.random() * dateIdeasExtended.length)];
-    alert(`💡 Idea para tu próxima cita:\n\n${idea}\n\n¡Que disfruten este momento especial juntos! 💕`);
-}
-
-// ================================================
-// GENERADOR DE CARTAS DE AMOR
-// ================================================
-
-const loveLetterOpenings = [
-    "Mi querida Tamara,",
-    "Para mi amor eterno, Tamara,",
-    "Mi hermosa Tamara,",
-    "A la luz de mi vida, Tamara,",
-    "Mi amada Tamara,"
-];
-
-const loveLetterMiddle = [
-    "Cada día que pasa me doy cuenta de lo afortunado/a que soy de tenerte en mi vida.",
-    "Tu sonrisa ilumina incluso mis días más oscuros y me recuerda por qué vale la pena todo.",
-    "No hay palabras suficientes para expresar lo que siento cuando estoy contigo.",
-    "Eres la respuesta a preguntas que ni siquiera sabía que tenía.",
-    "Contigo he aprendido el verdadero significado del amor y la felicidad."
-];
-
-const loveLetterDetails = [
-    "Me encanta la forma en que me miras, como si fuera la única persona en el mundo.",
-    "Admiro tu fuerza, tu bondad y la manera en que haces que todo sea mejor.",
-    "Cada momento contigo es un tesoro que guardo en mi corazón.",
-    "Tu risa es la melodía más hermosa que jamás he escuchado.",
-    "Me haces querer ser una mejor persona cada día."
-];
-
-const loveLetterClosings = [
-    "Por siempre tuyo/a, con todo mi amor 💕",
-    "Eternamente enamorado/a de ti 💖",
-    "Tuyo/a por siempre, en este y todos los universos 💗",
-    "Con amor infinito 💓",
-    "Para siempre en mi corazón 💞"
-];
 
 function generateLoveLetter() {
-    const opening = loveLetterOpenings[Math.floor(Math.random() * loveLetterOpenings.length)];
-    const middle = loveLetterMiddle[Math.floor(Math.random() * loveLetterMiddle.length)];
-    const detail = loveLetterDetails[Math.floor(Math.random() * loveLetterDetails.length)];
-    const closing = loveLetterClosings[Math.floor(Math.random() * loveLetterClosings.length)];
+    const parts = [
+        ["Mi amor,", "Querida mía,", "Amor de mi vida,", "Mi cielo,"],
+        ["cada vez que te veo,", "cuando pienso en ti,", "al despertar,", "en mis sueños,"],
+        ["mi corazón late más fuerte.", "sonrío sin razón.", "el mundo se ilumina.", "me siento completo."],
+        ["Gracias por ser tú.", "Te amo infinitamente.", "Eres mi todo.", "Siempre tuyo."],
+        ["Con amor.", "Eternamente.", "Tu amor.", "Besos."]
+    ];
     
-    const letter = `${opening}\n\n${middle}\n\n${detail}\n\n${closing}`;
+    let letter = "";
+    parts.forEach(part => {
+        letter += part[Math.floor(Math.random() * part.length)] + "\n\n";
+    });
     
-    alert(`💌 Tu carta de amor:\n\n${letter}\n\n¡Copia y envía este mensaje especial!`);
+    showGameMessage('Carta para Ti 💌', letter, '📜');
 }
 
-// ================================================
-// INICIALIZACIÓN DE EVENTOS
-// ================================================
-
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🎮 Sistema de juegos cargado correctamente');
-});
+function generateDateIdea() {
+    const ideas = [
+        "Picnic bajo las estrellas ✨",
+        "Noche de películas y manta 🎬",
+        "Cocinar juntos una receta nueva 🍝",
+        "Paseo por la playa al atardecer 🌅",
+        "Visitar un museo o galería de arte 🎨",
+        "Día de spa en casa 💆‍♀️",
+        "Hacer una cápsula del tiempo 📦",
+        "Ir a un parque de atracciones 🎡",
+        "Noche de juegos de mesa 🎲",
+        "Ver el amanecer juntos ☀️"
+    ];
+    
+    const idea = ideas[Math.floor(Math.random() * ideas.length)];
+    showGameMessage('Idea para Cita 💡', idea, '💑');
+}

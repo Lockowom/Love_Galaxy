@@ -1,5 +1,5 @@
 // ================================================
-// GALAXIA DEL AMOR - JUEGO INTERACTIVO COMPLETO
+// GALAXIA DEL AMOR - JUEGO INTERACTIVO MEJORADO
 // ================================================
 
 class GalaxyLoveGame {
@@ -14,7 +14,9 @@ class GalaxyLoveGame {
         this.isPaused = false;
         this.score = 0;
         this.level = 1;
-        this.lives = 3;// High Score
+        this.lives = 3;
+        
+        // High Score
         this.highScore = 0;
         this.loadHighScore();
         
@@ -24,10 +26,12 @@ class GalaxyLoveGame {
             y: 0,
             width: 60,
             height: 60,
-            speed: 5,
+            speed: 6, // Velocidad aumentada ligeramente
             emoji: '💖',
+            angle: 0, // Para rotación suave al mover
             invincible: false,
-            invincibleTime: 0
+            invincibleTime: 0,
+            trail: [] // Estela de movimiento
         };
         
         // Controles
@@ -40,14 +44,15 @@ class GalaxyLoveGame {
         this.powerUps = [];
         this.particles = [];
         this.stars = [];
+        this.floatingTexts = []; // Textos flotantes separados
         
         // Configuración
-        this.heartSpawnRate = 60;
-        this.messageSpawnRate = 180;
-        this.obstacleSpawnRate = 120;
+        this.heartSpawnRate = 50;
+        this.messageSpawnRate = 150;
+        this.obstacleSpawnRate = 100;
         this.powerUpSpawnRate = 300;
         
-        // Mensajes de amor
+        // Mensajes de amor (Extendidos)
         this.loveMessages = [
             "Te Amo ✨", "Eres Mi Vida 💕", "Mi Corazón Es Tuyo 💖",
             "Amor Eterno 💞", "Juntos Por Siempre 💗", "Eres Mi Todo 💓",
@@ -58,24 +63,26 @@ class GalaxyLoveGame {
             "Mi Mundo Eres Tú 🌍", "Eres Única 💎", "Mi Tesoro 💰",
             "Te Amo Más Cada Día 📈", "Eres Especial 🎁", "Mi Ángel 👼",
             "Contigo Todo Es Mejor 🌈", "Eres Mi Luz ☀️", "Mi Corazón Late Por Ti 💓",
-            "Eres Mi Paraíso 🏝️", "Te Extraño 😢", "Eres Hermosa 🌺"
+            "Eres Mi Paraíso 🏝️", "Te Extraño 😢", "Eres Hermosa 🌺",
+            "Gracias por Existir 🙏", "Mi Lugar Favorito 🏡", "Eres Magia ✨"
         ];
         
         // Power-ups
         this.powerUpTypes = [
-            { type: 'shield', emoji: '🛡️', name: 'Escudo', duration: 5000 },
-            { type: 'magnet', emoji: '🧲', name: 'Imán', duration: 7000 },
-            { type: 'multiplier', emoji: '✖️2️⃣', name: 'x2 Puntos', duration: 10000 },
-            { type: 'slow', emoji: '🐌', name: 'Cámara Lenta', duration: 5000 },
-            { type: 'life', emoji: '❤️', name: 'Vida Extra', duration: 0 }
+            { type: 'shield', emoji: '🛡️', name: 'Escudo', duration: 300, color: '#00ffff' }, // 5 segs (60fps)
+            { type: 'magnet', emoji: '🧲', name: 'Imán', duration: 420, color: '#ffd700' }, // 7 segs
+            { type: 'multiplier', emoji: '✖️2️⃣', name: 'x2 Puntos', duration: 600, color: '#00ff00' }, // 10 segs
+            { type: 'slow', emoji: '🐌', name: 'Cámara Lenta', duration: 300, color: '#ff69b4' }, // 5 segs
+            { type: 'life', emoji: '❤️', name: 'Vida Extra', duration: 0, color: '#ff1493' },
+            { type: 'blast', emoji: '💥', name: 'Limpieza', duration: 0, color: '#ff4500' } // Nuevo: Destruye obstáculos
         ];
         
         // Efectos activos
         this.activeEffects = {
-            shield: false,
-            magnet: false,
-            multiplier: false,
-            slowMotion: false
+            shield: 0,
+            magnet: 0,
+            multiplier: 0,
+            slowMotion: 0
         };
         
         // Contadores
@@ -86,6 +93,10 @@ class GalaxyLoveGame {
         this.combo = 0;
         this.comboTime = 0;
         this.maxCombo = 0;
+
+        // Imágenes pre-renderizadas (optimización)
+        this.offscreenCanvas = document.createElement('canvas');
+        this.offscreenCtx = this.offscreenCanvas.getContext('2d');
     }
 
     async loadHighScore() {
@@ -111,16 +122,17 @@ class GalaxyLoveGame {
             border-radius: 15px;
             background: #000;
             box-shadow: 0 0 30px rgba(255, 20, 147, 0.5);
+            cursor: none; /* Ocultar cursor nativo dentro del juego */
         `;
         
-        this.ctx = this.canvas.getContext('2d');
+        this.ctx = this.canvas.getContext('2d', { alpha: false }); // Optimización alpha
         container.appendChild(this.canvas);
         
         // Inicializar jugador
         this.player.x = this.width / 2 - this.player.width / 2;
         this.player.y = this.height - 100;
         
-        // Crear estrellas de fondo
+        // Crear estrellas de fondo (más estrellas para efecto profundidad)
         this.createStars();
         
         // Event listeners
@@ -146,98 +158,130 @@ class GalaxyLoveGame {
         });
         
         // Mouse/Touch para móvil
-        this.canvas.addEventListener('mousemove', (e) => {
+        const updatePos = (clientX, clientY) => {
             if (this.isPlaying && !this.isPaused) {
                 const rect = this.canvas.getBoundingClientRect();
-                this.player.x = e.clientX - rect.left - this.player.width / 2;
-                this.player.y = e.clientY - rect.top - this.player.height / 2;
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+
+                const targetX = (clientX - rect.left) * scaleX - this.player.width / 2;
+                const targetY = (clientY - rect.top) * scaleY - this.player.height / 2;
+                
+                // Interpolación suave para el mouse
+                this.player.x += (targetX - this.player.x) * 0.5;
+                this.player.y += (targetY - this.player.y) * 0.5;
+                
                 this.clampPlayer();
             }
-        });
+        };
+
+        this.canvas.addEventListener('mousemove', (e) => updatePos(e.clientX, e.clientY));
         
         this.canvas.addEventListener('touchmove', (e) => {
-            if (this.isPlaying && !this.isPaused) {
-                e.preventDefault();
-                const rect = this.canvas.getBoundingClientRect();
-                const touch = e.touches[0];
-                this.player.x = touch.clientX - rect.left - this.player.width / 2;
-                this.player.y = touch.clientY - rect.top - this.player.height / 2;
-                this.clampPlayer();
-            }
-        });
+            e.preventDefault();
+            const touch = e.touches[0];
+            updatePos(touch.clientX, touch.clientY);
+        }, { passive: false });
     }
 
     createStars() {
-        for (let i = 0; i < 100; i++) {
-            this.stars.push({
-                x: Math.random() * this.width,
-                y: Math.random() * this.height,
-                size: Math.random() * 2,
-                speed: Math.random() * 0.5 + 0.1,
-                opacity: Math.random()
-            });
-        }
+        this.stars = [];
+        // 3 capas de estrellas para efecto paralaje
+        const layers = [
+            { count: 50, speed: 0.5, size: 1, color: '#ffffff55' }, // Fondo lejano
+            { count: 30, speed: 1.0, size: 2, color: '#ffffffaa' }, // Medio
+            { count: 20, speed: 2.0, size: 3, color: '#ffffff' }    // Frente
+        ];
+
+        layers.forEach(layer => {
+            for (let i = 0; i < layer.count; i++) {
+                this.stars.push({
+                    x: Math.random() * this.width,
+                    y: Math.random() * this.height,
+                    size: Math.random() * layer.size + 0.5,
+                    baseSpeed: layer.speed,
+                    speed: layer.speed * (Math.random() * 0.5 + 0.8),
+                    color: layer.color,
+                    twinkle: Math.random() * Math.PI * 2
+                });
+            }
+        });
     }
 
     showStartScreen() {
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        this.ctx.fillStyle = '#0a0a0f';
         this.ctx.fillRect(0, 0, this.width, this.height);
         
-        // Título
-        this.ctx.font = 'bold 48px Arial';
+        // Fondo animado simple
+        this.drawStars();
+
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        
+        // Título con efecto de brillo
+        this.ctx.save();
+        this.ctx.shadowColor = '#ff1493';
+        this.ctx.shadowBlur = 20;
+        this.ctx.font = 'bold 54px "Arial", sans-serif';
         this.ctx.fillStyle = '#ff1493';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('💫 Galaxia del Amor 💫', this.width / 2, 100);
+        this.ctx.fillText('💫 Galaxia del Amor 💫', this.width / 2, 120);
+        this.ctx.restore();
         
         // Instrucciones
-        this.ctx.font = '20px Arial';
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillText('Navega por la galaxia y captura corazones', this.width / 2, 180);
-        this.ctx.fillText('y mensajes de amor', this.width / 2, 210);
+        this.ctx.font = '22px Arial';
+        this.ctx.fillStyle = '#e0e0e0';
+        this.ctx.fillText('Navega por el cosmos recolectando amor', this.width / 2, 200);
         
-        // Controles
-        this.ctx.font = 'bold 24px Arial';
-        this.ctx.fillStyle = '#ff69b4';
-        this.ctx.fillText('Controles:', this.width / 2, 270);
-        
-        this.ctx.font = '18px Arial';
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillText('⌨️  Flechas o WASD para mover', this.width / 2, 310);
-        this.ctx.fillText('🖱️  Mouse para mover', this.width / 2, 340);
-        this.ctx.fillText('⏸️  P para pausar', this.width / 2, 370);
+        // Iconos
+        const iconsY = 280;
+        this.ctx.font = '30px Arial';
+        this.ctx.fillText('💖   +10 pts', this.width / 2 - 150, iconsY);
+        this.ctx.fillText('💔   -1 Vida', this.width / 2 + 150, iconsY);
         
         // Power-ups
         this.ctx.font = 'bold 20px Arial';
         this.ctx.fillStyle = '#ff69b4';
-        this.ctx.fillText('Power-ups:', this.width / 2, 420);
+        this.ctx.fillText('Power-ups Especiales:', this.width / 2, 350);
         
-        this.ctx.font = '16px Arial';
+        this.ctx.font = '18px Arial';
         this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillText('🛡️ Escudo  🧲 Imán  ✖️2️⃣ x2 Puntos  ❤️ Vida Extra', this.width / 2, 450);
+        this.ctx.fillText('🛡️ Escudo   🧲 Imán   ✖️2️⃣ Doble Puntos   💥 Limpieza', this.width / 2, 390);
         
         // High Score
         if (this.highScore > 0) {
-            this.ctx.font = 'bold 22px Arial';
+            this.ctx.save();
+            this.ctx.shadowColor = '#ffd700';
+            this.ctx.shadowBlur = 10;
+            this.ctx.font = 'bold 26px Arial';
             this.ctx.fillStyle = '#ffd700';
-            this.ctx.fillText(`🏆 Récord: ${this.highScore}`, this.width / 2, 500);
+            this.ctx.fillText(`🏆 Récord Actual: ${this.highScore}`, this.width / 2, 460);
+            this.ctx.restore();
         }
         
-        // Botón start
-        this.ctx.font = 'bold 26px Arial';
-        this.ctx.fillStyle = '#ff1493';
-        this.ctx.fillText('Presiona ESPACIO o Click para Jugar', this.width / 2, 560);
+        // Botón start animado
+        const pulse = (Math.sin(Date.now() / 200) + 1) / 2;
+        this.ctx.font = 'bold 28px Arial';
+        this.ctx.fillStyle = `rgba(255, 20, 147, ${0.7 + pulse * 0.3})`;
+        this.ctx.fillText('Haz CLICK o presiona ESPACIO para Iniciar', this.width / 2, 540);
         
-        // Esperar input
-        const startHandler = (e) => {
-            if (e.key === ' ' || e.type === 'click') {
-                window.removeEventListener('keydown', startHandler);
-                this.canvas.removeEventListener('click', startHandler);
-                this.startGame();
-            }
-        };
+        // Loop de animación del menú
+        if (!this.isPlaying) {
+            this.menuAnimationId = requestAnimationFrame(() => this.showStartScreen());
+        }
         
-        window.addEventListener('keydown', startHandler);
-        this.canvas.addEventListener('click', startHandler);
+        // Esperar input (solo una vez)
+        if (!this.inputHandlerAttached) {
+            const startHandler = (e) => {
+                if ((e.key === ' ' || e.type === 'click') && !this.isPlaying) {
+                    cancelAnimationFrame(this.menuAnimationId);
+                    this.startGame();
+                }
+            };
+            window.addEventListener('keydown', startHandler);
+            this.canvas.addEventListener('click', startHandler);
+            this.inputHandlerAttached = true;
+        }
     }
 
     startGame() {
@@ -256,12 +300,14 @@ class GalaxyLoveGame {
         this.obstacles = [];
         this.powerUps = [];
         this.particles = [];
+        this.floatingTexts = [];
+        this.player.trail = [];
         
         this.activeEffects = {
-            shield: false,
-            magnet: false,
-            multiplier: false,
-            slowMotion: false
+            shield: 0,
+            magnet: 0,
+            multiplier: 0,
+            slowMotion: 0
         };
         
         this.gameLoop();
@@ -283,28 +329,36 @@ class GalaxyLoveGame {
         this.frameCount++;
         this.gameTime++;
         
-        // Actualizar nivel
-        const newLevel = Math.floor(this.score / 500) + 1;
+        // Actualizar nivel (curva de dificultad más suave)
+        const newLevel = Math.floor(this.score / 800) + 1;
         if (newLevel > this.level) {
             this.level = newLevel;
             this.showLevelUp();
         }
         
-        // Mover jugador con teclado
-        const speed = this.player.speed;
-        if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A']) {
-            this.player.x -= speed;
-        }
-        if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) {
-            this.player.x += speed;
-        }
-        if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) {
-            this.player.y -= speed;
-        }
-        if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) {
-            this.player.y += speed;
-        }
+        // Movimiento del jugador
+        const speed = this.player.speed * (this.activeEffects.slowMotion > 0 ? 1.5 : 1); // Más rápido en slow motion relativo
+        let dx = 0;
+        let dy = 0;
+
+        if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A']) dx = -speed;
+        if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) dx = speed;
+        if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) dy = -speed;
+        if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) dy = speed;
         
+        this.player.x += dx;
+        this.player.y += dy;
+        
+        // Rotación suave basada en movimiento horizontal
+        this.player.angle = dx * 0.05;
+
+        // Estela del jugador
+        if (this.frameCount % 3 === 0) {
+            this.player.trail.push({ x: this.player.x, y: this.player.y, alpha: 0.6 });
+            if (this.player.trail.length > 10) this.player.trail.shift();
+        }
+        this.player.trail.forEach(t => t.alpha -= 0.05);
+
         this.clampPlayer();
         
         // Actualizar estrellas
@@ -319,6 +373,7 @@ class GalaxyLoveGame {
         this.updateObstacles();
         this.updatePowerUps();
         this.updateParticles();
+        this.updateFloatingTexts();
         
         // Actualizar efectos
         this.updateEffects();
@@ -340,8 +395,10 @@ class GalaxyLoveGame {
     }
 
     updateStars() {
+        const speedFactor = this.activeEffects.slowMotion > 0 ? 0.2 : 1;
         this.stars.forEach(star => {
-            star.y += star.speed * (this.activeEffects.slowMotion ? 0.5 : 1);
+            star.y += star.speed * speedFactor;
+            star.twinkle += 0.05;
             if (star.y > this.height) {
                 star.y = 0;
                 star.x = Math.random() * this.width;
@@ -350,10 +407,11 @@ class GalaxyLoveGame {
     }
 
     spawnElements() {
-        const speedMod = this.activeEffects.slowMotion ? 2 : 1;
-        
+        const speedMod = this.activeEffects.slowMotion > 0 ? 2 : 1;
+        const levelFactor = Math.min(this.level, 10); // Cap dificultad
+
         // Spawn corazones
-        if (this.frameCount % Math.floor(this.heartSpawnRate / this.level * speedMod) === 0) {
+        if (this.frameCount % Math.floor(this.heartSpawnRate / (1 + levelFactor * 0.1) * speedMod) === 0) {
             this.spawnHeart();
         }
         
@@ -363,7 +421,7 @@ class GalaxyLoveGame {
         }
         
         // Spawn obstáculos
-        if (this.frameCount % Math.floor(this.obstacleSpawnRate / Math.sqrt(this.level) * speedMod) === 0) {
+        if (this.frameCount % Math.floor(this.obstacleSpawnRate / (1 + levelFactor * 0.15) * speedMod) === 0) {
             this.spawnObstacle();
         }
         
@@ -380,13 +438,14 @@ class GalaxyLoveGame {
             y: -40,
             width: 40,
             height: 40,
-            speed: 1 + this.level * 0.3,
+            speed: (2 + Math.random() + this.level * 0.2),
             emoji: heartTypes[Math.floor(Math.random() * heartTypes.length)],
             points: 10,
             rotation: Math.random() * Math.PI * 2,
             rotationSpeed: (Math.random() - 0.5) * 0.1,
             scale: 1,
-            pulse: 0
+            pulse: 0,
+            oscillation: Math.random() * Math.PI * 2
         });
     }
 
@@ -395,24 +454,24 @@ class GalaxyLoveGame {
         this.messages.push({
             x: Math.random() * (this.width - 150),
             y: -50,
-            width: 150,
-            height: 50,
-            speed: 0.8 + this.level * 0.2,
+            width: 160,
+            height: 40,
+            speed: (1.5 + this.level * 0.1),
             text: message,
             points: 50,
-            color: `hsl(${Math.random() * 60 + 300}, 100%, 70%)`,
-            glow: Math.random() * 10
+            color: `hsl(${Math.random() * 60 + 300}, 100%, 75%)`,
+            glow: 0
         });
     }
 
     spawnObstacle() {
-        const obstacleTypes = ['💔', '☁️', '🌑', '⚡'];
+        const obstacleTypes = ['💔', '☁️', '🌑', '⚡', '🧊'];
         this.obstacles.push({
             x: Math.random() * (this.width - 50),
             y: -50,
             width: 50,
             height: 50,
-            speed: 1.5 + this.level * 0.4,
+            speed: (2.5 + Math.random() + this.level * 0.3),
             emoji: obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)],
             rotation: 0,
             rotationSpeed: (Math.random() - 0.5) * 0.2
@@ -422,41 +481,42 @@ class GalaxyLoveGame {
     spawnPowerUp() {
         const powerUp = this.powerUpTypes[Math.floor(Math.random() * this.powerUpTypes.length)];
         this.powerUps.push({
-            x: Math.random() * (this.width - 40),
-            y: -40,
-            width: 40,
-            height: 40,
-            speed: 1,
+            x: Math.random() * (this.width - 45),
+            y: -45,
+            width: 45,
+            height: 45,
+            speed: 2,
             type: powerUp.type,
             emoji: powerUp.emoji,
             name: powerUp.name,
             duration: powerUp.duration,
+            color: powerUp.color,
             pulse: 0
         });
     }
 
     updateHearts() {
-        const speedMod = this.activeEffects.slowMotion ? 0.5 : 1;
+        const speedMod = this.activeEffects.slowMotion > 0 ? 0.4 : 1;
         
         this.hearts = this.hearts.filter(heart => {
             heart.y += heart.speed * speedMod;
+            heart.x += Math.sin(heart.oscillation + this.frameCount * 0.05) * 0.5; // Ligera oscilación lateral
             heart.rotation += heart.rotationSpeed;
             heart.pulse += 0.1;
             heart.scale = 1 + Math.sin(heart.pulse) * 0.1;
             
-            // Efecto imán
-            if (this.activeEffects.magnet) {
+            // Efecto imán mejorado
+            if (this.activeEffects.magnet > 0) {
                 const dx = this.player.x + this.player.width / 2 - (heart.x + heart.width / 2);
                 const dy = this.player.y + this.player.height / 2 - (heart.y + heart.height / 2);
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                if (distance < 200) {
-                    heart.x += dx * 0.05;
-                    heart.y += dy * 0.05;
+                if (distance < 300) {
+                    heart.x += dx * 0.08;
+                    heart.y += dy * 0.08;
                 }
             }
             
-            // Colisión con jugador
             if (this.checkCollision(this.player, heart)) {
                 this.collectHeart(heart);
                 return false;
@@ -467,25 +527,23 @@ class GalaxyLoveGame {
     }
 
     updateMessages() {
-        const speedMod = this.activeEffects.slowMotion ? 0.5 : 1;
+        const speedMod = this.activeEffects.slowMotion > 0 ? 0.4 : 1;
         
         this.messages = this.messages.filter(message => {
             message.y += message.speed * speedMod;
-            message.glow = (message.glow + 0.2) % 20;
+            message.glow = Math.abs(Math.sin(this.frameCount * 0.1)) * 15;
             
-            // Efecto imán
-            if (this.activeEffects.magnet) {
+            if (this.activeEffects.magnet > 0) {
                 const dx = this.player.x + this.player.width / 2 - (message.x + message.width / 2);
                 const dy = this.player.y + this.player.height / 2 - (message.y + message.height / 2);
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                if (distance < 250) {
-                    message.x += dx * 0.03;
-                    message.y += dy * 0.03;
+                if (distance < 300) {
+                    message.x += dx * 0.05;
+                    message.y += dy * 0.05;
                 }
             }
             
-            // Colisión con jugador
             if (this.checkCollision(this.player, message)) {
                 this.collectMessage(message);
                 return false;
@@ -496,16 +554,21 @@ class GalaxyLoveGame {
     }
 
     updateObstacles() {
-        const speedMod = this.activeEffects.slowMotion ? 0.5 : 1;
+        const speedMod = this.activeEffects.slowMotion > 0 ? 0.4 : 1;
         
         this.obstacles = this.obstacles.filter(obstacle => {
             obstacle.y += obstacle.speed * speedMod;
             obstacle.rotation += obstacle.rotationSpeed;
             
-            // Colisión con jugador
-            if (!this.player.invincible && !this.activeEffects.shield && 
+            if (!this.player.invincible && this.activeEffects.shield <= 0 && 
                 this.checkCollision(this.player, obstacle)) {
                 this.hitObstacle();
+                return false;
+            }
+            
+            // Si hay escudo, el obstáculo se destruye al tocar
+            if (this.activeEffects.shield > 0 && this.checkCollision(this.player, obstacle)) {
+                this.createParticles(obstacle.x, obstacle.y, '✨', '#fff');
                 return false;
             }
             
@@ -514,13 +577,12 @@ class GalaxyLoveGame {
     }
 
     updatePowerUps() {
-        const speedMod = this.activeEffects.slowMotion ? 0.5 : 1;
+        const speedMod = this.activeEffects.slowMotion > 0 ? 0.4 : 1;
         
         this.powerUps = this.powerUps.filter(powerUp => {
             powerUp.y += powerUp.speed * speedMod;
             powerUp.pulse += 0.15;
             
-            // Colisión con jugador
             if (this.checkCollision(this.player, powerUp)) {
                 this.collectPowerUp(powerUp);
                 return false;
@@ -534,153 +596,160 @@ class GalaxyLoveGame {
         this.particles = this.particles.filter(particle => {
             particle.x += particle.vx;
             particle.y += particle.vy;
+            particle.vy += 0.1; // Gravedad
             particle.life--;
-            particle.opacity -= 0.02;
+            particle.opacity = particle.life / particle.maxLife;
+            particle.rotation += particle.rotationSpeed;
             
-            return particle.life > 0 && particle.opacity > 0;
+            return particle.life > 0;
+        });
+    }
+
+    updateFloatingTexts() {
+        this.floatingTexts = this.floatingTexts.filter(text => {
+            text.y += text.vy;
+            text.life--;
+            text.opacity = Math.min(1, text.life / 30);
+            text.scale = 1 + Math.sin((text.maxLife - text.life) * 0.1) * 0.2;
+            return text.life > 0;
         });
     }
 
     updateEffects() {
-        // Actualizar duración de efectos
         for (const effect in this.activeEffects) {
-            if (this.activeEffects[effect] && typeof this.activeEffects[effect] === 'number') {
+            if (this.activeEffects[effect] > 0) {
                 this.activeEffects[effect]--;
-                if (this.activeEffects[effect] <= 0) {
-                    this.activeEffects[effect] = false;
-                }
             }
         }
     }
 
     collectHeart(heart) {
-        const points = heart.points * (this.activeEffects.multiplier ? 2 : 1);
+        const points = heart.points * (this.activeEffects.multiplier > 0 ? 2 : 1);
         this.score += points;
         
-        // Combo
         this.combo++;
-        this.comboTime = 120; // 2 segundos
-        if (this.combo > this.maxCombo) {
-            this.maxCombo = this.combo;
-        }
+        this.comboTime = 150; // 2.5s
+        if (this.combo > this.maxCombo) this.maxCombo = this.combo;
         
-        // Bonus de combo
-        if (this.combo > 5) {
-            this.score += this.combo * 2;
-        }
+        if (this.combo > 5) this.score += this.combo * 5;
         
-        // Partículas
-        this.createParticles(heart.x + heart.width / 2, heart.y + heart.height / 2, heart.emoji);
-        
-        // Sonido visual
-        this.flashScreen('#ff1493', 0.1);
+        // Efectos
+        this.createParticles(heart.x, heart.y, heart.emoji);
+        this.showFloatingText(`+${points}`, heart.x, heart.y, '#ff69b4');
+        if (this.combo > 1) this.showFloatingText(`${this.combo}x Combo!`, heart.x, heart.y - 30, '#ffd700');
     }
 
     collectMessage(message) {
-        const points = message.points * (this.activeEffects.multiplier ? 2 : 1);
+        const points = message.points * (this.activeEffects.multiplier > 0 ? 2 : 1);
         this.score += points;
+        this.combo += 2;
+        this.comboTime = 150;
         
-        // Combo grande
-        this.combo += 3;
-        this.comboTime = 120;
-        if (this.combo > this.maxCombo) {
-            this.maxCombo = this.combo;
-        }
-        
-        // Partículas
-        this.createParticles(message.x + message.width / 2, message.y + message.height / 2, '✨');
-        
-        // Mostrar mensaje
-        this.showFloatingText(message.text, message.x + message.width / 2, message.y);
-        
-        // Flash
-        this.flashScreen('#ffd700', 0.2);
+        this.createParticles(message.x, message.y, '✨', message.color);
+        this.showFloatingText(message.text, message.x, message.y, message.color, 40);
+        this.showFloatingText(`+${points}`, message.x, message.y - 40, '#fff');
     }
 
     collectPowerUp(powerUp) {
         if (powerUp.type === 'life') {
             this.lives = Math.min(this.lives + 1, 5);
+        } else if (powerUp.type === 'blast') {
+            // Destruir todos los obstáculos visibles
+            this.obstacles.forEach(obs => this.createParticles(obs.x, obs.y, '💥'));
+            this.obstacles = [];
+            this.showFloatingText("¡Limpieza!", this.player.x, this.player.y - 50, '#ff4500');
         } else if (powerUp.duration > 0) {
             this.activeEffects[powerUp.type] = powerUp.duration;
         }
         
-        // Mostrar nombre del power-up
-        this.showFloatingText(`${powerUp.emoji} ${powerUp.name}!`, powerUp.x + powerUp.width / 2, powerUp.y);
-        
-        // Partículas
-        this.createParticles(powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2, powerUp.emoji);
-        
-        // Flash
-        this.flashScreen('#00ff00', 0.15);
+        this.showFloatingText(powerUp.name, powerUp.x, powerUp.y, powerUp.color, 30);
+        this.createExplosion(powerUp.x, powerUp.y, powerUp.color);
     }
 
     hitObstacle() {
         this.lives--;
         this.combo = 0;
         
+        // Shake screen effect (simulado)
+        this.screenShake = 10;
+        
         if (this.lives <= 0) {
             this.gameOver();
         } else {
-            // Invencibilidad temporal
             this.player.invincible = true;
-            this.player.invincibleTime = 120; // 2 segundos
-            
-            // Flash rojo
-            this.flashScreen('#ff0000', 0.3);
-            
-            // Partículas de daño
-            this.createParticles(this.player.x + this.player.width / 2, 
-                                this.player.y + this.player.height / 2, '💥');
+            this.player.invincibleTime = 120;
+            this.createParticles(this.player.x, this.player.y, '💔', '#ff0000');
+            this.showFloatingText("-1 Vida", this.player.x, this.player.y - 50, '#ff0000');
         }
     }
 
-    createParticles(x, y, emoji) {
-        for (let i = 0; i < 15; i++) {
+    createParticles(x, y, emoji, color = null) {
+        const count = 10;
+        for (let i = 0; i < count; i++) {
             this.particles.push({
-                x: x,
-                y: y,
-                vx: (Math.random() - 0.5) * 8,
-                vy: (Math.random() - 0.5) * 8,
+                x: x + Math.random() * 40,
+                y: y + Math.random() * 40,
+                vx: (Math.random() - 0.5) * 10,
+                vy: (Math.random() - 0.5) * 10,
                 emoji: emoji,
-                life: 60,
+                color: color,
+                life: 40 + Math.random() * 20,
+                maxLife: 60,
                 opacity: 1,
-                size: Math.random() * 20 + 10
+                size: Math.random() * 20 + 5,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.2
             });
         }
     }
 
-    showFloatingText(text, x, y) {
-        this.particles.push({
+    createExplosion(x, y, color) {
+        for (let i = 0; i < 20; i++) {
+            const angle = (Math.PI * 2 / 20) * i;
+            const speed = 5 + Math.random() * 5;
+            this.particles.push({
+                x: x + 20,
+                y: y + 20,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                color: color,
+                emoji: null, // Partícula geométrica
+                life: 50,
+                maxLife: 50,
+                opacity: 1,
+                size: 5 + Math.random() * 5,
+                rotation: 0,
+                rotationSpeed: 0
+            });
+        }
+    }
+
+    showFloatingText(text, x, y, color = '#fff', fontSize = 24) {
+        this.floatingTexts.push({
             x: x,
             y: y,
-            vx: 0,
-            vy: -2,
+            vy: -1.5,
             text: text,
-            life: 120,
+            life: 60,
+            maxLife: 60,
             opacity: 1,
-            size: 24,
-            color: '#ffd700'
+            color: color,
+            fontSize: fontSize,
+            scale: 1
         });
     }
 
-    flashScreen(color, opacity) {
-        this.screenFlash = {
-            color: color,
-            opacity: opacity,
-            duration: 10
-        };
-    }
-
     showLevelUp() {
-        this.showFloatingText(`¡Nivel ${this.level}! 🎉`, this.width / 2, this.height / 2);
-        this.flashScreen('#00ffff', 0.2);
+        this.showFloatingText(`¡NIVEL ${this.level}!`, this.width / 2 - 50, this.height / 2, '#00ffff', 48);
+        this.createExplosion(this.width / 2, this.height / 2, '#00ffff');
     }
 
     checkCollision(rect1, rect2) {
-        return rect1.x < rect2.x + rect2.width &&
-               rect1.x + rect1.width > rect2.x &&
-               rect1.y < rect2.y + rect2.height &&
-               rect1.y + rect1.height > rect2.y;
+        const padding = 10; // Hitbox más permisiva
+        return rect1.x + padding < rect2.x + rect2.width - padding &&
+               rect1.x + rect1.width - padding > rect2.x + padding &&
+               rect1.y + padding < rect2.y + rect2.height - padding &&
+               rect1.y + rect1.height - padding > rect2.y + padding;
     }
 
     clampPlayer() {
@@ -690,32 +759,22 @@ class GalaxyLoveGame {
 
     togglePause() {
         if (!this.isPlaying) return;
-        
         this.isPaused = !this.isPaused;
-        
-        if (this.isPaused) {
-            this.showPauseScreen();
-        }
+        if (this.isPaused) this.showPauseScreen();
     }
 
     showPauseScreen() {
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         this.ctx.fillRect(0, 0, this.width, this.height);
-        
         this.ctx.font = 'bold 48px Arial';
         this.ctx.fillStyle = '#ff1493';
         this.ctx.textAlign = 'center';
         this.ctx.fillText('⏸️ PAUSA', this.width / 2, this.height / 2);
-        
-        this.ctx.font = '24px Arial';
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillText('Presiona P para continuar', this.width / 2, this.height / 2 + 50);
     }
 
     async gameOver() {
         this.isPlaying = false;
         
-        // Guardar high score
         if (this.score > this.highScore) {
             this.highScore = this.score;
             if (window.db && window.db.saveGameScore) {
@@ -725,130 +784,107 @@ class GalaxyLoveGame {
             }
         }
         
-        // Mostrar pantalla de game over
         this.showGameOverScreen();
     }
 
     showGameOverScreen() {
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
         this.ctx.fillRect(0, 0, this.width, this.height);
         
-        // Título
         this.ctx.font = 'bold 58px Arial';
         this.ctx.fillStyle = '#ff1493';
         this.ctx.textAlign = 'center';
         this.ctx.fillText('Game Over 💔', this.width / 2, 100);
         
-        // Estadísticas
         this.ctx.font = 'bold 32px Arial';
         this.ctx.fillStyle = '#ffd700';
         this.ctx.fillText(`Puntuación: ${this.score}`, this.width / 2, 180);
         
-        this.ctx.font = '24px Arial';
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillText(`Nivel Alcanzado: ${this.level}`, this.width / 2, 230);
-        this.ctx.fillText(`Combo Máximo: ${this.maxCombo}`, this.width / 2, 270);
-        this.ctx.fillText(`Tiempo: ${Math.floor(this.gameTime / 60)}s`, this.width / 2, 310);
+        // Mensaje de reinicio
+        const pulse = (Math.sin(Date.now() / 200) + 1) / 2;
+        this.ctx.font = 'bold 26px Arial';
+        this.ctx.fillStyle = `rgba(255, 20, 147, ${0.7 + pulse * 0.3})`;
+        this.ctx.fillText('Presiona ESPACIO para Reiniciar', this.width / 2, 500);
         
-        // High score
-        if (this.score === this.highScore && this.score > 0) {
-            this.ctx.font = 'bold 28px Arial';
-            this.ctx.fillStyle = '#ffd700';
-            this.ctx.fillText('🏆 ¡NUEVO RÉCORD! 🏆', this.width / 2, 370);
-        } else if (this.highScore > 0) {
-            this.ctx.font = '22px Arial';
-            this.ctx.fillStyle = '#ff69b4';
-            this.ctx.fillText(`Récord: ${this.highScore}`, this.width / 2, 370);
+        if (!this.isPlaying) {
+            this.gameOverAnimationId = requestAnimationFrame(() => this.showGameOverScreen());
         }
         
-        // Mensaje romántico
-        const endMessages = [
-            'El amor nunca se rinde 💕',
-            'Cada intento es por amor 💖',
-            'Tu amor vale más que mil puntos 💗',
-            'Eres mi victoria 💓',
-            'Juntos somos invencibles 💞'
-        ];
-        const randomMsg = endMessages[Math.floor(Math.random() * endMessages.length)];
-        
-        this.ctx.font = 'italic 20px Arial';
-        this.ctx.fillStyle = '#ff69b4';
-        this.ctx.fillText(randomMsg, this.width / 2, 430);
-        
-        // Botones
-        this.ctx.font = 'bold 26px Arial';
-        this.ctx.fillStyle = '#ff1493';
-        this.ctx.fillText('Presiona ESPACIO o Click para Reiniciar', this.width / 2, 520);
-        
-        this.ctx.font = '18px Arial';
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillText('ESC para salir', this.width / 2, 560);
-        
-        // Esperar input
-        const restartHandler = (e) => {
-            if (e.key === ' ' || e.type === 'click') {
-                window.removeEventListener('keydown', restartHandler);
-                this.canvas.removeEventListener('click', restartHandler);
-                this.startGame();
-            } else if (e.key === 'Escape') {
-                window.removeEventListener('keydown', restartHandler);
-                this.canvas.removeEventListener('click', restartHandler);
-                this.exitGame();
-            }
-        };
-        
-        window.addEventListener('keydown', restartHandler);
-        this.canvas.addEventListener('click', restartHandler);
+        // Input handler de reinicio (one-time)
+        if (!this.restartHandlerAttached) {
+            const restartHandler = (e) => {
+                if ((e.key === ' ' || e.type === 'click') && !this.isPlaying) {
+                    cancelAnimationFrame(this.gameOverAnimationId);
+                    this.restartHandlerAttached = false;
+                    window.removeEventListener('keydown', restartHandler);
+                    this.canvas.removeEventListener('click', restartHandler);
+                    this.startGame();
+                } else if (e.key === 'Escape') {
+                    cancelAnimationFrame(this.gameOverAnimationId);
+                    this.closeGalaxyGame();
+                }
+            };
+            window.addEventListener('keydown', restartHandler);
+            this.canvas.addEventListener('click', restartHandler);
+            this.restartHandlerAttached = true;
+        }
     }
 
-    exitGame() {
+    closeGalaxyGame() {
         const modal = document.getElementById('galaxy-game-modal');
-        if (modal) {
-            modal.classList.remove('active');
-        }
+        if (modal) modal.classList.remove('active');
     }
 
     draw() {
-        // Clear
-        this.ctx.fillStyle = '#000000';
+        // Fondo con efecto de "trail" suave si hay shake
+        this.ctx.fillStyle = '#0a0a0f';
+        if (this.screenShake > 0) {
+            const dx = (Math.random() - 0.5) * this.screenShake;
+            const dy = (Math.random() - 0.5) * this.screenShake;
+            this.ctx.translate(dx, dy);
+            this.screenShake *= 0.9;
+            if (this.screenShake < 0.5) this.screenShake = 0;
+        }
+        
         this.ctx.fillRect(0, 0, this.width, this.height);
         
-        // Estrellas
         this.drawStars();
         
         if (!this.isPlaying) return;
         
-        // Elementos del juego
+        // Dibujar estela del jugador
+        this.player.trail.forEach(t => {
+            this.ctx.font = `${this.player.width * 0.8}px Arial`;
+            this.ctx.globalAlpha = t.alpha * 0.5;
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(this.player.emoji, t.x + this.player.width/2, t.y + this.player.height/2);
+        });
+        this.ctx.globalAlpha = 1;
+
+        // Elementos
         this.drawHearts();
         this.drawMessages();
         this.drawObstacles();
         this.drawPowerUps();
-        this.drawPlayer();
         this.drawParticles();
-        
-        // UI
+        this.drawPlayer();
+        this.drawFloatingTexts();
         this.drawUI();
         
-        // Flash de pantalla
-        if (this.screenFlash && this.screenFlash.duration > 0) {
-            this.ctx.fillStyle = this.screenFlash.color;
-            this.ctx.globalAlpha = this.screenFlash.opacity * (this.screenFlash.duration / 10);
-            this.ctx.fillRect(0, 0, this.width, this.height);
-            this.ctx.globalAlpha = 1;
-            this.screenFlash.duration--;
-        }
-        
-        // Pantalla de pausa
-        if (this.isPaused) {
-            this.showPauseScreen();
-        }
+        // Reset transform
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
     drawStars() {
         this.stars.forEach(star => {
-            this.ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
-            this.ctx.fillRect(star.x, star.y, star.size, star.size);
+            this.ctx.globalAlpha = 0.8 + Math.sin(star.twinkle) * 0.2;
+            this.ctx.fillStyle = star.color;
+            this.ctx.beginPath();
+            this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            this.ctx.fill();
         });
+        this.ctx.globalAlpha = 1;
     }
 
     drawHearts() {
@@ -857,6 +893,11 @@ class GalaxyLoveGame {
             this.ctx.translate(heart.x + heart.width / 2, heart.y + heart.height / 2);
             this.ctx.rotate(heart.rotation);
             this.ctx.scale(heart.scale, heart.scale);
+            
+            // Brillo
+            this.ctx.shadowColor = '#ff69b4';
+            this.ctx.shadowBlur = 15;
+            
             this.ctx.font = `${heart.width}px Arial`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
@@ -868,16 +909,12 @@ class GalaxyLoveGame {
     drawMessages() {
         this.messages.forEach(message => {
             this.ctx.save();
-            
-            // Glow effect
             this.ctx.shadowColor = message.color;
             this.ctx.shadowBlur = message.glow;
-            
             this.ctx.fillStyle = message.color;
             this.ctx.font = 'bold 16px Arial';
             this.ctx.textAlign = 'center';
             this.ctx.fillText(message.text, message.x + message.width / 2, message.y + message.height / 2);
-            
             this.ctx.restore();
         });
     }
@@ -898,160 +935,166 @@ class GalaxyLoveGame {
     drawPowerUps() {
         this.powerUps.forEach(powerUp => {
             const scale = 1 + Math.sin(powerUp.pulse) * 0.2;
-            
             this.ctx.save();
             this.ctx.translate(powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2);
             this.ctx.scale(scale, scale);
-            
-            // Glow
-            this.ctx.shadowColor = '#00ff00';
-            this.ctx.shadowBlur = 15;
-            
+            this.ctx.shadowColor = powerUp.color;
+            this.ctx.shadowBlur = 20;
             this.ctx.font = `${powerUp.width}px Arial`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
             this.ctx.fillText(powerUp.emoji, 0, 0);
-            
             this.ctx.restore();
         });
     }
 
     drawPlayer() {
         this.ctx.save();
-        
-        // Efectos visuales del jugador
-        if (this.activeEffects.shield) {
-            this.ctx.strokeStyle = '#00ffff';
-            this.ctx.lineWidth = 3;
+        this.ctx.translate(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
+        this.ctx.rotate(this.player.angle);
+
+        // Efecto Escudo
+        if (this.activeEffects.shield > 0) {
+            this.ctx.strokeStyle = `rgba(0, 255, 255, ${0.5 + Math.sin(this.frameCount * 0.2) * 0.3})`;
+            this.ctx.lineWidth = 4;
             this.ctx.beginPath();
-            this.ctx.arc(this.player.x + this.player.width / 2, 
-                        this.player.y + this.player.height / 2, 
-                        this.player.width, 0, Math.PI * 2);
+            this.ctx.arc(0, 0, this.player.width * 0.8, 0, Math.PI * 2);
             this.ctx.stroke();
         }
-        
-        if (this.activeEffects.magnet) {
-            this.ctx.strokeStyle = '#ffd700';
+
+        // Efecto Imán
+        if (this.activeEffects.magnet > 0) {
+            this.ctx.strokeStyle = `rgba(255, 215, 0, 0.3)`;
             this.ctx.lineWidth = 2;
-            this.ctx.setLineDash([5, 5]);
             this.ctx.beginPath();
-            this.ctx.arc(this.player.x + this.player.width / 2, 
-                        this.player.y + this.player.height / 2, 
-                        150, 0, Math.PI * 2);
+            this.ctx.arc(0, 0, 150, 0, Math.PI * 2);
             this.ctx.stroke();
-            this.ctx.setLineDash([]);
         }
-        
-        // Parpadeo si está invencible
-        if (!this.player.invincible || this.frameCount % 10 < 5) {
+
+        // Render Jugador
+        if (!this.player.invincible || Math.floor(this.frameCount / 5) % 2 === 0) {
             this.ctx.font = `${this.player.width}px Arial`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(this.player.emoji, 
-                            this.player.x + this.player.width / 2, 
-                            this.player.y + this.player.height / 2);
+            this.ctx.fillText(this.player.emoji, 0, 0);
         }
         
         this.ctx.restore();
     }
 
     drawParticles() {
-        this.particles.forEach(particle => {
+        this.particles.forEach(p => {
             this.ctx.save();
-            this.ctx.globalAlpha = particle.opacity;
+            this.ctx.globalAlpha = p.opacity;
+            this.ctx.translate(p.x, p.y);
+            this.ctx.rotate(p.rotation);
             
-            if (particle.text) {
-                this.ctx.font = `bold ${particle.size}px Arial`;
-                this.ctx.fillStyle = particle.color;
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText(particle.text, particle.x, particle.y);
+            if (p.emoji) {
+                this.ctx.font = `${p.size}px Arial`;
+                this.ctx.fillText(p.emoji, 0, 0);
             } else {
-                this.ctx.font = `${particle.size}px Arial`;
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText(particle.emoji, particle.x, particle.y);
+                this.ctx.fillStyle = p.color || '#fff';
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+                this.ctx.fill();
             }
-            
+            this.ctx.restore();
+        });
+    }
+
+    drawFloatingTexts() {
+        this.floatingTexts.forEach(t => {
+            this.ctx.save();
+            this.ctx.globalAlpha = t.opacity;
+            this.ctx.translate(t.x, t.y);
+            this.ctx.scale(t.scale, t.scale);
+            this.ctx.font = `bold ${t.fontSize}px Arial`;
+            this.ctx.fillStyle = t.color;
+            this.ctx.shadowColor = '#000';
+            this.ctx.shadowBlur = 4;
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(t.text, 0, 0);
             this.ctx.restore();
         });
     }
 
     drawUI() {
-        // Fondo semi-transparente para UI
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        this.ctx.fillRect(0, 0, this.width, 45);
-        
+        // Barra superior
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        this.ctx.fillRect(0, 0, this.width, 50);
+        this.ctx.fillStyle = 'rgba(255, 20, 147, 0.5)';
+        this.ctx.fillRect(0, 48, this.width, 2);
+
         // Score
-        this.ctx.font = 'bold 20px Arial';
+        this.ctx.font = 'bold 24px Arial';
         this.ctx.fillStyle = '#ffd700';
         this.ctx.textAlign = 'left';
-        this.ctx.fillText(`💰 ${this.score}`, 10, 28);
-        
+        this.ctx.fillText(`💎 ${this.score}`, 20, 34);
+
         // Nivel
+        this.ctx.textAlign = 'center';
         this.ctx.fillStyle = '#00ffff';
-        this.ctx.fillText(`⭐ Nivel ${this.level}`, 150, 28);
-        
+        this.ctx.fillText(`NIVEL ${this.level}`, this.width / 2, 34);
+
         // Vidas
-        this.ctx.fillStyle = '#ff1493';
         this.ctx.textAlign = 'right';
-        let heartsText = '';
-        for (let i = 0; i < this.lives; i++) {
-            heartsText += '❤️';
-        }
-        this.ctx.fillText(heartsText, this.width - 10, 28);
-        
-        // Combo
-        if (this.combo > 2) {
-            this.ctx.font = 'bold 24px Arial';
+        this.ctx.fillStyle = '#ff1493';
+        let livesStr = '';
+        for (let i = 0; i < this.lives; i++) livesStr += '❤️';
+        this.ctx.fillText(livesStr, this.width - 20, 34);
+
+        // Combo bar
+        if (this.combo > 1) {
+            const barWidth = 200;
+            const fillWidth = (this.comboTime / 150) * barWidth;
+            
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            this.ctx.fillRect(this.width/2 - barWidth/2, 60, barWidth, 10);
+            
             this.ctx.fillStyle = '#ffd700';
+            this.ctx.fillRect(this.width/2 - barWidth/2, 60, fillWidth, 10);
+            
+            this.ctx.font = 'bold 20px Arial';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(`COMBO x${this.combo}! 🔥`, this.width / 2, 70);
+            this.ctx.fillText(`${this.combo}x COMBO`, this.width/2, 95);
         }
+
+        // Efectos activos (iconos)
+        let effectX = 20;
+        const effectY = 80;
         
-        // Efectos activos
-        let effectY = 80;
-        this.ctx.font = '16px Arial';
-        this.ctx.textAlign = 'left';
-        
-        if (this.activeEffects.shield) {
-            this.ctx.fillStyle = '#00ffff';
-            this.ctx.fillText(`🛡️ Escudo: ${Math.ceil(this.activeEffects.shield / 60)}s`, 10, effectY);
-            effectY += 25;
-        }
-        if (this.activeEffects.magnet) {
-            this.ctx.fillStyle = '#ffd700';
-            this.ctx.fillText(`🧲 Imán: ${Math.ceil(this.activeEffects.magnet / 60)}s`, 10, effectY);
-            effectY += 25;
-        }
-        if (this.activeEffects.multiplier) {
-            this.ctx.fillStyle = '#00ff00';
-            this.ctx.fillText(`✖️2️⃣ x2: ${Math.ceil(this.activeEffects.multiplier / 60)}s`, 10, effectY);
-            effectY += 25;
-        }
-        if (this.activeEffects.slowMotion) {
-            this.ctx.fillStyle = '#ff69b4';
-            this.ctx.fillText(`🐌 Lento: ${Math.ceil(this.activeEffects.slowMotion / 60)}s`, 10, effectY);
+        for (const effect in this.activeEffects) {
+            if (this.activeEffects[effect] > 0) {
+                const type = this.powerUpTypes.find(p => p.type === effect);
+                if (type) {
+                    this.ctx.font = '24px Arial';
+                    this.ctx.fillText(type.emoji, effectX, effectY);
+                    
+                    // Barra de duración pequeña debajo del icono
+                    const maxDuration = type.duration;
+                    const pct = this.activeEffects[effect] / maxDuration;
+                    
+                    this.ctx.fillStyle = '#333';
+                    this.ctx.fillRect(effectX - 10, effectY + 5, 30, 4);
+                    this.ctx.fillStyle = type.color;
+                    this.ctx.fillRect(effectX - 10, effectY + 5, 30 * pct, 4);
+                    
+                    effectX += 50;
+                }
+            }
         }
     }
 }
 
-// ================================================
-// INICIALIZACIÓN DEL JUEGO
-// ================================================
-
+// Inicialización global
 let galaxyGame = null;
 
 function startGalaxyLoveGame() {
     const modal = document.getElementById('galaxy-game-modal');
     if (modal) {
         modal.classList.add('active');
-        
-        if (!galaxyGame) {
-            galaxyGame = new GalaxyLoveGame();
-        }
-        
-        setTimeout(() => {
-            galaxyGame.init('galaxy-game-container');
-        }, 100);
+        if (!galaxyGame) galaxyGame = new GalaxyLoveGame();
+        setTimeout(() => galaxyGame.init('galaxy-game-container'), 100);
     }
 }
 
@@ -1059,12 +1102,9 @@ function closeGalaxyGame() {
     const modal = document.getElementById('galaxy-game-modal');
     if (modal) {
         modal.classList.remove('active');
-        if (galaxyGame) {
-            galaxyGame.isPlaying = false;
-        }
+        if (galaxyGame) galaxyGame.isPlaying = false;
     }
 }
 
-// Exportar para uso global
 window.startGalaxyLoveGame = startGalaxyLoveGame;
 window.closeGalaxyGame = closeGalaxyGame;

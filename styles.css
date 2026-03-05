@@ -1631,33 +1631,62 @@ section {
     grid-template-columns: repeat(4, 1fr);
     gap: 1rem;
     margin-bottom: 2rem;
+    perspective: 1000px; /* Esencial para el efecto 3D */
 }
 
 .memory-card {
     aspect-ratio: 1;
-    background: rgba(255, 20, 147, 0.2);
-    border: 2px solid var(--primary-color);
-    border-radius: 15px;
     cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 3rem;
-    transition: all var(--transition-fast);
+    position: relative;
+    /* Eliminamos estilos que ahora están en card-front/back */
+}
+
+/* Estilos 3D para las cartas */
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s;
     transform-style: preserve-3d;
 }
 
-.memory-card.flipped {
+.memory-card.flipped .card-inner {
+    transform: rotateY(180deg);
+}
+
+.memory-card.matched .card-inner {
     transform: rotateY(180deg);
 }
 
 .memory-card.matched {
-    opacity: 0.5;
     cursor: default;
 }
 
-.memory-card:hover:not(.flipped):not(.matched) {
-    transform: scale(1.05);
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.card-front {
+    background: linear-gradient(135deg, #ff1493, #ff69b4);
+    font-size: 2rem;
+    border: 2px solid #fff;
+    transform: rotateY(0deg); /* Asegurar estado inicial */
+}
+
+.card-back {
+    background: #fff;
+    transform: rotateY(180deg);
+    font-size: 3rem;
+    border: 2px solid #ff1493;
 }
 
 /* ===================================
