@@ -490,6 +490,40 @@ const db = {
         const uniqueSongs = Array.from(new Map(songs.map(item => [item.id, item])).values());
         
         return uniqueSongs;
+    },
+
+    async deleteSong(id) {
+        // Verificar si es ID de Supabase (UUID) o LocalStorage (Timestamp numérico)
+        const isSupabaseId = typeof id === 'string' && id.length > 20; // Simple check
+
+        if (window.supabaseClient && isSupabaseId) {
+            // 1. Obtener info para borrar archivo del storage si existe
+            const { data: song } = await supabaseClient
+                .from('playlist_songs')
+                .select('storage_path')
+                .eq('id', id)
+                .single();
+
+            if (song && song.storage_path) {
+                await supabaseClient.storage.from('love_songs').remove([song.storage_path]);
+            }
+
+            // 2. Borrar de la tabla
+            const { error } = await supabaseClient
+                .from('playlist_songs')
+                .delete()
+                .eq('id', id);
+            
+            if (error) {
+                console.error('Error eliminando canción de Supabase:', error);
+                throw error;
+            }
+        } else {
+            // Borrar de LocalStorage
+            let songs = JSON.parse(localStorage.getItem('playlistSongs') || '[]');
+            songs = songs.filter(s => s.id !== id);
+            localStorage.setItem('playlistSongs', JSON.stringify(songs));
+        }
     }
 };
 

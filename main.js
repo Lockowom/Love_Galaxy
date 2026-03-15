@@ -1042,18 +1042,65 @@ function renderPlaylist() {
     playlist.forEach((song, index) => {
         const item = document.createElement('div');
         item.className = `playlist-item ${index === currentSongIndex ? 'active' : ''}`;
+        
+        // Determinar si es una canción por defecto (sin ID o con ID numérico bajo de ejemplo)
+        const isDefault = !song.id || (typeof song.id === 'number' && song.id < 1000);
+        
         item.innerHTML = `
             <span class="song-number">${index + 1}</span>
             <div class="song-info">
                 <h4>${escapeHtml(song.title)}</h4>
                 <p>${escapeHtml(song.artist || 'Desconocido')}</p>
             </div>
-            <button class="btn-small" onclick="setSong(${index})">
-                ${index === currentSongIndex && isPlaying ? '⏸️' : '▶️'}
-            </button>
+            <div class="song-actions" style="display: flex; gap: 5px;">
+                <button class="btn-small" onclick="setSong(${index})">
+                    ${index === currentSongIndex && isPlaying ? '⏸️' : '▶️'}
+                </button>
+                ${!isDefault ? `<button class="btn-small btn-delete" onclick="deleteSong(${index})" title="Eliminar">🗑️</button>` : ''}
+            </div>
         `;
         container.appendChild(item);
     });
+}
+
+async function deleteSong(index) {
+    // Evitar que el clic se propague si fuera necesario, pero aquí son botones separados
+    if (!confirm("¿Estás seguro de que quieres eliminar esta canción de la lista?")) return;
+    
+    const song = playlist[index];
+    
+    // Si es la canción actual, detener reproducción
+    if (index === currentSongIndex) {
+        const audio = document.getElementById('bg-music');
+        if (audio) {
+            audio.pause();
+            isPlaying = false;
+        }
+    }
+
+    try {
+        await db.deleteSong(song.id);
+        showNotification("🗑️ Canción eliminada");
+        
+        // Recargar playlist
+        await loadPlaylist();
+        
+        // Si la lista no está vacía, actualizar UI
+        if (playlist.length > 0) {
+            // Si borramos la última y era la actual, ir a la anterior
+            if (currentSongIndex >= playlist.length) {
+                currentSongIndex = playlist.length - 1;
+            }
+            updatePlayerUI(currentSongIndex);
+        } else {
+            currentSongIndex = 0;
+            updatePlayerUI(0);
+        }
+        
+    } catch (e) {
+        console.error("Error al eliminar canción:", e);
+        showNotification("❌ Error al eliminar la canción");
+    }
 }
 
 function togglePlay() {
@@ -1123,10 +1170,28 @@ function setSong(index) {
     
     if (song.url && song.url !== '#') {
         audio.src = song.url;
+        
+        // Manejo de errores de carga
+        audio.onerror = function() {
+            console.error("Error cargando audio:", song.url);
+            showNotification("❌ Error: No se puede reproducir la URL. Asegúrate que sea un archivo de audio (mp3).");
+            isPlaying = false;
+            updatePlayerUI(index);
+        };
+
         audio.play().then(() => {
             isPlaying = true;
             updatePlayerUI(index);
-        }).catch(e => console.error("Error reproduciendo:", e));
+        }).catch(e => {
+            console.error("Error reproduciendo:", e);
+            if (e.name === 'NotAllowedError') {
+                showNotification("⚠️ Toca 'Play' para iniciar la música");
+            } else {
+                showNotification("❌ Error al reproducir canción");
+            }
+            isPlaying = false;
+            updatePlayerUI(index);
+        });
     } else {
         // Fallback para canciones dummy
         showNotification("Canción de ejemplo (sin audio real)");
@@ -1226,6 +1291,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     showNotification("Por favor ingresa una URL válida");
                     return;
                 }
+                
+                // Validación básica de URL de audio
+                if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('spotify.com')) {
+                    alert("⚠️ Los enlaces de YouTube o Spotify no funcionan directamente aquí.\n\nPor favor usa un enlace directo a un archivo de audio (.mp3, .wav) o sube el archivo desde tu dispositivo.");
+                    return;
+                }
+                
                 songData.url = url;
             }
 
