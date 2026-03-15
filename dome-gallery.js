@@ -210,19 +210,31 @@ class DomeGallery {
 }
 
 // Inicializar cuando se carguen las fotos
-window.initDomeGallery = async function() {
+window.initDomeGallery = async function(providedPhotos) {
     const container = document.getElementById('dome-gallery-view');
     if (!container) return;
     
+    // Limpiar instancia previa si existe para evitar duplicados o fugas de memoria
+    if (window.currentDomeInstance) {
+        // Podríamos añadir un método destroy() a la clase, pero por ahora innerHTML='' limpia el DOM
+        window.currentDomeInstance = null;
+    }
+    
     try {
-        const photos = await db.getPhotos();
+        let photos = providedPhotos;
+        
+        // Si no se pasaron fotos, intentamos obtenerlas de la BD
+        if (!photos) {
+            photos = await db.getPhotos();
+        }
         
         // Si no hay fotos, mostrar mensaje
         if (!photos || photos.length === 0) {
             container.innerHTML = `
-                <div style="text-align: center; color: #aaa; margin-top: 50px;">
-                    <p style="font-size: 3rem; margin-bottom: 1rem;">🌌</p>
-                    <p>Sube fotos en la vista de cuadrícula para verlas aquí girando en el espacio.</p>
+                <div style="text-align: center; color: rgba(255,255,255,0.6); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%;">
+                    <p style="font-size: 4rem; margin-bottom: 1rem; animation: float 3s ease-in-out infinite;">🪐</p>
+                    <h3 style="color: var(--primary-color); margin-bottom: 0.5rem;">El universo está vacío...</h3>
+                    <p>Sube fotos en la vista de cuadrícula para verlas flotando aquí.</p>
                 </div>
             `;
             return;
@@ -230,11 +242,12 @@ window.initDomeGallery = async function() {
 
         // Determinar radio basado en pantalla
         const isMobile = window.innerWidth < 768;
-        const radius = isMobile ? 120 : 250;
+        const radius = isMobile ? 140 : 280;
 
-        new DomeGallery('dome-gallery-view', photos, {
+        // Guardar instancia global
+        window.currentDomeInstance = new DomeGallery('dome-gallery-view', photos, {
             radius: radius,
-            autoRotateSpeed: 0.3
+            autoRotateSpeed: 0.4 // Un poco más rápido para que sea dinámico
         });
         
     } catch (e) {
@@ -257,13 +270,22 @@ window.switchGalleryView = function(view) {
     });
     
     if (view === 'grid') {
-        gridView.classList.remove('hidden');
-        domeView.classList.add('hidden');
+        // Animación de salida
+        gsap.to(domeView, { opacity: 0, duration: 0.3, onComplete: () => {
+            domeView.classList.add('hidden');
+            gridView.classList.remove('hidden');
+            gsap.fromTo(gridView, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 });
+        }});
     } else {
-        gridView.classList.add('hidden');
-        domeView.classList.remove('hidden');
-        
-        // Siempre reinicializar para recalcular tamaños si cambió la ventana
-        window.initDomeGallery();
+        // Animación de entrada
+        gsap.to(gridView, { opacity: 0, duration: 0.3, onComplete: () => {
+            gridView.classList.add('hidden');
+            domeView.classList.remove('hidden');
+            domeView.style.opacity = 0;
+            gsap.to(domeView, { opacity: 1, duration: 0.5 });
+            
+            // Inicializar (buscará fotos de nuevo para asegurar frescura)
+            window.initDomeGallery();
+        }});
     }
 };
