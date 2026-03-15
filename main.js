@@ -225,10 +225,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Mostrar frase de amor inicial
     generateNewQuote();
 
-    // Inicializar observadores de scroll (GSAP se encarga ahora)
-    // initScrollAnimations(); -> Reemplazado por initGsapAnimations que se auto-registra
-
-
     // Cargar fecha de relación
     loadRelationshipDate();
     
@@ -933,63 +929,6 @@ async function saveCustomMessage() {
 
 // Cargar mensajes al inicio
 document.addEventListener('DOMContentLoaded', loadCustomMessages);
-
-// ================================================
-// ANIMACIONES GSAP
-// ================================================
-
-function initGsapAnimations() {
-    gsap.registerPlugin(ScrollTrigger);
-
-    // Hero Animation
-    const heroTl = gsap.timeline();
-    heroTl.from('.hero h1', { y: 50, opacity: 0, duration: 1, ease: "back.out(1.7)" })
-          .from('.hero p', { y: 30, opacity: 0, duration: 0.8 }, "-=0.5")
-          .from('.hero-buttons', { scale: 0.8, opacity: 0, duration: 0.5 }, "-=0.3");
-
-    // Sections ScrollTrigger
-    gsap.utils.toArray('section').forEach(section => {
-        gsap.from(section, {
-            opacity: 0,
-            y: 50,
-            duration: 1,
-            ease: "power2.out",
-            scrollTrigger: {
-                trigger: section,
-                start: "top 85%",
-                toggleActions: "play none none reverse"
-            }
-        });
-    });
-
-    // Timeline Items Stagger
-    gsap.utils.toArray('.timeline-item').forEach((item, i) => {
-        gsap.from(item, {
-            opacity: 0,
-            x: i % 2 === 0 ? -50 : 50,
-            duration: 0.8,
-            scrollTrigger: {
-                trigger: item,
-                start: "top 85%"
-            }
-        });
-    });
-
-    // Floating Elements (Hearts/Stars background if any)
-    gsap.to('.floating-element', {
-        y: -20,
-        rotation: 10,
-        duration: 2,
-        repeat: -1,
-        yoyo: true,
-        ease: "sine.inOut",
-        stagger: 0.5
-    });
-}
-
-// Reemplazar initScrollAnimations con GSAP
-// initScrollAnimations se llamaba en DOMContentLoaded, ahora llamaremos initGsapAnimations
-document.addEventListener('DOMContentLoaded', initGsapAnimations);
 
 // ================================================
 // MÚSICA Y PLAYLIST (CON SOPORTE YOUTUBE)

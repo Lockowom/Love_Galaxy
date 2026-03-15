@@ -1,4 +1,116 @@
 
-.hidden {
-    display: none !important;
+/* ===================================
+   TOAST NOTIFICATIONS (Legacy support + GSAP)
+   =================================== */
+.toast, .gsap-toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: linear-gradient(135deg, rgba(255, 20, 147, 0.95), rgba(255, 105, 180, 0.95));
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+    z-index: 99999;
+    box-shadow: 0 8px 32px rgba(255, 20, 147, 0.4);
+    opacity: 0;
+    transition: all 0.3s ease;
+    max-width: 90%;
+    word-wrap: break-word;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-success {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.95), rgba(56, 193, 114, 0.95));
+}
+
+.toast-error {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.95), rgba(231, 76, 60, 0.95));
+}
+
+.toast-info {
+    background: linear-gradient(135deg, rgba(23, 162, 184, 0.95), rgba(52, 152, 219, 0.95));
+}
+
+/* ===================================
+   MODAL FULLSCREEN FOTO
+   =================================== */
+.photo-fullscreen-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+.photo-fullscreen-content {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.photo-fullscreen-content img {
+    max-width: 100%;
+    max-height: 75vh;
+    object-fit: contain;
+    border-radius: 15px;
+    box-shadow: 0 10px 60px rgba(255, 20, 147, 0.5);
+}
+
+.photo-close {
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff1493, #ff69b4);
+    color: white;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 5px 20px rgba(255, 20, 147, 0.5);
+    transition: all 0.3s ease;
+    z-index: 10001;
+}
+
+.photo-close:hover {
+    transform: rotate(90deg) scale(1.1);
+    box-shadow: 0 8px 30px rgba(255, 20, 147, 0.7);
+}
+
+.photo-info {
+    background: rgba(255, 20, 147, 0.15);
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 20, 147, 0.3);
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.photo-info p {
+    color: white;
+    margin: 0;
+    font-size: 1rem;
 }
