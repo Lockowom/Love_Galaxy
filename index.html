@@ -536,29 +536,48 @@
             <h2>🎵 Agregar Música</h2>
             
             <div class="tabs mb-2">
-                <button class="tab-btn active" onclick="switchSongTab('upload')">Subir Archivo</button>
-                <button class="tab-btn" onclick="switchSongTab('url')">Enlace Externo</button>
+                <button class="tab-btn active" onclick="switchSongTab('upload')" id="tab-btn-upload">📁 Subir Archivo</button>
+                <button class="tab-btn" onclick="switchSongTab('youtube')" id="tab-btn-youtube">📺 YouTube</button>
+                <button class="tab-btn" onclick="switchSongTab('url')" id="tab-btn-url">🔗 Enlace MP3</button>
             </div>
 
             <form id="song-upload-form">
                 <input type="text" id="song-title" placeholder="Título de la canción" required class="answer-input">
                 <input type="text" id="song-artist" placeholder="Artista" required class="answer-input">
                 
+                <!-- Tab: Subir Archivo -->
                 <div id="tab-upload" class="tab-content active">
                     <div class="file-upload-container">
-                        <label for="song-file" class="btn-small">Seleccionar Archivo de Audio</label>
+                        <label for="song-file" class="btn-primary" style="width: 100%; text-align: center; display: block; padding: 15px; cursor: pointer; background: rgba(255,255,255,0.1); border: 2px dashed rgba(255,255,255,0.3);">
+                            <span style="font-size: 2em; display: block;">📁</span>
+                            Toca aquí para seleccionar
+                        </label>
                         <input type="file" id="song-file" accept="audio/*" style="display: none;">
-                        <span id="file-name-display">Ningún archivo seleccionado</span>
+                        <span id="file-name-display" style="display: block; margin-top: 10px; font-style: italic; text-align: center;">Ningún archivo seleccionado</span>
                     </div>
                     <p class="text-small mt-1 text-center" style="color: #aaa;">* Requiere conexión a la base de datos</p>
                 </div>
 
-                <div id="tab-url" class="tab-content">
-                    <input type="url" id="song-url" placeholder="https://ejemplo.com/cancion.mp3" class="answer-input">
-                    <p class="text-small text-center" style="color: #aaa;">* Enlace directo a archivo de audio (MP3).<br>No usar YouTube/Spotify.</p>
+                <!-- Tab: YouTube -->
+                <div id="tab-youtube" class="tab-content">
+                    <input type="url" id="youtube-url" placeholder="https://www.youtube.com/watch?v=..." class="answer-input">
+                    <p class="text-small text-center" style="color: #aaa;">
+                        Pega el enlace de un video de YouTube.<br>
+                        (Algunos videos musicales pueden tener restricciones de reproducción)
+                    </p>
+                    <div id="youtube-preview" style="margin-top: 10px; display: none; text-align: center;">
+                        <img id="youtube-thumbnail" src="" style="width: 100%; max-width: 200px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+                        <p id="youtube-title-preview" style="font-size: 0.9em; margin-top: 5px;"></p>
+                    </div>
                 </div>
 
-                <button type="submit" class="btn-primary mt-2">Guardar Canción</button>
+                <!-- Tab: Enlace Directo -->
+                <div id="tab-url" class="tab-content">
+                    <input type="url" id="song-url" placeholder="https://ejemplo.com/cancion.mp3" class="answer-input">
+                    <p class="text-small text-center" style="color: #aaa;">* Enlace directo a archivo de audio (MP3).</p>
+                </div>
+
+                <button type="submit" class="btn-primary mt-2" style="width: 100%;">💾 Guardar Canción</button>
             </form>
         </div>
     </div>

@@ -494,14 +494,35 @@ const db = {
                 .select('*')
                 .order('created_at', { ascending: false });
             
-            if (!error && data) songs = [...data];
+            if (!error && data) {
+                // Regenerar URLs firmadas para asegurar acceso si el bucket es privado
+                songs = await Promise.all(data.map(async (song) => {
+                    // Solo intentar firmar si tiene path y parece ser de supabase
+                    if (song.storage_path) {
+                        try {
+                            const { data: signedData, error: signError } = await supabaseClient
+                                .storage
+                                .from('love_songs')
+                                .createSignedUrl(song.storage_path, 3600 * 24); // 24 horas
+                            
+                            if (!signError && signedData && signedData.signedUrl) {
+                                // Usar URL firmada fresca
+                                return { ...song, url: signedData.signedUrl };
+                            }
+                        } catch (e) {
+                            console.warn("No se pudo firmar URL para:", song.title);
+                        }
+                    }
+                    return song;
+                }));
+            }
         }
         
         // 2. Obtener de LocalStorage (mezclar)
         const localSongs = JSON.parse(localStorage.getItem('playlistSongs') || '[]');
         songs = [...songs, ...localSongs];
         
-        // Eliminar duplicados por ID si los hubiera (raro pero posible)
+        // Eliminar duplicados por ID
         const uniqueSongs = Array.from(new Map(songs.map(item => [item.id, item])).values());
         
         return uniqueSongs;

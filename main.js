@@ -1132,12 +1132,25 @@ function initAudioPlayer() {
 
     audioPlayer.addEventListener('ended', nextSong);
     
+    audioPlayer.addEventListener('waiting', () => {
+        const playBtn = document.getElementById('play-btn');
+        if(playBtn) playBtn.textContent = '⏳';
+    });
+
+    audioPlayer.addEventListener('canplay', () => {
+        const playBtn = document.getElementById('play-btn');
+        if(playBtn) playBtn.textContent = isPlaying ? '⏸️' : '▶️';
+    });
+
     audioPlayer.addEventListener('timeupdate', () => {
         updateProgressBarUI(audioPlayer.currentTime, audioPlayer.duration);
     });
     
     audioPlayer.addEventListener('error', (e) => {
         console.error("Error audio HTML5:", e);
+        const playBtn = document.getElementById('play-btn');
+        if(playBtn) playBtn.textContent = '❌';
+        
         if (isPlaying) {
              showNotification("❌ Error de audio. Saltando...");
              setTimeout(nextSong, 2000);
@@ -1196,14 +1209,49 @@ function setSong(index) {
         }
     } else {
         // Audio Normal
+        // Intentar recuperar si hubo error previo
+        if (audioPlayer.error) {
+            console.log("Recreando audio player por error previo");
+            audioPlayer.load();
+        }
+
         audioPlayer.src = song.url;
-        audioPlayer.load();
-        audioPlayer.play().catch(e => {
-            console.error("Error play:", e);
-            showNotification("⚠️ Dale Play para iniciar");
-            isPlaying = false;
-            updatePlayerUI(index);
-        });
+        
+        // Manejo de promesa de Play
+        const playPromise = audioPlayer.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.then(_ => {
+                // Reproducción iniciada correctamente
+                isPlaying = true;
+                updatePlayerUI(index);
+                
+                // Conectar visualizador si es posible
+                if (window.galaxyVisualizer) {
+                    try {
+                        window.galaxyVisualizer.connect(audioPlayer);
+                        window.galaxyVisualizer.simulate(false);
+                    } catch(e) {
+                        console.warn("No se pudo conectar visualizador (posible error CORS):", e);
+                        window.galaxyVisualizer.simulate(true); // Fallback a simulación
+                    }
+                }
+            })
+            .catch(error => {
+                console.error("Error al reproducir audio:", error);
+                
+                // Si es error de interacción (Autoplay Policy)
+                if (error.name === 'NotAllowedError') {
+                    showNotification("⚠️ Pulsa Play para escuchar la canción");
+                    isPlaying = false;
+                    updatePlayerUI(index);
+                } 
+                // Si es error de carga/formato
+                else {
+                    showNotification("❌ Error cargando canción. Verifica el formato.");
+                }
+            });
+        }
     }
     
     updatePlayerUI(index);
@@ -1211,19 +1259,25 @@ function setSong(index) {
 
 function togglePlay() {
     const song = playlist[currentSongIndex];
+    if (!song) return; // Protección si playlist está vacía
+
     const isYT = isYouTubeUrl(song.url);
 
     if (isPlaying) {
-        if (isYT && youtubePlayer) youtubePlayer.pauseVideo();
+        if (isYT && youtubePlayer && isYouTubeReady) youtubePlayer.pauseVideo();
         else if (audioPlayer) audioPlayer.pause();
         isPlaying = false;
     } else {
-        if (isYT && youtubePlayer) youtubePlayer.playVideo();
+        if (isYT && youtubePlayer && isYouTubeReady) youtubePlayer.playVideo();
         else if (audioPlayer) {
-            if (!audioPlayer.src || audioPlayer.src === window.location.href) {
+            // Si no tiene fuente o es inválida, cargar la canción actual
+            if (!audioPlayer.src || audioPlayer.src === window.location.href || audioPlayer.src === '') {
                 setSong(currentSongIndex);
             } else {
-                audioPlayer.play();
+                audioPlayer.play().catch(e => {
+                    console.error("Error al reanudar:", e);
+                    setSong(currentSongIndex); // Reintentar carga completa
+                });
             }
         }
         isPlaying = true;
@@ -1340,7 +1394,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.switchSongTab = function(tabName) {
         // Buttons
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            if (btn.getAttribute('onclick').includes(tabName)) {
+            if (btn.id === `tab-btn-${tabName}`) {
                 btn.classList.add('active');
             } else {
                 btn.classList.remove('active');
@@ -1351,12 +1405,36 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.tab-content').forEach(content => {
             content.classList.remove('active');
         });
-        document.getElementById(`tab-${tabName}`).classList.add('active');
+        
+        const activeTab = document.getElementById(`tab-${tabName}`);
+        if(activeTab) activeTab.classList.add('active');
         
         // Set hidden input or state to know which type
         const form = document.getElementById('song-upload-form');
-        form.dataset.type = tabName; // 'upload' or 'url'
+        if(form) form.dataset.type = tabName; // 'upload', 'youtube', 'url'
     };
+
+    // YouTube Preview Logic
+    const ytUrlInput = document.getElementById('youtube-url');
+    if (ytUrlInput) {
+        ytUrlInput.addEventListener('input', function() {
+            const url = this.value;
+            const videoId = getYouTubeId(url);
+            const previewDiv = document.getElementById('youtube-preview');
+            const thumbImg = document.getElementById('youtube-thumbnail');
+            const titlePreview = document.getElementById('youtube-title-preview');
+
+            if (videoId) {
+                previewDiv.style.display = 'block';
+                thumbImg.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+                titlePreview.textContent = "✅ Video detectado";
+                
+                // Auto-fill title if empty (optional, requires API, skipping for now to keep simple)
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        });
+    }
 
     const songForm = document.getElementById('song-upload-form');
     const fileInput = document.getElementById('song-file');
@@ -1365,44 +1443,92 @@ document.addEventListener('DOMContentLoaded', () => {
     if (fileInput) {
         fileInput.addEventListener('change', (e) => {
             if (e.target.files[0]) {
-                fileNameDisplay.textContent = e.target.files[0].name;
+                const file = e.target.files[0];
+                fileNameDisplay.textContent = `✅ ${file.name}`;
+                // Auto-fill title from filename
+                const titleInput = document.getElementById('song-title');
+                if (titleInput && !titleInput.value) {
+                    titleInput.value = file.name.replace(/\.[^/.]+$/, "");
+                }
             }
         });
     }
 
     if (songForm) {
         // Default type
-        songForm.dataset.type = 'upload';
+        if(!songForm.dataset.type) songForm.dataset.type = 'upload';
 
         songForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const title = document.getElementById('song-title').value;
             const artist = document.getElementById('song-artist').value;
-            const type = songForm.dataset.type || 'upload';
+            let type = songForm.dataset.type || 'upload';
             
-            // Convertir 'upload' a 'file' para coincidir con lo que espera db.js
-            const finalType = type === 'upload' ? 'file' : 'url';
+            // Mapeo de tipos para db.js
+            // 'upload' -> 'file'
+            // 'url' -> 'url'
+            // 'youtube' -> 'url' (pero con validación especial)
             
-            let songData = { title, artist, type: finalType };
+            let songData = { title, artist };
 
-            if (finalType === 'file') {
+            if (type === 'upload') {
+                songData.type = 'file';
                 const file = document.getElementById('song-file').files[0];
                 if (!file) {
                     showNotification("Por favor selecciona un archivo de audio");
                     return;
                 }
                 songData.file = file;
+            } else if (type === 'youtube') {
+                songData.type = 'url';
+                const url = document.getElementById('youtube-url').value;
+                if (!url || !getYouTubeId(url)) {
+                    showNotification("Por favor ingresa un enlace de YouTube válido");
+                    return;
+                }
+                songData.url = url;
             } else {
+                songData.type = 'url';
                 const url = document.getElementById('song-url').value;
                 if (!url) {
                     showNotification("Por favor ingresa una URL válida");
                     return;
                 }
-                
-                // Validación básica de URL de audio
                 if (url.includes('spotify.com')) {
                     alert("⚠️ Los enlaces de Spotify no son compatibles. Usa enlaces de YouTube o archivos directos.");
+                    return;
+                }
+                songData.url = url;
+            }
+
+            // Mostrar estado de carga
+            const submitBtn = songForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = "⏳ Guardando...";
+            submitBtn.disabled = true;
+
+            try {
+                await db.saveSong(songData);
+                
+                // Reset form
+                songForm.reset();
+                if(fileNameDisplay) fileNameDisplay.textContent = "Ningún archivo seleccionado";
+                if(document.getElementById('youtube-preview')) document.getElementById('youtube-preview').style.display = 'none';
+                
+                closeSongUploadModal();
+                await loadPlaylist();
+                showToast('🎵 Canción agregada correctamente', 'success');
+            } catch (error) {
+                console.error(error);
+                showToast('❌ Error al guardar la canción', 'error');
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    }
+});
                     return;
                 }
                 
@@ -1423,7 +1549,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 closeSongUploadModal();
                 songForm.reset();
-                fileNameDisplay.textContent = "Ningún archivo seleccionado";
+                if(fileNameDisplay) fileNameDisplay.textContent = "Ningún archivo seleccionado";
+                if(document.getElementById('youtube-preview')) document.getElementById('youtube-preview').style.display = 'none';
+                
                 await loadPlaylist(); // Recargar lista
             } catch (error) {
                 console.error("Detalle del error:", error);
@@ -1440,7 +1568,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 showNotification(errorMsg);
-                alert("Detalle técnico del error (para soporte):\n" + JSON.stringify(error, null, 2));
+                // alert("Detalle técnico del error (para soporte):\n" + JSON.stringify(error, null, 2)); // Comentado para mejor UX
             } finally {
                 btn.textContent = originalText;
                 btn.disabled = false;
