@@ -1318,8 +1318,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 fileNameDisplay.textContent = "Ningún archivo seleccionado";
                 await loadPlaylist(); // Recargar lista
             } catch (error) {
-                console.error(error);
-                showNotification("Error al guardar la canción ❌");
+                console.error("Detalle del error:", error);
+                
+                let errorMsg = "Error al guardar la canción ❌";
+                if (error.message) {
+                    if (error.message.includes("violates row-level security")) {
+                        errorMsg = "❌ Error de Permisos: Ejecuta el script SQL en Supabase.";
+                    } else if (error.message.includes("The resource was not found")) {
+                        errorMsg = "❌ Error: No se encontró el Bucket 'love_songs' en Supabase.";
+                    } else {
+                        errorMsg = `❌ Error: ${error.message}`;
+                    }
+                }
+                
+                showNotification(errorMsg);
+                alert("Detalle técnico del error (para soporte):\n" + JSON.stringify(error, null, 2));
             } finally {
                 btn.textContent = originalText;
                 btn.disabled = false;
