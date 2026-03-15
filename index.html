@@ -169,80 +169,92 @@
             <h2 class="section-title">Galería de Momentos</h2>
             <p class="section-subtitle">Cada foto cuenta una historia de amor 📸</p>
             
-            <div class="gallery-filters">
-                <button class="filter-btn active" data-filter="all">Todos</button>
-                <button class="filter-btn" data-filter="juntos">Juntos</button>
-                <button class="filter-btn" data-filter="especiales">Especiales</button>
-                <button class="filter-btn" data-filter="viajes">Viajes</button>
-                <button class="filter-btn" data-filter="celebraciones">Celebraciones</button>
+            <div class="gallery-view-toggle">
+                <button class="view-btn active" onclick="switchGalleryView('grid')">📸 Cuadrícula</button>
+                <button class="view-btn" onclick="switchGalleryView('dome')">🌐 Cúpula Mágica</button>
             </div>
 
-            <div class="gallery-grid">
-                <div class="gallery-item" data-category="juntos" data-photo-id="">
-                    <div class="gallery-placeholder">
-                        <span class="placeholder-icon">📷</span>
-                        <p>Añade tu primera foto juntos</p>
-                    </div>
-                    <div class="gallery-overlay">
-                        <h4>Momento Especial</h4>
-                        <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
-                    </div>
+            <div id="gallery-grid-view" class="gallery-view active">
+                <div class="gallery-filters">
+                    <button class="filter-btn active" data-filter="all">Todos</button>
+                    <button class="filter-btn" data-filter="juntos">Juntos</button>
+                    <button class="filter-btn" data-filter="especiales">Especiales</button>
+                    <button class="filter-btn" data-filter="viajes">Viajes</button>
+                    <button class="filter-btn" data-filter="celebraciones">Celebraciones</button>
                 </div>
 
-                <div class="gallery-item" data-category="especiales" data-photo-id="">
-                    <div class="gallery-placeholder">
-                        <span class="placeholder-icon">💕</span>
-                        <p>Un momento que atesoras</p>
+                <div class="gallery-grid">
+                    <div class="gallery-item" data-category="juntos" data-photo-id="">
+                        <div class="gallery-placeholder">
+                            <span class="placeholder-icon">📷</span>
+                            <p>Añade tu primera foto juntos</p>
+                        </div>
+                        <div class="gallery-overlay">
+                            <h4>Momento Especial</h4>
+                            <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+                        </div>
                     </div>
-                    <div class="gallery-overlay">
-                        <h4>Recuerdo Especial</h4>
-                        <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
-                    </div>
-                </div>
 
-                <div class="gallery-item" data-category="viajes" data-photo-id="">
-                    <div class="gallery-placeholder">
-                        <span class="placeholder-icon">✈️</span>
-                        <p>Aventuras juntos</p>
+                    <div class="gallery-item" data-category="especiales" data-photo-id="">
+                        <div class="gallery-placeholder">
+                            <span class="placeholder-icon">💕</span>
+                            <p>Un momento que atesoras</p>
+                        </div>
+                        <div class="gallery-overlay">
+                            <h4>Recuerdo Especial</h4>
+                            <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+                        </div>
                     </div>
-                    <div class="gallery-overlay">
-                        <h4>Nuestros Viajes</h4>
-                        <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
-                    </div>
-                </div>
 
-                <div class="gallery-item" data-category="celebraciones" data-photo-id="">
-                    <div class="gallery-placeholder">
-                        <span class="placeholder-icon">🎉</span>
-                        <p>Celebrando el amor</p>
+                    <div class="gallery-item" data-category="viajes" data-photo-id="">
+                        <div class="gallery-placeholder">
+                            <span class="placeholder-icon">✈️</span>
+                            <p>Aventuras juntos</p>
+                        </div>
+                        <div class="gallery-overlay">
+                            <h4>Nuestros Viajes</h4>
+                            <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+                        </div>
                     </div>
-                    <div class="gallery-overlay">
-                        <h4>Celebraciones</h4>
-                        <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
-                    </div>
-                </div>
 
-                <div class="gallery-item" data-category="juntos" data-photo-id="">
-                    <div class="gallery-placeholder">
-                        <span class="placeholder-icon">🌹</span>
-                        <p>Romance puro</p>
+                    <div class="gallery-item" data-category="celebraciones" data-photo-id="">
+                        <div class="gallery-placeholder">
+                            <span class="placeholder-icon">🎉</span>
+                            <p>Celebrando el amor</p>
+                        </div>
+                        <div class="gallery-overlay">
+                            <h4>Celebraciones</h4>
+                            <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+                        </div>
                     </div>
-                    <div class="gallery-overlay">
-                        <h4>Momentos Románticos</h4>
-                        <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
-                    </div>
-                </div>
 
-                <div class="gallery-item" data-category="especiales" data-photo-id="">
-                    <div class="gallery-placeholder">
-                        <span class="placeholder-icon">🎁</span>
-                        <p>Sorpresas y detalles</p>
+                    <div class="gallery-item" data-category="juntos" data-photo-id="">
+                        <div class="gallery-placeholder">
+                            <span class="placeholder-icon">🌹</span>
+                            <p>Romance puro</p>
+                        </div>
+                        <div class="gallery-overlay">
+                            <h4>Momentos Románticos</h4>
+                            <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+                        </div>
                     </div>
-                    <div class="gallery-overlay">
-                        <h4>Detalles Especiales</h4>
-                        <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+
+                    <div class="gallery-item" data-category="especiales" data-photo-id="">
+                        <div class="gallery-placeholder">
+                            <span class="placeholder-icon">🎁</span>
+                            <p>Sorpresas y detalles</p>
+                        </div>
+                        <div class="gallery-overlay">
+                            <h4>Detalles Especiales</h4>
+                            <button onclick="uploadPhoto(this)" class="btn-small">Subir Foto</button>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <div id="dome-gallery-wrapper" class="dome-gallery-wrapper hidden">
+                <div id="dome-gallery-view" class="dome-gallery-container"></div>
+                <p class="text-center text-small" style="color: #aaa; position: absolute; bottom: 10px; width: 100%;">Arrastra para girar el universo de recuerdos ✨</p>
             </div>
         </div>
     </section>
@@ -689,6 +701,7 @@
     <script src="games.js"></script>
     <script src="extras.js"></script>
     <script src="galaxy-game.js"></script>
+    <script src="dome-gallery.js"></script>
     <script src="romantic-effects.js"></script>
     <script src="main.js"></script>
 </body>
