@@ -543,44 +543,66 @@ document.addEventListener('DOMContentLoaded', () => {
 // ================================================
 
 function createSettingsMenu() {
+    // Si ya existe, lo cerramos con animación
+    const existingMenu = document.getElementById('special-settings-menu');
+    if (existingMenu) {
+        gsap.to(existingMenu, { 
+            opacity: 0, 
+            y: -20, 
+            scale: 0.9, 
+            duration: 0.3, 
+            onComplete: () => existingMenu.remove() 
+        });
+        return;
+    }
+
     const menu = document.createElement('div');
+    menu.id = 'special-settings-menu';
     menu.style.cssText = `
         position: fixed;
-        top: 80px;
-        right: 20px;
-        background: rgba(26, 10, 31, 0.95);
-        border: 2px solid var(--primary-color);
+        bottom: 100px;
+        right: 30px;
+        background: linear-gradient(135deg, rgba(20, 10, 30, 0.98), rgba(40, 10, 60, 0.95));
+        border: 1px solid rgba(255, 105, 180, 0.3);
         border-radius: 20px;
         padding: 1.5rem;
         z-index: 1001;
         min-width: 250px;
-        box-shadow: 0 10px 40px rgba(255, 20, 147, 0.5);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 20, 147, 0.3);
+        backdrop-filter: blur(10px);
+        transform-origin: bottom right;
     `;
     
     menu.innerHTML = `
-        <h3 style="color: var(--primary-color); margin-bottom: 1rem; text-align: center;">
+        <h3 style="color: var(--primary-color); margin-bottom: 1rem; text-align: center; font-size: 1.2rem; text-shadow: 0 0 10px rgba(255,20,147,0.5);">
             ⚙️ Menú Especial
         </h3>
-        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-            <button class="btn-small" onclick="window.showPoem()" style="width: 100%;">
+        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+            <button class="btn-small" onclick="window.showPoem(); document.getElementById('special-settings-menu').remove();" style="width: 100%; justify-content: center; background: rgba(255,255,255,0.05);">
                 📝 Generar Poema
             </button>
-            <button class="btn-small" onclick="window.showAchievements()" style="width: 100%;">
+            <button class="btn-small" onclick="window.showAchievements(); document.getElementById('special-settings-menu').remove();" style="width: 100%; justify-content: center; background: rgba(255,255,255,0.05);">
                 🏆 Ver Logros
             </button>
-            <button class="btn-small" onclick="window.showStatistics()" style="width: 100%;">
+            <button class="btn-small" onclick="window.showStatistics(); document.getElementById('special-settings-menu').remove();" style="width: 100%; justify-content: center; background: rgba(255,255,255,0.05);">
                 📊 Estadísticas
             </button>
-            <button class="btn-small" onclick="window.exportData()" style="width: 100%;">
+            <button class="btn-small" onclick="window.exportData(); document.getElementById('special-settings-menu').remove();" style="width: 100%; justify-content: center; background: rgba(255,255,255,0.05);">
                 💾 Exportar Datos
             </button>
-            <button class="btn-small" onclick="this.closest('div').remove()" style="width: 100%;">
+            <button class="btn-small" onclick="document.getElementById('special-settings-menu').remove();" style="width: 100%; justify-content: center; background: rgba(255,0,0,0.2); border-color: rgba(255,0,0,0.4); color: #ff6b6b; margin-top: 0.5rem;">
                 ❌ Cerrar
             </button>
         </div>
     `;
     
     document.body.appendChild(menu);
+
+    // Animación de entrada
+    gsap.fromTo(menu, 
+        { opacity: 0, y: 20, scale: 0.8 }, 
+        { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "back.out(1.5)" }
+    );
 }
 
 // Botón flotante para abrir menú
