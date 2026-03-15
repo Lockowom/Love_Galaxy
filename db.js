@@ -391,15 +391,17 @@ const db = {
     // ================================================
     // PLAYLIST (CANCIONES)
     // ================================================
-    async saveSong(file, title, artist) {
-        if (window.supabaseClient) {
+    async saveSong(songData) {
+        // songData: { file, url, title, artist, type: 'file' | 'url' }
+        
+        if (window.supabaseClient && songData.type === 'file') {
             try {
                 // 1. Subir audio al Storage
                 const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.mp3`;
                 const { error: uploadError } = await supabaseClient
                     .storage
                     .from('love_songs')
-                    .upload(fileName, file);
+                    .upload(fileName, songData.file);
 
                 if (uploadError) throw uploadError;
 
@@ -413,8 +415,8 @@ const db = {
                 const { data, error: dbError } = await supabaseClient
                     .from('playlist_songs')
                     .insert([{
-                        title,
-                        artist,
+                        title: songData.title,
+                        artist: songData.artist,
                         url: publicUrl,
                         storage_path: fileName
                     }])
@@ -427,23 +429,67 @@ const db = {
                 console.error('Error subiendo canción:', error);
                 throw error;
             }
+        } else if (window.supabaseClient && songData.type === 'url') {
+            // Guardar solo URL en Supabase
+            try {
+                const { data, error } = await supabaseClient
+                    .from('playlist_songs')
+                    .insert([{
+                        title: songData.title,
+                        artist: songData.artist,
+                        url: songData.url,
+                        storage_path: null // Es externa
+                    }])
+                    .select();
+                
+                if (error) throw error;
+                return data[0];
+            } catch (error) {
+                console.error('Error guardando link de canción:', error);
+                throw error;
+            }
         }
         
-        // No soportamos subida de archivos pesados a localStorage
-        alert('Para subir canciones, asegúrate de estar conectado a Supabase.');
-        return null;
+        // Fallback LocalStorage (Solo para URLs externas, no archivos blob por espacio)
+        if (songData.type === 'url') {
+            const songs = JSON.parse(localStorage.getItem('playlistSongs') || '[]');
+            const newSong = {
+                id: Date.now(),
+                title: songData.title,
+                artist: songData.artist,
+                url: songData.url,
+                created_at: new Date().toISOString()
+            };
+            songs.unshift(newSong);
+            localStorage.setItem('playlistSongs', JSON.stringify(songs));
+            return newSong;
+        } else {
+            alert('Para subir archivos de audio, necesitas conectar Supabase. Intenta usar un enlace externo.');
+            return null;
+        }
     },
 
     async getPlaylist() {
+        let songs = [];
+        
+        // 1. Obtener de Supabase
         if (window.supabaseClient) {
             const { data, error } = await supabaseClient
                 .from('playlist_songs')
                 .select('*')
                 .order('created_at', { ascending: false });
             
-            if (!error) return data;
+            if (!error && data) songs = [...data];
         }
-        return []; // Playlist vacía en local por defecto (o podríamos hardcodear algunas)
+        
+        // 2. Obtener de LocalStorage (mezclar)
+        const localSongs = JSON.parse(localStorage.getItem('playlistSongs') || '[]');
+        songs = [...songs, ...localSongs];
+        
+        // Eliminar duplicados por ID si los hubiera (raro pero posible)
+        const uniqueSongs = Array.from(new Map(songs.map(item => [item.id, item])).values());
+        
+        return uniqueSongs;
     }
 };
 

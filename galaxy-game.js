@@ -6,8 +6,8 @@ class GalaxyLoveGame {
     constructor() {
         this.canvas = null;
         this.ctx = null;
-        this.width = 800;
-        this.height = 600;
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
         
         // Estado del juego
         this.isPlaying = false;
@@ -114,19 +114,25 @@ class GalaxyLoveGame {
         
         container.innerHTML = '';
         
+        // Ajustar al tamaño real de la ventana para full screen
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        
         this.canvas = document.createElement('canvas');
         this.canvas.width = this.width;
         this.canvas.height = this.height;
         this.canvas.style.cssText = `
-            border: 3px solid var(--primary-color);
-            border-radius: 15px;
-            background: #000;
-            box-shadow: 0 0 30px rgba(255, 20, 147, 0.5);
+            display: block;
+            width: 100%;
+            height: 100%;
             cursor: none; /* Ocultar cursor nativo dentro del juego */
         `;
         
         this.ctx = this.canvas.getContext('2d', { alpha: false }); // Optimización alpha
         container.appendChild(this.canvas);
+        
+        // Listener para resize
+        window.addEventListener('resize', () => this.handleResize());
         
         // Inicializar jugador
         this.player.x = this.width / 2 - this.player.width / 2;
@@ -140,6 +146,19 @@ class GalaxyLoveGame {
         
         // Mostrar menú inicial
         this.showStartScreen();
+    }
+
+    handleResize() {
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        if (this.canvas) {
+            this.canvas.width = this.width;
+            this.canvas.height = this.height;
+        }
+        // Reajustar posición del jugador si se sale
+        this.clampPlayer();
+        // Regenerar estrellas para cubrir nueva área
+        this.createStars();
     }
 
     setupControls() {
@@ -775,6 +794,16 @@ class GalaxyLoveGame {
     async gameOver() {
         this.isPlaying = false;
         
+        // Verificar Logros
+        if (window.achievements) {
+            if (this.score >= 1000) {
+                window.achievements.unlock('galaxy_explorer');
+            }
+            if (this.score >= 5000) {
+                window.achievements.unlock('galaxy_master');
+            }
+        }
+
         if (this.score > this.highScore) {
             this.highScore = this.score;
             if (window.db && window.db.saveGameScore) {
@@ -1093,7 +1122,14 @@ function startGalaxyLoveGame() {
     const modal = document.getElementById('galaxy-game-modal');
     if (modal) {
         modal.classList.add('active');
+        modal.classList.add('full-screen'); // Añadir clase full-screen
+        
+        // Forzar reflow para asegurar que el navegador registre el cambio de clase antes de init
+        void modal.offsetWidth; 
+        
         if (!galaxyGame) galaxyGame = new GalaxyLoveGame();
+        
+        // Pequeño delay para asegurar que el modal está visible y tiene dimensiones
         setTimeout(() => galaxyGame.init('galaxy-game-container'), 100);
     }
 }
@@ -1102,6 +1138,7 @@ function closeGalaxyGame() {
     const modal = document.getElementById('galaxy-game-modal');
     if (modal) {
         modal.classList.remove('active');
+        modal.classList.remove('full-screen'); // Quitar clase
         if (galaxyGame) galaxyGame.isPlaying = false;
     }
 }

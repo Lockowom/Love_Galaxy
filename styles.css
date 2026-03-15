@@ -1538,6 +1538,36 @@ section {
     display: flex;
 }
 
+/* Modal Full Screen para Juegos */
+.modal.full-screen .modal-content {
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+    margin: 0;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #000;
+}
+
+.modal.full-screen .modal-close {
+    top: 20px;
+    right: 20px;
+    z-index: 1001;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
 .modal-content {
     background: linear-gradient(135deg, rgba(26, 10, 31, 0.95), rgba(15, 5, 26, 0.95));
     border: 3px solid var(--primary-color);
@@ -1802,6 +1832,213 @@ section {
 }
 
 /* ===================================
+   ACHIEVEMENTS SYSTEM
+   =================================== */
+.achievement-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: linear-gradient(135deg, #ff1493, #ffd700);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 10px 30px rgba(255, 20, 147, 0.5);
+    z-index: 11000;
+    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    border: 2px solid #fff;
+}
+
+.achievement-notification.show {
+    transform: translateX(-50%) translateY(0);
+}
+
+.achievement-icon {
+    font-size: 2.5rem;
+    animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.2); }
+    100% { transform: rotate(360deg) scale(1); }
+}
+
+.achievement-text h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.9;
+}
+
+.achievement-text p {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: bold;
+    font-family: var(--font-elegant);
+}
+
+/* Modal de Logros */
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem 0;
+}
+
+.achievement-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    opacity: 0.6;
+    filter: grayscale(1);
+}
+
+.achievement-card.unlocked {
+    background: rgba(255, 20, 147, 0.15);
+    border-color: #ffd700;
+    opacity: 1;
+    filter: grayscale(0);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+}
+
+.achievement-card.unlocked:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
+}
+
+.achievement-card-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.achievement-card h3 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.achievement-card p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.achievement-date {
+    display: block;
+    margin-top: 1rem;
+    font-size: 0.8rem;
+    color: #ffd700;
+    font-style: italic;
+}
+
+/* ===================================
+   COSMIC POEMS
+   =================================== */
+.poems-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.poem-card {
+    background: linear-gradient(135deg, rgba(20, 10, 30, 0.8), rgba(40, 20, 60, 0.8));
+    border: 1px solid rgba(255, 20, 147, 0.3);
+    padding: 2rem;
+    border-radius: 20px; /* Bordes irregulares simulados */
+    border-top-left-radius: 2px;
+    border-bottom-right-radius: 2px;
+    position: relative;
+    transition: transform 0.3s ease;
+}
+
+.poem-card::before {
+    content: '"';
+    position: absolute;
+    top: 10px;
+    left: 20px;
+    font-family: var(--font-elegant);
+    font-size: 4rem;
+    color: rgba(255, 20, 147, 0.2);
+    line-height: 1;
+}
+
+.poem-card:hover {
+    transform: translateY(-5px) rotate(1deg);
+    border-color: var(--primary-color);
+    box-shadow: 0 10px 30px rgba(255, 20, 147, 0.2);
+}
+
+.poem-title {
+    font-family: var(--font-elegant);
+    color: var(--primary-color);
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 1rem;
+}
+
+.poem-content {
+    font-family: var(--font-decorative);
+    font-size: 1.4rem;
+    color: #e0e0e0;
+    line-height: 1.8;
+    text-align: center;
+    white-space: pre-line; /* Respetar saltos de línea */
+}
+
+/* ===================================
+   TABS (Para modales)
+   =================================== */
+.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 1rem;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    transition: all var(--transition-normal);
+}
+
+.tab-btn.active,
+.tab-btn:hover {
+    background: rgba(255, 20, 147, 0.2);
+    color: var(--primary-color);
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.text-small {
+    font-size: 0.8rem;
+}
+
+/* ===================================
    RESPONSIVE
    =================================== */
 @media (max-width: 1024px) {
@@ -1994,6 +2231,36 @@ section {
     border: 3px solid rgba(255, 20, 147, 0.5);
 }
 
+/* Ajustes para Full Screen Galaxy */
+.modal.full-screen .galaxy-modal-content {
+    max-width: 100%;
+    height: 100%;
+    border: none;
+    padding: 0;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.full-screen .galaxy-game-container {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.full-screen canvas {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
 .galaxy-instructions {
     text-align: center;
     margin-bottom: 1.5rem;
@@ -2001,6 +2268,19 @@ section {
     background: rgba(255, 20, 147, 0.1);
     border-radius: 10px;
     border: 1px solid rgba(255, 20, 147, 0.3);
+}
+
+/* Ocultar instrucciones en full screen móvil si ocupan mucho */
+@media (max-width: 768px) {
+    .modal.full-screen .galaxy-instructions {
+        display: none;
+    }
+    
+    .modal.full-screen .modal-close {
+        top: 10px;
+        right: 10px;
+        opacity: 0.7;
+    }
 }
 
 .galaxy-instructions p {

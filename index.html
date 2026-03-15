@@ -44,7 +44,9 @@
                 <li><a href="#games" class="nav-link">Juegos</a></li>
                 <li><a href="#love-meter" class="nav-link">Amor-ómetro</a></li>
                 <li><a href="#messages" class="nav-link">Mensajes</a></li>
+                <li><a href="#poems" class="nav-link">Poemas</a></li>
                 <li><a href="#playlist" class="nav-link">Playlist</a></li>
+                <li><button class="btn-small" onclick="openAchievementsModal()" style="margin-left: 10px;">🏆 Logros</button></li>
             </ul>
             <button class="nav-toggle" id="nav-toggle">
                 <span></span>
@@ -456,6 +458,17 @@
         </div>
     </section>
 
+    <!-- Sección Poemas -->
+    <section id="poems" class="poems-section" style="background: rgba(255, 20, 147, 0.02);">
+        <div class="container">
+            <h2 class="section-title">Poemas Cósmicos</h2>
+            <p class="section-subtitle">Versos escritos en las estrellas 🌌</p>
+            <div id="poems-container" class="poems-grid">
+                <!-- Poemas se renderizan aquí -->
+            </div>
+        </div>
+    </section>
+
     <!-- Sección Playlist -->
     <section id="playlist" class="playlist-section">
         <div class="container">
@@ -505,16 +518,32 @@
     <div id="song-upload-modal" class="modal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeSongUploadModal()">&times;</span>
-            <h2>Subir Nueva Canción 🎵</h2>
+            <h2>🎵 Agregar Música</h2>
+            
+            <div class="tabs mb-2">
+                <button class="tab-btn active" onclick="switchSongTab('upload')">Subir Archivo</button>
+                <button class="tab-btn" onclick="switchSongTab('url')">Enlace Externo</button>
+            </div>
+
             <form id="song-upload-form">
                 <input type="text" id="song-title" placeholder="Título de la canción" required class="answer-input">
                 <input type="text" id="song-artist" placeholder="Artista" required class="answer-input">
-                <div class="file-upload-container">
-                    <label for="song-file" class="btn-small">Seleccionar Archivo de Audio</label>
-                    <input type="file" id="song-file" accept="audio/*" required style="display: none;">
-                    <span id="file-name-display">Ningún archivo seleccionado</span>
+                
+                <div id="tab-upload" class="tab-content active">
+                    <div class="file-upload-container">
+                        <label for="song-file" class="btn-small">Seleccionar Archivo de Audio</label>
+                        <input type="file" id="song-file" accept="audio/*" style="display: none;">
+                        <span id="file-name-display">Ningún archivo seleccionado</span>
+                    </div>
+                    <p class="text-small mt-1 text-center" style="color: #aaa;">* Requiere conexión a la base de datos</p>
                 </div>
-                <button type="submit" class="btn-primary mt-2">Subir Canción</button>
+
+                <div id="tab-url" class="tab-content">
+                    <input type="url" id="song-url" placeholder="https://ejemplo.com/cancion.mp3" class="answer-input">
+                    <p class="text-small text-center" style="color: #aaa;">* Pega un enlace directo a un archivo MP3</p>
+                </div>
+
+                <button type="submit" class="btn-primary mt-2">Guardar Canción</button>
             </form>
         </div>
     </div>
@@ -616,12 +645,25 @@
         </div>
     </div>
 
+    <!-- Modal de Logros -->
+    <div id="achievements-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeAchievementsModal()">&times;</span>
+            <h2>🏆 Tus Logros de Amor</h2>
+            <p class="text-center mb-2">Desbloquea medallas explorando nuestro universo juntos.</p>
+            <div id="achievements-list" class="achievements-grid">
+                <!-- Logros generados dinámicamente -->
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
     <script src="db.js"></script>
+    <script src="achievements.js"></script>
     <script src="particles.js"></script>
     <script src="animations.js"></script>
     <script src="games.js"></script>

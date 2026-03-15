@@ -232,8 +232,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Cargar fecha de relación
     loadRelationshipDate();
     
+    // Renderizar Poemas Cósmicos
+    renderCosmicPoems();
+
     // Optimizaciones para móviles
     initMobileOptimizations();
+    
+    // Logro: Primer Login (o visita)
+    setTimeout(() => {
+        if (window.achievements) window.achievements.unlock('first_login');
+    }, 3000);
 });
 
 async function loadRelationshipDate() {
@@ -362,6 +370,9 @@ function calculateTimeTogether(shouldSave = true) {
         
         const resultsDiv = document.getElementById('calculator-results');
         if (resultsDiv) {
+            // Logro: Love Scientist
+            if (window.achievements) window.achievements.unlock('love_scientist');
+
             const now = new Date();
             const diff = now - relationshipStart;
             
@@ -403,6 +414,27 @@ function calculateTimeTogether(shouldSave = true) {
         
         updateCounters();
     }
+}
+
+// ================================================
+// POEMAS CÓSMICOS
+// ================================================
+
+function renderCosmicPoems() {
+    const container = document.getElementById('poems-container');
+    if (!container) return; // Si no existe el contenedor en HTML aún, no hacer nada
+
+    container.innerHTML = '';
+    
+    cosmicPoems.forEach(poem => {
+        const card = document.createElement('div');
+        card.className = 'poem-card';
+        card.innerHTML = `
+            <h3 class="poem-title">${poem.title}</h3>
+            <p class="poem-content">${poem.content}</p>
+        `;
+        container.appendChild(card);
+    });
 }
 
 // ================================================
@@ -534,6 +566,9 @@ function uploadPhoto(button) {
                 });
                 
                 if (photo) {
+                    // Logro: Photographer
+                    if (window.achievements) window.achievements.unlock('photographer');
+
                     const photoId = photo.id;
                     const imageUrl = photo.url || photo.dataUrl;
                     
@@ -779,6 +814,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         mood
                     });
                     
+                    // Logro: Memory Keeper
+                    if (window.achievements) window.achievements.unlock('memory_keeper');
+
                     memoryForm.reset();
                     await loadMemories();
                     
@@ -876,6 +914,10 @@ async function saveCustomMessage() {
 
         try {
             await db.saveCustomMessage(messageText.value);
+            
+            // Logro: Poet
+            if (window.achievements) window.achievements.unlock('poet');
+
             messageText.value = '';
             showNotification('¡Mensaje guardado con amor! 💌');
             await loadCustomMessages(); // Recargar lista
@@ -958,11 +1000,27 @@ let playlist = [];
 async function loadPlaylist() {
     try {
         const songs = await db.getPlaylist();
-        playlist = songs.length > 0 ? songs : [
-            // Canciones por defecto si no hay ninguna
-            { title: "Nuestra Primera Canción", artist: "El inicio de todo", url: "#" },
-            { title: "La Que Me Recuerda a Ti", artist: "Siempre en mi mente", url: "#" }
+        
+        // Canciones por defecto (Copyright Free) para que no esté vacío
+        const defaultSongs = [
+            { 
+                title: "Love Story", 
+                artist: "Musica Romántica", 
+                url: "https://cdn.pixabay.com/download/audio/2022/02/10/audio_fc06222727.mp3?filename=piano-moment-11938.mp3" 
+            },
+            { 
+                title: "Sweet Memories", 
+                artist: "Piano Suave", 
+                url: "https://cdn.pixabay.com/download/audio/2022/05/05/audio_13b632669e.mp3?filename=soft-piano-109677.mp3" 
+            }
         ];
+
+        playlist = songs.length > 0 ? songs : defaultSongs;
+        
+        // Si hay canciones locales y remotas, las unimos (ya lo hace db.getPlaylist, pero aseguramos defaults si todo falla)
+        if (songs.length === 0 && !window.supabaseClient) {
+             playlist = defaultSongs;
+        }
         
         renderPlaylist();
         
@@ -1087,7 +1145,7 @@ function previousSong() {
     setSong(prevIndex);
 }
 
-// Modal de Subida
+// Modal de Subida y Tabs
 function openSongUploadModal() {
     const modal = document.getElementById('song-upload-modal');
     if (modal) modal.classList.add('active');
@@ -1098,8 +1156,38 @@ function closeSongUploadModal() {
     if (modal) modal.classList.remove('active');
 }
 
+function switchSongTab(tab) {
+    // Actualizar botones
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active'); // event is global in inline onclick, but risky. better use event delegation or passed this.
+    // Actually, in inline onclick 'this' is not the button if not passed. 
+    // Let's fix the logic below in initialization to be safer.
+}
+
 // Manejo de formulario de subida
 document.addEventListener('DOMContentLoaded', () => {
+    // Tab switching logic safe implementation
+    window.switchSongTab = function(tabName) {
+        // Buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            if (btn.getAttribute('onclick').includes(tabName)) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        // Content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        
+        // Set hidden input or state to know which type
+        const form = document.getElementById('song-upload-form');
+        form.dataset.type = tabName; // 'upload' or 'url'
+    };
+
     const songForm = document.getElementById('song-upload-form');
     const fileInput = document.getElementById('song-file');
     const fileNameDisplay = document.getElementById('file-name-display');
@@ -1113,33 +1201,53 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (songForm) {
+        // Default type
+        songForm.dataset.type = 'upload';
+
         songForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const title = document.getElementById('song-title').value;
             const artist = document.getElementById('song-artist').value;
-            const file = document.getElementById('song-file').files[0];
+            const type = songForm.dataset.type || 'upload';
+            
+            let songData = { title, artist, type };
 
-            if (!file) {
-                showNotification("Por favor selecciona un archivo de audio");
-                return;
+            if (type === 'upload') {
+                const file = document.getElementById('song-file').files[0];
+                if (!file) {
+                    showNotification("Por favor selecciona un archivo de audio");
+                    return;
+                }
+                songData.file = file;
+            } else {
+                const url = document.getElementById('song-url').value;
+                if (!url) {
+                    showNotification("Por favor ingresa una URL válida");
+                    return;
+                }
+                songData.url = url;
             }
 
             const btn = songForm.querySelector('button[type="submit"]');
             const originalText = btn.textContent;
-            btn.textContent = "Subiendo... ⏳";
+            btn.textContent = "Guardando... ⏳";
             btn.disabled = true;
 
             try {
-                await db.saveSong(file, title, artist);
-                showNotification("¡Canción subida exitosamente! 🎵");
+                await db.saveSong(songData);
+                showNotification("¡Canción agregada exitosamente! 🎵");
+                
+                // Logro: DJ Love
+                if (window.achievements) window.achievements.unlock('dj_love');
+
                 closeSongUploadModal();
                 songForm.reset();
                 fileNameDisplay.textContent = "Ningún archivo seleccionado";
                 await loadPlaylist(); // Recargar lista
             } catch (error) {
                 console.error(error);
-                showNotification("Error al subir la canción ❌");
+                showNotification("Error al guardar la canción ❌");
             } finally {
                 btn.textContent = originalText;
                 btn.disabled = false;
