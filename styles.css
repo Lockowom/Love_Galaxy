@@ -386,6 +386,21 @@ section {
     box-shadow: 0 6px 20px rgba(196, 113, 237, 0.4);
 }
 
+.btn-delete {
+    background: rgba(255, 0, 0, 0.2);
+    border: 2px solid #ff4444;
+    color: #ff4444;
+    padding: 0.4rem 0.8rem; /* Un poco más pequeño que el play */
+    min-width: 36px;
+}
+
+.btn-delete:hover {
+    background: #ff4444;
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.4);
+}
+
 /* ===================================
    HERO SECTION
    =================================== */
