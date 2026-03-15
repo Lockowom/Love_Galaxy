@@ -95,7 +95,17 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 9999;
-    transition: opacity 0.5s ease, visibility 0.5s ease;
+    transition: opacity 0.5s ease, visibility 0.5s;
+    animation: autoHideLoading 0.5s ease-out 5s forwards;
+    pointer-events: auto;
+}
+
+@keyframes autoHideLoading {
+    to {
+        opacity: 0;
+        pointer-events: none;
+        visibility: hidden;
+    }
 }
 
 #loading-screen.hidden {
