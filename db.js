@@ -464,7 +464,8 @@ const db = {
             localStorage.setItem('playlistSongs', JSON.stringify(songs));
             return newSong;
         } else {
-            alert('Para subir archivos de audio, necesitas conectar Supabase. Intenta usar un enlace externo.');
+            console.warn('Intento de subir archivo sin cliente Supabase activo.');
+            alert('⚠️ No se detectó conexión con la base de datos (Supabase).\n\nPara subir archivos de audio (MP3), necesitas conexión activa a la base de datos.\n\n💡 SOLUCIÓN: Usa la pestaña "Enlace Externo" para agregar canciones mediante URL, o recarga la página para reintentar la conexión.');
             return null;
         }
     },
