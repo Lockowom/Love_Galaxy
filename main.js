@@ -565,11 +565,11 @@ function openTimelineEditor() {
 // Filtros de galería
 document.addEventListener('DOMContentLoaded', () => {
     const filterBtns = document.querySelectorAll('.filter-btn');
-    const galleryItems = document.querySelectorAll('.gallery-item');
-
+    
     filterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const filter = btn.getAttribute('data-filter');
+            const galleryItems = document.querySelectorAll('.gallery-item');
 
             filterBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
@@ -593,106 +593,182 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-function uploadPhoto(button) {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.multiple = false;
-    
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            if (file.size > 5 * 1024 * 1024) {
-                alert('La imagen es muy grande (máx 5MB).');
-                return;
-            }
-            
-            const galleryItem = button.closest('.gallery-item');
-            const category = galleryItem.getAttribute('data-category');
-            const placeholder = galleryItem.querySelector('.gallery-placeholder');
-            const originalContent = placeholder.innerHTML;
-            
-            // Feedback
-            placeholder.innerHTML = '<p>Subiendo... ⏳</p>';
-            
-            try {
-                const photo = await db.savePhoto({
-                    file: file,
-                    category: category,
-                    caption: ''
-                });
-                
-                if (photo) {
-                    // Logro: Photographer
-                    if (window.achievements) window.achievements.unlock('photographer');
-
-                    const photoId = photo.id;
-                    const imageUrl = photo.url || photo.dataUrl;
-                    
-                    galleryItem.setAttribute('data-photo-id', photoId);
-                    
-                    placeholder.style.backgroundImage = `url(${imageUrl})`;
-                    placeholder.style.backgroundSize = 'cover';
-                    placeholder.style.backgroundPosition = 'center';
-                    placeholder.innerHTML = '';
-                    placeholder.classList.add('has-photo');
-                    
-                    galleryItem.classList.add('has-photo');
-                    
-                    updateGalleryItemButtons(galleryItem, photoId);
-                    showToast('✅ Foto guardada exitosamente', 'success');
-                }
-            } catch (error) {
-                console.error(error);
-                placeholder.innerHTML = originalContent;
-                showToast('❌ Error al guardar foto', 'error');
-            }
-        }
-    };
-    input.click();
+// Modales de Fotos
+function openPhotoUploadModal() {
+    const modal = document.getElementById('photo-upload-modal');
+    if(modal) modal.classList.add('active');
 }
 
-async function loadGalleryPhotos() {
-    try {
-        const photos = await db.getPhotos();
-        const galleryItems = document.querySelectorAll('.gallery-item');
-        
-        // Agrupar fotos por categoría para asignarlas a los slots disponibles
-        const photosByCategory = {};
-        photos.forEach(p => {
-            if (!photosByCategory[p.category]) photosByCategory[p.category] = [];
-            photosByCategory[p.category].push(p);
-        });
-
-        galleryItems.forEach(item => {
-            const category = item.getAttribute('data-category');
-            // Si hay fotos para esta categoría, tomar una y asignarla
-            if (photosByCategory[category] && photosByCategory[category].length > 0) {
-                const photo = photosByCategory[category].shift();
-                const placeholder = item.querySelector('.gallery-placeholder');
-                const imageUrl = photo.url || photo.dataUrl;
-                
-                item.setAttribute('data-photo-id', photo.id);
-                
-                placeholder.style.backgroundImage = `url(${imageUrl})`;
-                placeholder.style.backgroundSize = 'cover';
-                placeholder.style.backgroundPosition = 'center';
-                placeholder.innerHTML = '';
-                placeholder.classList.add('has-photo');
-                item.classList.add('has-photo');
-                
-                updateGalleryItemButtons(item, photo.id);
-            }
-        });
-    } catch (e) {
-        console.error('Error cargando fotos:', e);
+function closePhotoUploadModal() {
+    const modal = document.getElementById('photo-upload-modal');
+    if(modal) {
+        modal.classList.remove('active');
+        // Reset form
+        document.getElementById('photo-upload-form').reset();
+        document.getElementById('photo-preview-container').style.display = 'none';
     }
 }
 
-function updateGalleryItemButtons(galleryItem, photoId) {
-    const overlay = galleryItem.querySelector('.gallery-overlay');
-    if (!overlay) return;
+function handlePhotoSelect(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const preview = document.getElementById('photo-preview');
+            const container = document.getElementById('photo-preview-container');
+            preview.src = e.target.result;
+            container.style.display = 'block';
+        };
+        
+        reader.readAsDataURL(file);
+    }
+}
+
+// Cargar Fotos
+async function loadGalleryPhotos() {
+    const gridContainer = document.getElementById('gallery-grid-container');
+    if (!gridContainer) return;
+
+    try {
+        const photos = await db.getPhotos();
+        
+        gridContainer.innerHTML = ''; // Limpiar
+        
+        if (photos.length === 0) {
+            gridContainer.innerHTML = `
+                <div class="gallery-placeholder-empty" style="grid-column: 1/-1; text-align: center; padding: 3rem; background: rgba(255,255,255,0.05); border-radius: 20px;">
+                    <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">📸</span>
+                    <p>La galería está vacía. ¡Sube nuestra primera foto!</p>
+                </div>
+            `;
+            return;
+        }
+
+        photos.forEach(photo => {
+            const imageUrl = photo.url || photo.dataUrl;
+            const item = document.createElement('div');
+            item.className = 'gallery-item has-photo';
+            item.setAttribute('data-category', photo.category || 'juntos');
+            item.setAttribute('data-photo-id', photo.id);
+            
+            // Animación de entrada
+            item.style.animation = 'fadeIn 0.5s ease forwards';
+            
+            const deleteBtn = `
+                <button onclick="deletePhoto('${photo.id}')" class="btn-delete-photo" style="position: absolute; top: 10px; right: 10px; background: rgba(255,0,0,0.6); border: none; border-radius: 50%; width: 30px; height: 30px; color: white; cursor: pointer; opacity: 0; transition: opacity 0.3s;">🗑️</button>
+            `;
+
+            item.innerHTML = `
+                <div class="gallery-placeholder has-photo" style="background-image: url('${imageUrl}'); background-size: cover; background-position: center;"></div>
+                <div class="gallery-overlay">
+                    <h4>${escapeHtml(photo.caption || getCategoryName(photo.category))}</h4>
+                    <p style="font-size: 0.8rem; opacity: 0.8;">${new Date(photo.created_at || Date.now()).toLocaleDateString()}</p>
+                    ${deleteBtn}
+                </div>
+            `;
+            
+            // Mostrar botón borrar al hover
+            item.addEventListener('mouseenter', () => {
+                const btn = item.querySelector('.btn-delete-photo');
+                if(btn) btn.style.opacity = '1';
+            });
+            item.addEventListener('mouseleave', () => {
+                const btn = item.querySelector('.btn-delete-photo');
+                if(btn) btn.style.opacity = '0';
+            });
+
+            gridContainer.appendChild(item);
+        });
+
+        // Inicializar Dome Gallery si existe
+        if (window.initDomeGallery) {
+            window.initDomeGallery(photos);
+        }
+
+    } catch (e) {
+        console.error('Error cargando fotos:', e);
+        gridContainer.innerHTML = '<p class="text-center text-error">Error al cargar la galería</p>';
+    }
+}
+
+function getCategoryName(cat) {
+    const names = {
+        'juntos': 'Juntos',
+        'viajes': 'Viajes',
+        'celebraciones': 'Celebraciones',
+        'especiales': 'Especiales'
+    };
+    return names[cat] || 'Recuerdo';
+}
+
+async function deletePhoto(id) {
+    if(confirm("¿Quieres borrar esta foto de la galería?")) {
+        try {
+            await db.deletePhoto(id);
+            await loadGalleryPhotos();
+            showNotification("Foto eliminada 🗑️");
+        } catch(e) {
+            console.error(e);
+            showNotification("Error al eliminar");
+        }
+    }
+}
+
+// Event Listener para el formulario
+document.addEventListener('DOMContentLoaded', () => {
+    const photoForm = document.getElementById('photo-upload-form');
+    if (photoForm) {
+        photoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('gallery-photo-input');
+            const category = document.getElementById('photo-category').value;
+            const caption = document.getElementById('photo-caption').value;
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                showNotification("¡Debes elegir una foto!");
+                return;
+            }
+
+            const btn = photoForm.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "Subiendo... ⏳";
+            btn.disabled = true;
+
+            try {
+                await db.savePhoto({
+                    file: fileInput.files[0],
+                    category,
+                    caption
+                });
+                
+                // Logro
+                if (window.achievements) window.achievements.unlock('photographer');
+
+                closePhotoUploadModal();
+                showNotification("¡Foto guardada en la galaxia! 🌌");
+                await loadGalleryPhotos();
+
+            } catch (e) {
+                console.error(e);
+                showNotification("Error al subir la foto ❌");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+    }
     
+    // Cargar fotos al inicio
+    loadGalleryPhotos();
+});
+
+// Función antigua (legacy) por si acaso
+function uploadPhoto(button) {
+    openPhotoUploadModal();
+}
+
     // Convertir ID a string seguro
     const idParam = typeof photoId === 'string' ? `'${photoId}'` : photoId;
     
