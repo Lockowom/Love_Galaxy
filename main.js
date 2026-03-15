@@ -599,16 +599,29 @@ document.addEventListener('DOMContentLoaded', () => {
 // Modales de Fotos
 function openPhotoUploadModal() {
     const modal = document.getElementById('photo-upload-modal');
-    if(modal) modal.classList.add('active');
+    if(modal) {
+        modal.classList.add('active');
+        // Asegurar que el modal esté visible en el viewport
+        modal.style.display = 'flex';
+        // En móviles, a veces ayuda forzar un reflow
+        void modal.offsetWidth;
+    }
 }
 
 function closePhotoUploadModal() {
     const modal = document.getElementById('photo-upload-modal');
     if(modal) {
         modal.classList.remove('active');
+        // Ocultar después de la animación si es necesario, o dejar que CSS lo maneje
+        setTimeout(() => {
+            if(!modal.classList.contains('active')) modal.style.display = 'none';
+        }, 300); // 300ms es la duración típica de la transición
+        
         // Reset form
-        document.getElementById('photo-upload-form').reset();
-        document.getElementById('photo-preview-container').style.display = 'none';
+        const form = document.getElementById('photo-upload-form');
+        if(form) form.reset();
+        const previewContainer = document.getElementById('photo-preview-container');
+        if(previewContainer) previewContainer.style.display = 'none';
     }
 }
 
