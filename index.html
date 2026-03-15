@@ -212,11 +212,15 @@
             
             <form id="photo-upload-form">
                 <div class="file-upload-container" style="text-align: center; margin-bottom: 1.5rem;">
-                    <input type="file" id="gallery-photo-input" accept="image/*" style="display: none;" onchange="handlePhotoSelect(this)">
-                    <button type="button" class="btn-primary" onclick="document.getElementById('gallery-photo-input').click()" style="width: 100%; padding: 30px; border: 2px dashed rgba(255,255,255,0.5); background: rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                        <span style="font-size: 3rem;">🖼️</span>
-                        <span>Elegir Foto</span>
-                    </button>
+                    <!-- Solución nativa robusta para móviles: Input transparente sobre el botón -->
+                    <div style="position: relative; overflow: hidden; display: inline-block; width: 100%;">
+                        <button type="button" class="btn-primary" style="width: 100%; padding: 30px; border: 2px dashed rgba(255,255,255,0.5); background: rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                            <span style="font-size: 3rem;">🖼️</span>
+                            <span>Toca aquí para elegir foto</span>
+                        </button>
+                        <input type="file" id="gallery-photo-input" accept="image/*" onchange="handlePhotoSelect(this)" style="font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer;">
+                    </div>
+                    
                     <div id="photo-preview-container" style="margin-top: 15px; display: none;">
                         <img id="photo-preview" src="" style="max-width: 100%; max-height: 200px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
                     </div>
