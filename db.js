@@ -381,11 +381,12 @@ const db = {
             const { data, error } = await supabaseClient
                 .from('custom_messages')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: true }); // Orden cronológico para chat
             
             if (!error) return data;
         }
-        return JSON.parse(localStorage.getItem('customMessages') || '[]');
+        const msgs = JSON.parse(localStorage.getItem('customMessages') || '[]');
+        return msgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     },
 
     // ================================================

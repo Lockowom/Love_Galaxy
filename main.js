@@ -870,66 +870,116 @@ function generateNewQuote() {
 }
 
 async function loadCustomMessages() {
-    const container = document.getElementById('saved-messages-container');
+    const container = document.getElementById('chat-container');
     if (!container) return;
 
     try {
         const messages = await db.getCustomMessages();
+        
         container.innerHTML = '';
-
         if (messages.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color: #aaa; font-style: italic;">Aún no hay mensajes. ¡Sé el primero en escribir uno! 💌</p>';
+            container.innerHTML = `
+                <div class="chat-placeholder">
+                    <span style="font-size: 2rem;">💌</span>
+                    <p>Escribe el primer mensaje...</p>
+                </div>
+            `;
             return;
         }
 
         messages.forEach(msg => {
             const msgEl = document.createElement('div');
-            msgEl.className = 'saved-message-card';
-            msgEl.style.cssText = `
-                background: rgba(255, 255, 255, 0.05);
-                border-left: 3px solid var(--primary-color);
-                padding: 1rem;
-                margin-bottom: 1rem;
-                border-radius: 8px;
-                animation: fadeIn 0.5s ease;
-            `;
+            // Detectar remitente por el contenido "Nombre: Mensaje"
+            let senderClass = 'sender-cris'; // Default
+            let content = msg.content;
+            let senderName = 'Cris';
+
+            if (content.startsWith('Tamara:')) {
+                senderClass = 'sender-tamara';
+                content = content.replace('Tamara:', '').trim();
+                senderName = 'Tamara';
+            } else if (content.startsWith('Cris:')) {
+                senderClass = 'sender-cris';
+                content = content.replace('Cris:', '').trim();
+                senderName = 'Cris';
+            }
+
+            msgEl.className = `chat-message ${senderClass}`;
+            
+            // Formatear fecha
+            const date = new Date(msg.created_at);
+            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const dateStr = date.toLocaleDateString();
+
             msgEl.innerHTML = `
-                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">${escapeHtml(msg.content)}</p>
-                <small style="color: #aaa;">${new Date(msg.created_at).toLocaleDateString()} - ${new Date(msg.created_at).toLocaleTimeString()}</small>
+                <div class="message-text">${escapeHtml(content)}</div>
+                <div class="chat-message-meta">
+                    <span>${senderName}</span>
+                    <span>${timeStr} ${dateStr}</span>
+                </div>
             `;
             container.appendChild(msgEl);
         });
+
+        // Scroll al final
+        container.scrollTop = container.scrollHeight;
+
     } catch (e) {
         console.error("Error cargando mensajes:", e);
     }
 }
 
-async function saveCustomMessage() {
-    const messageText = document.getElementById('custom-message-text');
-    if (messageText && messageText.value.trim()) {
-        const btn = document.querySelector('.custom-message .btn-primary');
-        const originalText = btn.textContent;
-        btn.textContent = "Guardando... 💖";
+async function sendChatMessage() {
+    const input = document.getElementById('custom-message-text');
+    const senderSelect = document.getElementById('chat-sender');
+    
+    if (input && input.value.trim() && senderSelect) {
+        const text = input.value.trim();
+        const sender = senderSelect.value;
+        const fullMessage = `${sender}: ${text}`;
+
+        const btn = document.querySelector('.btn-send');
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '⏳';
         btn.disabled = true;
 
         try {
-            await db.saveCustomMessage(messageText.value);
+            await db.saveCustomMessage(fullMessage);
             
             // Logro: Poet
             if (window.achievements) window.achievements.unlock('poet');
 
-            messageText.value = '';
-            showNotification('¡Mensaje guardado con amor! 💌');
-            await loadCustomMessages(); // Recargar lista
+            input.value = '';
+            await loadCustomMessages(); // Recargar chat
+            
         } catch (e) {
             console.error(e);
-            showNotification('Error al guardar mensaje');
+            showNotification('Error al enviar mensaje');
         } finally {
-            btn.textContent = originalText;
+            btn.innerHTML = originalContent;
             btn.disabled = false;
+            input.focus();
         }
     }
 }
+
+// Auto-refresh chat cada 10 segundos
+setInterval(loadCustomMessages, 10000);
+
+// Enter para enviar
+document.addEventListener('DOMContentLoaded', () => {
+    const chatInput = document.getElementById('custom-message-text');
+    if (chatInput) {
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+    }
+});
+
+// Alias para compatibilidad con botones antiguos si quedan
+const saveCustomMessage = sendChatMessage;
 
 // Cargar mensajes al inicio
 document.addEventListener('DOMContentLoaded', loadCustomMessages);

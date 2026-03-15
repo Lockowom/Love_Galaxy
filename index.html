@@ -459,16 +459,29 @@
                 </div>
 
                 <div class="custom-message">
-                    <h3>Escribe tu Mensaje</h3>
-                    <textarea id="custom-message-text" placeholder="Escribe algo especial para Tamara..." rows="4"></textarea>
-                    <button class="btn-primary" onclick="saveCustomMessage()">
-                        Guardar Mensaje
-                    </button>
+                    <h3>💬 Nuestro Chat Privado</h3>
+                    <div class="chat-container" id="chat-container">
+                        <!-- Mensajes aparecerán aquí -->
+                        <div class="chat-placeholder">
+                            <span style="font-size: 2rem;">💌</span>
+                            <p>Escribe el primer mensaje...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-controls">
+                        <select id="chat-sender" class="chat-select">
+                            <option value="Cris">Soy Cris 🤴</option>
+                            <option value="Tamara">Soy Tamara 👸</option>
+                        </select>
+                        <div class="chat-input-wrapper">
+                            <input type="text" id="custom-message-text" placeholder="Escribe un mensaje..." autocomplete="off">
+                            <button class="btn-send" onclick="sendChatMessage()">➤</button>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="saved-messages-list" id="saved-messages-container">
-                    <!-- Mensajes guardados aparecerán aquí -->
-                </div>
+                <!-- Eliminamos la lista antigua, ahora es el chat -->
+                <div id="saved-messages-container" style="display: none;"></div>
             </div>
         </div>
     </section>
