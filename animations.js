@@ -2,14 +2,24 @@
 // ANIMACIONES GSAP - LOVE GALAXY
 // ================================================
 
-// Registrar plugins de GSAP
-gsap.registerPlugin(ScrollTrigger);
+// Registrar plugins de GSAP de forma segura
+if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+    gsap.registerPlugin(ScrollTrigger);
+} else {
+    console.warn("⚠️ GSAP o ScrollTrigger no cargaron correctamente. Las animaciones se desactivarán.");
+}
 
 document.addEventListener('DOMContentLoaded', () => {
-    initHeroAnimations();
-    initScrollAnimations();
-    initHoverEffects();
-    initFloatingElements();
+    if (typeof gsap === 'undefined') return;
+    
+    try {
+        initHeroAnimations();
+        initScrollAnimations();
+        initHoverEffects();
+        initFloatingElements();
+    } catch (e) {
+        console.error("Error inicializando animaciones:", e);
+    }
 });
 
 function initHeroAnimations() {
@@ -147,7 +157,7 @@ function initFloatingElements() {
     });
 }
 
-// Función global para notificaciones (Toast) usando GSAP
+// Función global para notificaciones (Toast) usando GSAP o Fallback
 window.showNotification = function(message, type = 'info') {
     // Eliminar anterior si existe
     const existingToast = document.querySelector('.gsap-toast');
@@ -166,11 +176,14 @@ window.showNotification = function(message, type = 'info') {
         border: 1px solid var(--primary-color);
         box-shadow: 0 5px 20px rgba(0,0,0,0.5);
         z-index: 10000;
-        font-family: var(--font-sans);
+        font-family: 'Poppins', sans-serif;
         display: flex;
         align-items: center;
         gap: 10px;
         backdrop-filter: blur(10px);
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.5s ease, transform 0.5s ease;
     `;
     
     // Icono según tipo
@@ -182,20 +195,38 @@ window.showNotification = function(message, type = 'info') {
     document.body.appendChild(toast);
 
     // Animación entrada
-    gsap.fromTo(toast, 
-        { y: 50, opacity: 0, scale: 0.9 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(1.7)' }
-    );
+    if (typeof gsap !== 'undefined') {
+        gsap.fromTo(toast, 
+            { y: 50, opacity: 0, scale: 0.9 },
+            { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(1.7)' }
+        );
 
-    // Animación salida automática
-    gsap.to(toast, {
-        y: 20,
-        opacity: 0,
-        duration: 0.5,
-        delay: 3,
-        ease: 'power2.in',
-        onComplete: () => toast.remove()
-    });
+        // Animación salida automática
+        gsap.to(toast, {
+            y: 20,
+            opacity: 0,
+            duration: 0.5,
+            delay: 3,
+            ease: 'power2.in',
+            onComplete: () => {
+                if(toast.parentNode) toast.remove();
+            }
+        });
+    } else {
+        // Fallback CSS puro
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        });
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                if(toast.parentNode) toast.remove();
+            }, 500);
+        }, 3000);
+    }
 };
 
 // Reemplazar alerts nativos por notificaciones bonitas

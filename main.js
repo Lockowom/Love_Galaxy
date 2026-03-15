@@ -194,41 +194,53 @@ const dailyQuestions = [
 // INICIALIZACIÓN
 // ================================================
 
+// Failsafe inmediato para remover pantalla de carga si DOMContentLoaded tarda
+window.onload = function() {
+    setTimeout(() => {
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) loadingScreen.classList.add('hidden');
+    }, 3000);
+};
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Mostrar pantalla de carga
+    console.log("🚀 Love Galaxy Iniciando...");
+
+    // Mostrar pantalla de carga (Lógica principal)
     setTimeout(() => {
         const loadingScreen = document.getElementById('loading-screen');
         if (loadingScreen) {
             loadingScreen.classList.add('hidden');
         }
-    }, 2500);
+    }, 2000); // Reducido a 2s para mejor UX
 
     // Inicializar contadores
-    updateCounters();
-    setInterval(updateCounters, 1000);
+    try {
+        updateCounters();
+        setInterval(updateCounters, 1000);
+    } catch (e) { console.error("Error en contadores:", e); }
 
     // Inicializar navegación
-    initNavigation();
+    try {
+        initNavigation();
+    } catch (e) { console.error("Error en navegación:", e); }
 
-    // Cargar recuerdos guardados
-    loadMemories();
-    
-    // Cargar fotos de la galería
-    loadGalleryPhotos();
-    
-    // Cargar eventos del timeline
-    loadTimelineEvents();
+    // Cargar datos (Async seguro)
+    (async () => {
+        try {
+            await loadMemories();
+            await loadGalleryPhotos();
+            await loadTimelineEvents();
+            await loadRelationshipDate();
+            await loadPlaylist(); // Cargar música
+            await loadCustomMessages();
+        } catch (e) {
+            console.error("Error cargando datos iniciales:", e);
+        }
+    })();
 
-    // Generar mensaje del día
+    // Generar contenido dinámico
     generateDailyMessage();
-
-    // Mostrar frase de amor inicial
     generateNewQuote();
-
-    // Cargar fecha de relación
-    loadRelationshipDate();
-    
-    // Renderizar Poemas Cósmicos
     renderCosmicPoems();
 
     // Optimizaciones para móviles
@@ -857,10 +869,18 @@ function generateNewQuote() {
         const randomQuote = loveQuotes[Math.floor(Math.random() * loveQuotes.length)];
         const quoteText = quoteDisplay.querySelector('.quote-text');
         if (quoteText) {
-            gsap.to(quoteText, { opacity: 0, duration: 0.3, onComplete: () => {
-                quoteText.textContent = `"${randomQuote}"`;
-                gsap.to(quoteText, { opacity: 1, duration: 0.5 });
-            }});
+            if (typeof gsap !== 'undefined') {
+                gsap.to(quoteText, { opacity: 0, duration: 0.3, onComplete: () => {
+                    quoteText.textContent = `"${randomQuote}"`;
+                    gsap.to(quoteText, { opacity: 1, duration: 0.5 });
+                }});
+            } else {
+                quoteText.style.opacity = 0;
+                setTimeout(() => {
+                    quoteText.textContent = `"${randomQuote}"`;
+                    quoteText.style.opacity = 1;
+                }, 300);
+            }
         }
     }
 }
