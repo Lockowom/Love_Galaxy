@@ -17,17 +17,53 @@ const SUPABASE_ANON_KEY = 'sb_publishable_Vng7LX_wQJh1VJEc9PZCgg_GbsM8sce';
 // Inicialización del cliente
 let supabaseClient = null;
 
-if (typeof supabase !== 'undefined' && SUPABASE_URL !== 'TU_SUPABASE_URL_AQUI') {
+// Función para inicializar
+function initSupabase() {
+    if (typeof supabase === 'undefined') {
+        console.error('❌ La librería de Supabase no se cargó.');
+        return;
+    }
+
+    if (SUPABASE_URL === 'TU_SUPABASE_URL_AQUI' || !SUPABASE_URL) {
+        console.warn('⚠️ Falta configurar la URL de Supabase.');
+        return;
+    }
+
+    // Validación básica de la key
+    if (!SUPABASE_ANON_KEY) {
+        console.error('❌ Falta la clave de Supabase.');
+        return;
+    }
+
+    // Soporte para claves nuevas (sb_publishable_) y antiguas (eyJ...)
+    if (!SUPABASE_ANON_KEY.startsWith('sb_publishable_') && !SUPABASE_ANON_KEY.startsWith('eyJ')) {
+        console.warn('⚠️ La clave no tiene un formato conocido (debería empezar con sb_publishable_ o eyJ). Verifica si es correcta.');
+    }
+
     try {
         supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('✅ Supabase conectado correctamente');
+        console.log('✅ Cliente Supabase creado.');
+        
+        // Hacer disponible globalmente
+        window.supabaseClient = supabaseClient;
+
     } catch (error) {
-        console.error('❌ Error al inicializar Supabase:', error);
+        console.error('❌ Error crítico al crear cliente Supabase:', error);
     }
-} else {
-    console.warn('⚠️ Supabase no está configurado. La aplicación usará localStorage temporalmente.');
-    console.warn('   Por favor, configura SUPABASE_URL y SUPABASE_ANON_KEY en js/supabase-client.js');
 }
 
-// Hacer disponible globalmente
-window.supabaseClient = supabaseClient;
+// Ejecutar inicialización
+initSupabase();
+
+// Notificar estado en la UI cuando todo esté cargado
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        if (!window.supabaseClient) {
+            if (typeof showNotification === 'function') {
+                showNotification('⚠️ Supabase no conectado: Verifica la API Key', 'error');
+            }
+        } else {
+            console.log('📡 Supabase listo para usar');
+        }
+    }, 2000);
+});
