@@ -1139,7 +1139,12 @@ function closeGalaxyGame() {
     if (modal) {
         modal.classList.remove('active');
         modal.classList.remove('full-screen'); // Quitar clase
-        if (galaxyGame) galaxyGame.isPlaying = false;
+        if (galaxyGame) {
+            galaxyGame.isPlaying = false;
+            // Cancelar animaciones pendientes del menú o game over para evitar fugas
+            if (galaxyGame.menuAnimationId) cancelAnimationFrame(galaxyGame.menuAnimationId);
+            if (galaxyGame.gameOverAnimationId) cancelAnimationFrame(galaxyGame.gameOverAnimationId);
+        }
     }
 }
 
