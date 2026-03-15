@@ -959,12 +959,36 @@ function generateNewQuote() {
     }
 }
 
-async function loadCustomMessages() {
+let lastMessageCount = 0;
+
+async function loadCustomMessages(isAutoRefresh = false) {
     const container = document.getElementById('chat-container');
     if (!container) return;
 
     try {
         const messages = await db.getCustomMessages();
+        
+        // Comprobar si hay mensajes nuevos en el auto-refresh
+        if (isAutoRefresh && messages.length > lastMessageCount) {
+            // Reproducir sonido de notificación
+            playNotificationSound();
+            
+            // Si la pestaña no está activa o el usuario no está viendo el chat
+            if (document.hidden) {
+                if (Notification.permission === "granted") {
+                    new Notification("Nuevo mensaje en Love Galaxy 💌", {
+                        body: "¡Tienes un nuevo mensaje de amor!",
+                        icon: "https://cdn.pixabay.com/photo/2018/02/12/10/45/heart-3147976_1280.jpg"
+                    });
+                }
+            } else {
+                // Notificación visual en la app
+                showNotification("¡Nuevo mensaje recibido! 💌");
+            }
+        }
+        
+        // Actualizar el contador
+        lastMessageCount = messages.length;
         
         container.innerHTML = '';
         if (messages.length === 0) {
@@ -1011,13 +1035,48 @@ async function loadCustomMessages() {
             container.appendChild(msgEl);
         });
 
-        // Scroll al final
-        container.scrollTop = container.scrollHeight;
+        // Scroll al final solo si no es un refresh automático o si ya estaba al final
+        if (!isAutoRefresh || (container.scrollHeight - container.scrollTop <= container.clientHeight + 100)) {
+            container.scrollTop = container.scrollHeight;
+        }
 
     } catch (e) {
         console.error("Error cargando mensajes:", e);
     }
 }
+
+// Función para reproducir sonido de notificación
+function playNotificationSound() {
+    try {
+        // Usar la API de AudioContext para generar un sonido de "burbuja" o "pop"
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // Nota La
+        oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1); // Sube una octava rápido
+        
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05); // Fade in
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3); // Fade out
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.3);
+    } catch (e) {
+        console.log("No se pudo reproducir sonido de notificación", e);
+    }
+}
+
+// Solicitar permiso de notificaciones push
+document.addEventListener('DOMContentLoaded', () => {
+    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+    }
+});
 
 async function sendChatMessage() {
     const input = document.getElementById('custom-message-text');
@@ -1054,7 +1113,7 @@ async function sendChatMessage() {
 }
 
 // Auto-refresh chat cada 10 segundos
-setInterval(loadCustomMessages, 10000);
+setInterval(() => loadCustomMessages(true), 10000);
 
 // Enter para enviar
 document.addEventListener('DOMContentLoaded', () => {
