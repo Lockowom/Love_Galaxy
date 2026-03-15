@@ -772,16 +772,6 @@ function uploadPhoto(button) {
     openPhotoUploadModal();
 }
 
-    // Convertir ID a string seguro
-    const idParam = typeof photoId === 'string' ? `'${photoId}'` : photoId;
-    
-    overlay.innerHTML = `
-        <button onclick="viewPhotoFullscreen(${idParam})" class="btn-small btn-view">👁️ Ver</button>
-        <button onclick="changePhoto(this)" class="btn-small btn-change">🔄 Cambiar</button>
-        <button onclick="deletePhoto(${idParam}, this)" class="btn-small btn-delete">🗑️ Eliminar</button>
-    `;
-}
-
 function changePhoto(button) {
     uploadPhoto(button);
 }
