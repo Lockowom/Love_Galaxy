@@ -1276,9 +1276,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const artist = document.getElementById('song-artist').value;
             const type = songForm.dataset.type || 'upload';
             
-            let songData = { title, artist, type };
+            // Convertir 'upload' a 'file' para coincidir con lo que espera db.js
+            const finalType = type === 'upload' ? 'file' : 'url';
+            
+            let songData = { title, artist, type: finalType };
 
-            if (type === 'upload') {
+            if (finalType === 'file') {
                 const file = document.getElementById('song-file').files[0];
                 if (!file) {
                     showNotification("Por favor selecciona un archivo de audio");
