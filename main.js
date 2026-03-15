@@ -194,53 +194,45 @@ const dailyQuestions = [
 // INICIALIZACIÓN
 // ================================================
 
-// Failsafe inmediato para remover pantalla de carga si DOMContentLoaded tarda
-window.onload = function() {
-    setTimeout(() => {
-        const loadingScreen = document.getElementById('loading-screen');
-        if (loadingScreen) loadingScreen.classList.add('hidden');
-    }, 3000);
-};
-
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("🚀 Love Galaxy Iniciando...");
-
-    // Mostrar pantalla de carga (Lógica principal)
+    // Mostrar pantalla de carga
     setTimeout(() => {
         const loadingScreen = document.getElementById('loading-screen');
         if (loadingScreen) {
             loadingScreen.classList.add('hidden');
         }
-    }, 2000); // Reducido a 2s para mejor UX
+    }, 2500);
 
     // Inicializar contadores
-    try {
-        updateCounters();
-        setInterval(updateCounters, 1000);
-    } catch (e) { console.error("Error en contadores:", e); }
+    updateCounters();
+    setInterval(updateCounters, 1000);
 
     // Inicializar navegación
-    try {
-        initNavigation();
-    } catch (e) { console.error("Error en navegación:", e); }
+    initNavigation();
 
-    // Cargar datos (Async seguro)
-    (async () => {
-        try {
-            await loadMemories();
-            await loadGalleryPhotos();
-            await loadTimelineEvents();
-            await loadRelationshipDate();
-            await loadPlaylist(); // Cargar música
-            await loadCustomMessages();
-        } catch (e) {
-            console.error("Error cargando datos iniciales:", e);
-        }
-    })();
+    // Cargar recuerdos guardados
+    loadMemories();
+    
+    // Cargar fotos de la galería
+    loadGalleryPhotos();
+    
+    // Cargar eventos del timeline
+    loadTimelineEvents();
 
-    // Generar contenido dinámico
+    // Generar mensaje del día
     generateDailyMessage();
+
+    // Mostrar frase de amor inicial
     generateNewQuote();
+
+    // Inicializar observadores de scroll (GSAP se encarga ahora)
+    // initScrollAnimations(); -> Reemplazado por initGsapAnimations que se auto-registra
+
+
+    // Cargar fecha de relación
+    loadRelationshipDate();
+    
+    // Renderizar Poemas Cósmicos
     renderCosmicPoems();
 
     // Optimizaciones para móviles
@@ -869,18 +861,10 @@ function generateNewQuote() {
         const randomQuote = loveQuotes[Math.floor(Math.random() * loveQuotes.length)];
         const quoteText = quoteDisplay.querySelector('.quote-text');
         if (quoteText) {
-            if (typeof gsap !== 'undefined') {
-                gsap.to(quoteText, { opacity: 0, duration: 0.3, onComplete: () => {
-                    quoteText.textContent = `"${randomQuote}"`;
-                    gsap.to(quoteText, { opacity: 1, duration: 0.5 });
-                }});
-            } else {
-                quoteText.style.opacity = 0;
-                setTimeout(() => {
-                    quoteText.textContent = `"${randomQuote}"`;
-                    quoteText.style.opacity = 1;
-                }, 300);
-            }
+            gsap.to(quoteText, { opacity: 0, duration: 0.3, onComplete: () => {
+                quoteText.textContent = `"${randomQuote}"`;
+                gsap.to(quoteText, { opacity: 1, duration: 0.5 });
+            }});
         }
     }
 }
@@ -949,6 +933,63 @@ async function saveCustomMessage() {
 
 // Cargar mensajes al inicio
 document.addEventListener('DOMContentLoaded', loadCustomMessages);
+
+// ================================================
+// ANIMACIONES GSAP
+// ================================================
+
+function initGsapAnimations() {
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Hero Animation
+    const heroTl = gsap.timeline();
+    heroTl.from('.hero h1', { y: 50, opacity: 0, duration: 1, ease: "back.out(1.7)" })
+          .from('.hero p', { y: 30, opacity: 0, duration: 0.8 }, "-=0.5")
+          .from('.hero-buttons', { scale: 0.8, opacity: 0, duration: 0.5 }, "-=0.3");
+
+    // Sections ScrollTrigger
+    gsap.utils.toArray('section').forEach(section => {
+        gsap.from(section, {
+            opacity: 0,
+            y: 50,
+            duration: 1,
+            ease: "power2.out",
+            scrollTrigger: {
+                trigger: section,
+                start: "top 85%",
+                toggleActions: "play none none reverse"
+            }
+        });
+    });
+
+    // Timeline Items Stagger
+    gsap.utils.toArray('.timeline-item').forEach((item, i) => {
+        gsap.from(item, {
+            opacity: 0,
+            x: i % 2 === 0 ? -50 : 50,
+            duration: 0.8,
+            scrollTrigger: {
+                trigger: item,
+                start: "top 85%"
+            }
+        });
+    });
+
+    // Floating Elements (Hearts/Stars background if any)
+    gsap.to('.floating-element', {
+        y: -20,
+        rotation: 10,
+        duration: 2,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+        stagger: 0.5
+    });
+}
+
+// Reemplazar initScrollAnimations con GSAP
+// initScrollAnimations se llamaba en DOMContentLoaded, ahora llamaremos initGsapAnimations
+document.addEventListener('DOMContentLoaded', initGsapAnimations);
 
 // ================================================
 // MÚSICA Y PLAYLIST (CON SOPORTE YOUTUBE)
