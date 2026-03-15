@@ -998,8 +998,6 @@ document.addEventListener('DOMContentLoaded', initGsapAnimations);
 let playlist = [];
 let audioPlayer = null; // Instancia global del reproductor HTML5
 let youtubePlayer = null; // Instancia global del reproductor YouTube
-let currentSongIndex = 0;
-let isPlaying = false;
 let isYouTubeReady = false;
 
 // Inicialización de la API de YouTube
@@ -1512,7 +1510,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await db.saveSong(songData);
+                showNotification("¡Canción agregada exitosamente! 🎵");
                 
+                // Logro: DJ Love
+                if (window.achievements) window.achievements.unlock('dj_love');
+
                 // Reset form
                 songForm.reset();
                 if(fileNameDisplay) fileNameDisplay.textContent = "Ningún archivo seleccionado";
@@ -1520,41 +1522,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 closeSongUploadModal();
                 await loadPlaylist();
-                showToast('🎵 Canción agregada correctamente', 'success');
-            } catch (error) {
-                console.error(error);
-                showToast('❌ Error al guardar la canción', 'error');
-            } finally {
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
-            }
-        });
-    }
-});
-                    return;
-                }
-                
-                songData.url = url;
-            }
-
-            const btn = songForm.querySelector('button[type="submit"]');
-            const originalText = btn.textContent;
-            btn.textContent = "Guardando... ⏳";
-            btn.disabled = true;
-
-            try {
-                await db.saveSong(songData);
-                showNotification("¡Canción agregada exitosamente! 🎵");
-                
-                // Logro: DJ Love
-                if (window.achievements) window.achievements.unlock('dj_love');
-
-                closeSongUploadModal();
-                songForm.reset();
-                if(fileNameDisplay) fileNameDisplay.textContent = "Ningún archivo seleccionado";
-                if(document.getElementById('youtube-preview')) document.getElementById('youtube-preview').style.display = 'none';
-                
-                await loadPlaylist(); // Recargar lista
             } catch (error) {
                 console.error("Detalle del error:", error);
                 
@@ -1570,14 +1537,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 showNotification(errorMsg);
-                // alert("Detalle técnico del error (para soporte):\n" + JSON.stringify(error, null, 2)); // Comentado para mejor UX
             } finally {
-                btn.textContent = originalText;
-                btn.disabled = false;
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
             }
         });
     }
-    
+
     // Cargar playlist al inicio
     loadPlaylist();
 });
