@@ -1474,12 +1474,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (type === 'upload') {
                 songData.type = 'file';
-                const file = document.getElementById('song-file').files[0];
-                if (!file) {
+                const fileInput = document.getElementById('song-file');
+                if (!fileInput.files || !fileInput.files[0]) {
                     showNotification("Por favor selecciona un archivo de audio");
+                    // Intentar abrir el selector si no hay archivo
+                    fileInput.click();
                     return;
                 }
-                songData.file = file;
+                songData.file = fileInput.files[0];
             } else if (type === 'youtube') {
                 songData.type = 'url';
                 const url = document.getElementById('youtube-url').value;
