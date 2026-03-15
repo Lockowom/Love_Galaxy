@@ -660,6 +660,13 @@
         </div>
     </div>
 
+    <!-- Elemento de Audio Oculto -->
+    <audio id="bg-music" loop></audio>
+    <!-- Elemento de YouTube Oculto -->
+    <div id="youtube-player-container" style="position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none;">
+        <div id="youtube-player"></div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
@@ -672,6 +679,7 @@
             document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>');
         }
     </script>
+    <script src="https://www.youtube.com/iframe_api"></script>
     <script src="supabase-client.js"></script>
     <script src="db.js"></script>
     <script src="achievements.js"></script>

@@ -440,6 +440,12 @@ const db = {
         } else if (window.supabaseClient && songData.type === 'url') {
             // Guardar solo URL en Supabase
             try {
+                // Validación básica de URL de audio
+                if (songData.url.includes('spotify.com')) {
+                     alert("⚠️ Los enlaces de Spotify no son compatibles porque están protegidos.\n\nPrueba con un enlace de YouTube o un archivo MP3 directo.");
+                     throw new Error("Enlace de Spotify no soportado");
+                }
+
                 const { data, error } = await supabaseClient
                     .from('playlist_songs')
                     .insert([{
