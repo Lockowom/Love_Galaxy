@@ -1048,6 +1048,14 @@ function initAudioPlayer() {
     }
 
     // Event Listeners del Audio
+    audioPlayer.addEventListener('play', () => {
+        // Iniciar visualizador al reproducir
+        if (window.galaxyVisualizer) {
+            window.galaxyVisualizer.resume(); // Reanudar contexto si estaba suspendido
+            window.galaxyVisualizer.connect(audioPlayer);
+        }
+    });
+
     audioPlayer.addEventListener('ended', nextSong);
     
     audioPlayer.addEventListener('timeupdate', updateProgressBar);
