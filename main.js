@@ -271,8 +271,25 @@ function initNavigation() {
     if (navToggle) {
         navToggle.addEventListener('click', () => {
             navMenu.classList.toggle('active');
+            
+            // Animación suave de entrada
+            if (navMenu.classList.contains('active')) {
+                gsap.fromTo(navMenu.querySelectorAll('.nav-link'), 
+                    { x: 50, opacity: 0 },
+                    { x: 0, opacity: 1, stagger: 0.1, duration: 0.4 }
+                );
+            }
         });
     }
+
+    // Cerrar menú al hacer click fuera
+    document.addEventListener('click', (e) => {
+        if (navMenu.classList.contains('active') && 
+            !navMenu.contains(e.target) && 
+            !navToggle.contains(e.target)) {
+            navMenu.classList.remove('active');
+        }
+    });
 
     // Navegación suave y actualización de enlaces activos
     navLinks.forEach(link => {
@@ -354,66 +371,106 @@ function updateCounters() {
 }
 
 function animateCounter(element, targetValue) {
-    const currentValue = parseInt(element.textContent) || 0;
-    if (currentValue !== targetValue) {
+    // Protección contra valores no numéricos
+    if (isNaN(targetValue)) targetValue = 0;
+    
+    // Obtener valor actual limpio
+    let currentText = element.textContent.replace(/,/g, '').replace(/\./g, '');
+    const currentValue = parseInt(currentText) || 0;
+    
+    // Si la diferencia es muy grande, saltar animación para evitar lag
+    if (Math.abs(targetValue - currentValue) > 1000) {
         element.textContent = targetValue.toLocaleString();
+        return;
+    }
+
+    // Animación suave simple
+    if (currentValue !== targetValue) {
+        const step = targetValue > currentValue ? 1 : -1;
+        // Solo animar si la diferencia es pequeña
+        if (Math.abs(targetValue - currentValue) < 50) {
+            let tempValue = currentValue;
+            const interval = setInterval(() => {
+                tempValue += step;
+                element.textContent = tempValue.toLocaleString();
+                if (tempValue === targetValue) clearInterval(interval);
+            }, 50);
+        } else {
+            element.textContent = targetValue.toLocaleString();
+        }
     }
 }
 
 function calculateTimeTogether(shouldSave = true) {
     const dateInput = document.getElementById('relationship-start');
+    
+    // Si no hay input o valor, intentar usar la variable global
+    let startDate = relationshipStart;
+    
     if (dateInput && dateInput.value) {
-        relationshipStart = new Date(dateInput.value);
+        startDate = new Date(dateInput.value);
+        relationshipStart = startDate; // Actualizar global
+        
         if (shouldSave) {
             db.setConfig('relationshipStart', dateInput.value).catch(console.error);
         }
-        
-        const resultsDiv = document.getElementById('calculator-results');
-        if (resultsDiv) {
-            // Logro: Love Scientist
-            if (window.achievements) window.achievements.unlock('love_scientist');
-
-            const now = new Date();
-            const diff = now - relationshipStart;
-            
-            const years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365));
-            const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30));
-            const weeks = Math.floor(diff / (1000 * 60 * 60 * 24 * 7));
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const hours = Math.floor(diff / (1000 * 60 * 60));
-            const minutes = Math.floor(diff / (1000 * 60));
-            const seconds = Math.floor(diff / 1000);
-            
-            resultsDiv.innerHTML = `
-                <div class="result-item">
-                    <strong>📅 Años:</strong> ${years} ${years === 1 ? 'año' : 'años'}
-                </div>
-                <div class="result-item">
-                    <strong>📆 Meses:</strong> ${months} ${months === 1 ? 'mes' : 'meses'}
-                </div>
-                <div class="result-item">
-                    <strong>📊 Semanas:</strong> ${weeks} ${weeks === 1 ? 'semana' : 'semanas'}
-                </div>
-                <div class="result-item">
-                    <strong>📈 Días:</strong> ${days.toLocaleString()} ${days === 1 ? 'día' : 'días'}
-                </div>
-                <div class="result-item">
-                    <strong>⏰ Horas:</strong> ${hours.toLocaleString()} ${hours === 1 ? 'hora' : 'horas'}
-                </div>
-                <div class="result-item">
-                    <strong>⏱️ Minutos:</strong> ${minutes.toLocaleString()} ${minutes === 1 ? 'minuto' : 'minutos'}
-                </div>
-                <div class="result-item">
-                    <strong>⚡ Segundos:</strong> ${seconds.toLocaleString()} ${seconds === 1 ? 'segundo' : 'segundos'}
-                </div>
-                <div class="result-item" style="background: rgba(255, 20, 147, 0.2); border-color: var(--primary-color);">
-                    <strong>💕 Conclusión:</strong> ¡Cada segundo contigo vale oro!
-                </div>
-            `;
-        }
-        
-        updateCounters();
+    } else if (relationshipStart && dateInput) {
+        // Rellenar input con valor guardado
+        dateInput.value = relationshipStart.toISOString().split('T')[0];
     }
+    
+    // Validar fecha
+    if (isNaN(startDate.getTime())) return;
+
+    const resultsDiv = document.getElementById('calculator-results');
+    if (resultsDiv) {
+        // Logro: Love Scientist
+        if (window.achievements) window.achievements.unlock('love_scientist');
+
+        const now = new Date();
+        // Diferencia absoluta para evitar negativos si la fecha es futura (improbable pero posible)
+        const diff = Math.abs(now - startDate);
+        
+        // Cálculos precisos
+        const totalSeconds = Math.floor(diff / 1000);
+        const totalMinutes = Math.floor(totalSeconds / 60);
+        const totalHours = Math.floor(totalMinutes / 60);
+        const totalDays = Math.floor(totalHours / 24);
+        
+        // Aproximaciones para años/meses
+        const years = Math.floor(totalDays / 365.25);
+        const months = Math.floor((totalDays % 365.25) / 30.44);
+        const daysRemaining = Math.floor((totalDays % 365.25) % 30.44);
+        
+        resultsDiv.innerHTML = `
+            <div class="result-item">
+                <strong>📅 Tiempo Exacto:</strong> ${years} años, ${months} meses, ${daysRemaining} días
+            </div>
+            <div class="result-item">
+                <strong>📈 Total Días:</strong> ${totalDays.toLocaleString()}
+            </div>
+            <div class="result-item">
+                <strong>⏰ Total Horas:</strong> ${totalHours.toLocaleString()}
+            </div>
+            <div class="result-item">
+                <strong>⏱️ Total Minutos:</strong> ${totalMinutes.toLocaleString()}
+            </div>
+            <div class="result-item">
+                <strong>⚡ Total Segundos:</strong> ${totalSeconds.toLocaleString()}
+            </div>
+            <div class="result-item" style="background: rgba(255, 20, 147, 0.2); border-color: var(--primary-color); grid-column: span 2;">
+                <strong>💕 Próximo Aniversario:</strong> Faltan ${365 - (totalDays % 365)} días
+            </div>
+        `;
+        
+        // Animación de entrada
+        gsap.fromTo(resultsDiv.children, 
+            { y: 20, opacity: 0 },
+            { y: 0, opacity: 1, stagger: 0.1, duration: 0.5, clearProps: 'all' }
+        );
+    }
+    
+    updateCounters();
 }
 
 // ================================================
@@ -768,24 +825,46 @@ async function loadMemories() {
         
         memoriesList.innerHTML = '';
         
-        memories.forEach((memory, index) => {
-            const memoryId = memory.id || index;
+        if (memories.length === 0) {
+            memoriesList.innerHTML = '<p style="text-align: center; color: #aaa; width: 100%;">Aún no hay recuerdos guardados. ¡Empieza a escribir nuestra historia! 📖</p>';
+            return;
+        }
+
+        memories.forEach((memory) => {
+            // Asegurar que el ID sea correcto para Supabase o LocalStorage
+            const memoryId = memory.id; 
             const idParam = typeof memoryId === 'string' ? `'${memoryId}'` : memoryId;
             
             const memoryCard = document.createElement('div');
             memoryCard.className = 'memory-card';
+            memoryCard.style.cssText = `
+                background: rgba(255, 255, 255, 0.05);
+                padding: 1.5rem;
+                border-radius: 15px;
+                border: 1px solid rgba(255, 105, 180, 0.2);
+                transition: transform 0.3s ease;
+                margin-bottom: 1rem;
+            `;
+            
+            // Fecha formateada
+            const dateObj = new Date(memory.memory_date || memory.date);
+            const dateStr = dateObj.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
             memoryCard.innerHTML = `
-                <div class="memory-header">
-                    <h3 class="memory-title">${escapeHtml(memory.title)}</h3>
-                    <span class="memory-mood">${memory.mood}</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0; color: var(--primary-color); font-size: 1.2rem;">${escapeHtml(memory.title)}</h3>
+                    <span style="font-size: 1.5rem;">${memory.mood}</span>
                 </div>
-                <p class="memory-date">${new Date(memory.date || memory.memory_date).toLocaleDateString('es-ES', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                })}</p>
-                <p class="memory-description">${escapeHtml(memory.description)}</p>
-                <button class="btn-small" onclick="deleteMemory(${idParam})">Eliminar</button>
+                <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 10px;">📅 ${dateStr}</div>
+                <p style="color: #ddd; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(memory.description)}</p>
+                
+                <div style="margin-top: 15px; text-align: right;">
+                    <button class="btn-small btn-delete" onclick="deleteMemory(${idParam})" style="background: rgba(255, 0, 0, 0.2); color: #ff6b6b; border: 1px solid rgba(255, 0, 0, 0.3);">🗑️ Eliminar</button>
+                </div>
             `;
             memoriesList.appendChild(memoryCard);
         });
@@ -794,7 +873,10 @@ async function loadMemories() {
     }
 }
 
+// Inicialización de recuerdos
 document.addEventListener('DOMContentLoaded', () => {
+    loadMemories(); // Cargar al inicio
+
     const memoryForm = document.getElementById('memory-form');
     if (memoryForm) {
         memoryForm.addEventListener('submit', async (e) => {
@@ -806,10 +888,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const mood = document.getElementById('memory-mood').value;
             
             if (title && date && description && mood) {
+                const btn = memoryForm.querySelector('button[type="submit"]');
+                const originalText = btn.textContent;
+                btn.textContent = "Guardando...";
+                btn.disabled = true;
+
                 try {
                     await db.saveMemory({
                         title,
-                        date, // db.js mapea esto a memory_date para Supabase
+                        date, 
                         description,
                         mood
                     });
@@ -824,6 +911,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (e) {
                     console.error(e);
                     showNotification('Error al guardar recuerdo');
+                } finally {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
                 }
             }
         });
