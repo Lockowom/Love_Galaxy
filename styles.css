@@ -1563,7 +1563,7 @@ section {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.9);
-    z-index: 10000;
+    z-index: 20000; /* Aumentado para estar seguro sobre todo */
     justify-content: center;
     align-items: center;
     backdrop-filter: blur(10px);
@@ -3076,7 +3076,7 @@ input[type='range'] {
     transform: scale(0.95);
 }
 
-/* Animación de entrada de mensajes */
+/* Animaciï¿½n de entrada de mensajes */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
