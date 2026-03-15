@@ -628,13 +628,27 @@ function closePhotoUploadModal() {
 function handlePhotoSelect(input) {
     if (input.files && input.files[0]) {
         const file = input.files[0];
+        
+        // Validación básica de tamaño (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            showNotification("❌ La foto es muy pesada (Máx 5MB)");
+            input.value = ''; // Limpiar input
+            return;
+        }
+
         const reader = new FileReader();
         
         reader.onload = function(e) {
             const preview = document.getElementById('photo-preview');
             const container = document.getElementById('photo-preview-container');
-            preview.src = e.target.result;
-            container.style.display = 'block';
+            
+            if (preview && container) {
+                preview.src = e.target.result;
+                container.style.display = 'block';
+                
+                // Animación suave
+                gsap.fromTo(container, { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.3 });
+            }
         };
         
         reader.readAsDataURL(file);

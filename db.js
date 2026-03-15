@@ -120,22 +120,36 @@ const db = {
         // photoData: { file (Blob), category, caption }
         if (window.supabaseClient && photoData.file) {
             try {
-                // 1. Subir imagen al Storage
-                const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+                // 1. Comprimir/Redimensionar imagen antes de subir (Opcional, pero recomendado para móviles)
+                // Por ahora subimos directo
+                
+                // 2. Subir imagen al Storage
+                // Usar nombre seguro y único
+                const timestamp = Date.now();
+                const randomStr = Math.random().toString(36).substring(2, 10);
+                const fileExt = photoData.file.name.split('.').pop() || 'jpg';
+                const fileName = `${timestamp}_${randomStr}.${fileExt}`;
+                
                 const { data: uploadData, error: uploadError } = await supabaseClient
                     .storage
                     .from('love_gallery')
-                    .upload(fileName, photoData.file);
+                    .upload(fileName, photoData.file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
 
-                if (uploadError) throw uploadError;
+                if (uploadError) {
+                    console.error("Error upload Supabase:", uploadError);
+                    throw uploadError;
+                }
 
-                // 2. Obtener URL pública
+                // 3. Obtener URL pública
                 const { data: { publicUrl } } = supabaseClient
                     .storage
                     .from('love_gallery')
                     .getPublicUrl(fileName);
 
-                // 3. Guardar metadatos en BD
+                // 4. Guardar metadatos en BD
                 const { data: dbData, error: dbError } = await supabaseClient
                     .from('gallery_photos')
                     .insert([{
@@ -146,33 +160,45 @@ const db = {
                     }])
                     .select();
 
-                if (dbError) throw dbError;
+                if (dbError) {
+                    console.error("Error insert DB:", dbError);
+                    // Intentar limpiar la imagen subida si falla la BD
+                    await supabaseClient.storage.from('love_gallery').remove([fileName]);
+                    throw dbError;
+                }
+                
                 return dbData[0];
 
             } catch (error) {
-                console.error('Error subiendo foto a Supabase:', error);
-                alert('Error subiendo foto a la nube. Se intentará guardar localmente.');
+                console.error('Error crítico subiendo foto:', error);
+                throw error; // Re-lanzar para que el UI lo maneje
             }
         }
 
-        // Fallback LocalStorage (Base64)
-        return new Promise((resolve) => {
+        // Fallback LocalStorage (Base64) - Solo si no hay Supabase o para pruebas locales
+        return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const id = Date.now().toString();
-                const photo = {
-                    id: id,
-                    url: e.target.result, // DataURL
-                    category: photoData.category,
-                    caption: photoData.caption,
-                    date: new Date().toISOString()
-                };
-                
-                const photos = JSON.parse(localStorage.getItem('galleryPhotos') || '{}');
-                photos[id] = photo;
-                localStorage.setItem('galleryPhotos', JSON.stringify(photos));
-                resolve(photo);
+                try {
+                    const id = Date.now().toString();
+                    const photo = {
+                        id: id,
+                        url: e.target.result, // DataURL
+                        category: photoData.category,
+                        caption: photoData.caption,
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    const photos = JSON.parse(localStorage.getItem('galleryPhotos') || '{}');
+                    photos[id] = photo;
+                    localStorage.setItem('galleryPhotos', JSON.stringify(photos));
+                    resolve(photo);
+                } catch (err) {
+                    reject(err);
+                }
             };
+            reader.onerror = reject;
+            
             if (photoData.file) {
                 reader.readAsDataURL(photoData.file);
             } else {
