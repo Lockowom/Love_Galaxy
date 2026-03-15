@@ -238,6 +238,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Optimizaciones para móviles
     initMobileOptimizations();
     
+    // Cargar Playlist (esto faltaba)
+    loadPlaylist();
+
     // Logro: Primer Login (o visita)
     setTimeout(() => {
         if (window.achievements) window.achievements.unlock('first_login');
