@@ -190,9 +190,20 @@ body {
     font-weight: 600;
 }
 
-.logo-heart {
-    font-size: 2rem;
-    animation: heartbeat 2s ease-in-out infinite;
+.logo-img {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 15px rgba(255, 20, 147, 0.4);
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0px); }
 }
 
 .logo-text {
