@@ -3,8 +3,7 @@ class DomeGallery {
         this.container = document.getElementById(containerId);
         this.images = images;
         this.options = {
-            radius: options.radius || 300,
-            itemSize: options.itemSize || 100,
+            radius: options.radius || 250,
             autoRotateSpeed: options.autoRotateSpeed || 0.2,
             ...options
         };
@@ -14,6 +13,7 @@ class DomeGallery {
         this.targetRotation = { x: 0, y: 0 };
         this.isDragging = false;
         this.lastMouse = { x: 0, y: 0 };
+        this.autoRotate = true;
         
         this.init();
     }
@@ -21,16 +21,29 @@ class DomeGallery {
     init() {
         if (!this.container) return;
         
-        // Limpiar contenedor
+        // Limpiar contenedor y establecer estilos base
         this.container.innerHTML = '';
-        this.container.classList.add('dome-gallery-container');
+        this.container.style.position = 'relative';
+        this.container.style.width = '100%';
+        this.container.style.height = '100%';
+        this.container.style.perspective = '1000px';
+        this.container.style.overflow = 'hidden';
+        this.container.style.display = 'flex';
+        this.container.style.justifyContent = 'center';
+        this.container.style.alignItems = 'center';
+        this.container.style.cursor = 'grab';
         
-        // Crear rotador
+        // Crear el rotador (el objeto que gira)
         this.rotator = document.createElement('div');
         this.rotator.className = 'dome-rotator';
+        this.rotator.style.position = 'absolute';
+        this.rotator.style.transformStyle = 'preserve-3d';
+        this.rotator.style.width = '0';
+        this.rotator.style.height = '0';
+        
         this.container.appendChild(this.rotator);
         
-        // Crear items distribuidos en esfera
+        // Crear items distribuidos en esfera (Algoritmo Fibonacci Sphere)
         this.createItems();
         
         // Eventos
@@ -43,18 +56,36 @@ class DomeGallery {
     createItems() {
         const phi = Math.PI * (3 - Math.sqrt(5)); // Ángulo áureo
         const n = this.images.length;
+        const radius = this.options.radius;
         
         this.images.forEach((imgData, i) => {
             const item = document.createElement('div');
             item.className = 'dome-item';
             
+            // Estilos del item
+            item.style.position = 'absolute';
+            item.style.width = '100px';
+            item.style.height = '100px';
+            item.style.left = '-50px';
+            item.style.top = '-50px';
+            item.style.transformStyle = 'preserve-3d';
+            item.style.backfaceVisibility = 'hidden';
+            
             // Imagen
             const img = document.createElement('img');
-            img.src = imgData.url || imgData.src;
+            img.src = imgData.url || imgData.src || imgData.dataUrl;
             img.alt = imgData.caption || 'Foto';
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = '10px';
+            img.style.border = '2px solid var(--primary-color)';
+            img.style.boxShadow = '0 0 10px rgba(255,20,147,0.5)';
+            img.style.pointerEvents = 'none'; // Para que el click lo capture el div padre
             
-            // Evento click para ver en grande (usando la función existente del proyecto)
-            item.onclick = () => {
+            // Evento click para ver en grande
+            item.onclick = (e) => {
+                e.stopPropagation(); // Evitar arrastre
                 if (window.viewPhotoFullscreen && imgData.id) {
                     window.viewPhotoFullscreen(imgData.id);
                 }
@@ -63,7 +94,7 @@ class DomeGallery {
             item.appendChild(img);
             this.rotator.appendChild(item);
             
-            // Calcular posición esférica (Fibonacci Sphere)
+            // Calcular posición esférica
             const y = 1 - (i / (n - 1)) * 2; // y va de 1 a -1
             const radiusAtY = Math.sqrt(1 - y * y);
             const theta = phi * i;
@@ -71,7 +102,7 @@ class DomeGallery {
             const x = Math.cos(theta) * radiusAtY;
             const z = Math.sin(theta) * radiusAtY;
             
-            // Guardar posición base vectorizada
+            // Guardar posición base normalizada (vector unitario)
             this.items.push({
                 element: item,
                 vector: { x, y, z }
@@ -80,78 +111,100 @@ class DomeGallery {
     }
 
     setupEvents() {
-        // Mouse / Touch
-        this.container.addEventListener('mousedown', e => this.handleStart(e.clientX, e.clientY));
-        this.container.addEventListener('touchstart', e => this.handleStart(e.touches[0].clientX, e.touches[0].clientY));
-        
-        window.addEventListener('mousemove', e => this.handleMove(e.clientX, e.clientY));
-        window.addEventListener('touchmove', e => this.handleMove(e.touches[0].clientX, e.touches[0].clientY));
-        
-        window.addEventListener('mouseup', () => this.isDragging = false);
-        window.addEventListener('touchend', () => this.isDragging = false);
-    }
+        // Mouse / Touch Start
+        const onStart = (x, y) => {
+            this.isDragging = true;
+            this.autoRotate = false;
+            this.lastMouse = { x, y };
+            this.container.style.cursor = 'grabbing';
+        };
 
-    handleStart(x, y) {
-        this.isDragging = true;
-        this.lastMouse = { x, y };
-    }
+        this.container.addEventListener('mousedown', e => onStart(e.clientX, e.clientY));
+        this.container.addEventListener('touchstart', e => {
+            e.preventDefault(); // Evitar scroll en móvil
+            onStart(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: false });
+        
+        // Mouse / Touch Move
+        const onMove = (x, y) => {
+            if (!this.isDragging) return;
+            
+            const deltaX = x - this.lastMouse.x;
+            const deltaY = y - this.lastMouse.y;
+            
+            this.targetRotation.y += deltaX * 0.005;
+            this.targetRotation.x -= deltaY * 0.005;
+            
+            this.lastMouse = { x, y };
+        };
 
-    handleMove(x, y) {
-        if (!this.isDragging) return;
+        window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+        window.addEventListener('touchmove', e => {
+            if (this.isDragging) e.preventDefault();
+            onMove(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: false });
         
-        const deltaX = x - this.lastMouse.x;
-        const deltaY = y - this.lastMouse.y;
-        
-        this.targetRotation.y += deltaX * 0.005;
-        this.targetRotation.x -= deltaY * 0.005;
-        
-        this.lastMouse = { x, y };
+        // Mouse / Touch End
+        const onEnd = () => {
+            this.isDragging = false;
+            this.container.style.cursor = 'grab';
+            // Retomar rotación automática suavemente después de un tiempo
+            setTimeout(() => {
+                if (!this.isDragging) this.autoRotate = true;
+            }, 2000);
+        };
+
+        window.addEventListener('mouseup', onEnd);
+        window.addEventListener('touchend', onEnd);
     }
 
     animate() {
         requestAnimationFrame(() => this.animate());
         
-        // Suavizar rotación
-        if (!this.isDragging) {
+        // Rotación automática
+        if (this.autoRotate && !this.isDragging) {
             this.targetRotation.y += this.options.autoRotateSpeed * 0.01;
         }
         
+        // Interpolación (Smooth damping)
         this.rotation.x += (this.targetRotation.x - this.rotation.x) * 0.1;
         this.rotation.y += (this.targetRotation.y - this.rotation.y) * 0.1;
         
-        // Matriz de rotación
+        // Calcular matriz de rotación
         const cosX = Math.cos(this.rotation.x);
         const sinX = Math.sin(this.rotation.x);
         const cosY = Math.cos(this.rotation.y);
         const sinY = Math.sin(this.rotation.y);
         
+        // Actualizar cada item
+        const radius = this.options.radius;
+        
         this.items.forEach(item => {
             const v = item.vector;
             
-            // Rotar vector
+            // Rotar vector: primero en Y, luego en X
             // Rotación Y
-            let rx = v.x * cosY - v.z * sinY;
-            let rz = v.x * sinY + v.z * cosY;
+            let x1 = v.x * cosY - v.z * sinY;
+            let z1 = v.z * cosY + v.x * sinY;
             
             // Rotación X
-            let ry = v.y * cosX - rz * sinX;
-            rz = v.y * sinX + rz * cosX;
+            let y2 = v.y * cosX - z1 * sinX;
+            let z2 = z1 * cosX + v.y * sinX;
             
-            // Proyectar
-            const scale = this.options.radius;
-            const px = rx * scale;
-            const py = ry * scale;
-            const pz = rz * scale; // Profundidad para z-index y escala
-            
-            // Factor de escala visual basado en profundidad (perspectiva fake)
-            const perspective = 1000;
-            const distance = perspective + pz;
-            const visualScale = Math.max(0.1, perspective / distance);
+            // Posición final
+            const px = x1 * radius;
+            const py = y2 * radius;
+            const pz = z2 * radius;
             
             // Aplicar transformación
-            item.element.style.transform = `translate3d(${px}px, ${py}px, ${pz}px) scale(${visualScale})`;
+            // translate3d mueve el elemento
+            // La escala simula profundidad adicional
+            const scale = (pz + 2 * radius) / (3 * radius); // Factor de escala simple
+            const opacity = (pz + radius) / (2 * radius) + 0.2;
+            
+            item.element.style.transform = `translate3d(${px}px, ${py}px, ${pz}px) scale(${Math.max(0.5, scale)})`;
+            item.element.style.opacity = Math.max(0.3, Math.min(1, opacity));
             item.element.style.zIndex = Math.floor(pz);
-            item.element.style.opacity = Math.max(0.2, (pz + scale) / (2 * scale)); // Desvanecer atrás
         });
     }
 }
@@ -163,13 +216,27 @@ window.initDomeGallery = async function() {
     
     try {
         const photos = await db.getPhotos();
-        if (photos.length > 0) {
-            new DomeGallery('dome-gallery-view', photos, {
-                radius: window.innerWidth < 768 ? 150 : 300
-            });
-        } else {
-            container.innerHTML = '<p class="text-center" style="color: #aaa; margin-top: 50px;">Sube fotos para verlas en la cúpula mágica ✨</p>';
+        
+        // Si no hay fotos, mostrar mensaje
+        if (!photos || photos.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; color: #aaa; margin-top: 50px;">
+                    <p style="font-size: 3rem; margin-bottom: 1rem;">🌌</p>
+                    <p>Sube fotos en la vista de cuadrícula para verlas aquí girando en el espacio.</p>
+                </div>
+            `;
+            return;
         }
+
+        // Determinar radio basado en pantalla
+        const isMobile = window.innerWidth < 768;
+        const radius = isMobile ? 120 : 250;
+
+        new DomeGallery('dome-gallery-view', photos, {
+            radius: radius,
+            autoRotateSpeed: 0.3
+        });
+        
     } catch (e) {
         console.error("Error iniciando Dome Gallery:", e);
     }
@@ -195,10 +262,8 @@ window.switchGalleryView = function(view) {
     } else {
         gridView.classList.add('hidden');
         domeView.classList.remove('hidden');
-        // Reinicializar cúpula si es necesario o si es la primera vez
-        if (!window.domeInitialized) {
-            window.initDomeGallery();
-            window.domeInitialized = true;
-        }
+        
+        // Siempre reinicializar para recalcular tamaños si cambió la ventana
+        window.initDomeGallery();
     }
 };
