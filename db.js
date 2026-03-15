@@ -394,6 +394,14 @@ const db = {
     async saveSong(songData) {
         // songData: { file, url, title, artist, type: 'file' | 'url' }
         
+        // INTENTO DE RECONEXIÓN AUTOMÁTICA
+        if (!window.supabaseClient && typeof window.retrySupabaseConnection === 'function') {
+            console.log('🔄 Intentando reconectar Supabase antes de guardar...');
+            window.retrySupabaseConnection();
+            // Esperar un momento a que la conexión se establezca
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
         if (window.supabaseClient && songData.type === 'file') {
             try {
                 // 1. Subir audio al Storage
