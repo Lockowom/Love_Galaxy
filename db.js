@@ -116,24 +116,61 @@ const db = {
         return Object.values(photosObj);
     },
 
+    // Helper para comprimir imagen
+    async compressImage(file, maxWidth = 1200, quality = 0.8) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth) {
+                        height = (maxWidth * height) / width;
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error('Canvas to Blob failed'));
+                        }
+                    }, 'image/jpeg', quality);
+                };
+                img.onerror = (err) => reject(err);
+            };
+            reader.onerror = (err) => reject(err);
+        });
+    },
+
     async savePhoto(photoData) {
         // photoData: { file (Blob), category, caption }
         if (window.supabaseClient && photoData.file) {
             try {
-                // 1. Comprimir/Redimensionar imagen antes de subir (Opcional, pero recomendado para móviles)
-                // Por ahora subimos directo
-                
+                // 1. Comprimir imagen
+                console.log('Comenzando compresión de imagen...');
+                const compressedFile = await this.compressImage(photoData.file);
+                console.log(`Imagen comprimida: ${photoData.file.size} -> ${compressedFile.size} bytes`);
+
                 // 2. Subir imagen al Storage
-                // Usar nombre seguro y único
                 const timestamp = Date.now();
                 const randomStr = Math.random().toString(36).substring(2, 10);
-                const fileExt = photoData.file.name.split('.').pop() || 'jpg';
-                const fileName = `${timestamp}_${randomStr}.${fileExt}`;
+                const fileName = `${timestamp}_${randomStr}.jpg`; // Siempre jpg tras compresión
                 
                 const { data: uploadData, error: uploadError } = await supabaseClient
                     .storage
                     .from('love_gallery')
-                    .upload(fileName, photoData.file, {
+                    .upload(fileName, compressedFile, {
                         cacheControl: '3600',
                         upsert: false
                     });
@@ -175,15 +212,16 @@ const db = {
             }
         }
 
-        // Fallback LocalStorage (Base64) - Solo si no hay Supabase o para pruebas locales
+        // Fallback LocalStorage (Base64)
         return new Promise((resolve, reject) => {
+            console.warn("⚠️ Usando LocalStorage (Sin Supabase o Fallback)");
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const id = Date.now().toString();
                     const photo = {
                         id: id,
-                        url: e.target.result, // DataURL
+                        url: e.target.result,
                         category: photoData.category,
                         caption: photoData.caption,
                         created_at: new Date().toISOString()

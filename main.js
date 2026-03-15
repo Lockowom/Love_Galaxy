@@ -761,12 +761,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const btn = photoForm.querySelector('button[type="submit"]');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = "Subiendo... ⏳";
-            btn.disabled = true;
-
             try {
+                // Feedback visual de progreso
+                const btn = photoForm.querySelector('button[type="submit"]');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = "Comprimiendo y subiendo... ☁️";
+                btn.disabled = true;
+
                 await db.savePhoto({
                     file: fileInput.files[0],
                     category,
@@ -781,11 +782,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 await loadGalleryPhotos();
 
             } catch (e) {
-                console.error(e);
-                showNotification("Error al subir la foto ❌");
+                console.error("Error UI upload:", e);
+                let errorMsg = "Error al subir la foto ❌";
+                if (e.message && e.message.includes('storage')) errorMsg = "Error de almacenamiento (Verifica Supabase)";
+                showNotification(errorMsg);
             } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
+                const btn = photoForm.querySelector('button[type="submit"]');
+                if (btn) {
+                    btn.innerHTML = "💾 Guardar en la Galería";
+                    btn.disabled = false;
+                }
             }
         });
     }
