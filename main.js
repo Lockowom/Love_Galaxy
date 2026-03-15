@@ -996,12 +996,13 @@ document.addEventListener('DOMContentLoaded', initGsapAnimations);
 // ================================================
 
 let playlist = [];
+let audioPlayer = null; // Instancia global del reproductor
 
 async function loadPlaylist() {
     try {
         const songs = await db.getPlaylist();
         
-        // Canciones por defecto (Copyright Free) para que no esté vacío
+        // Canciones por defecto (Copyright Free)
         const defaultSongs = [
             { 
                 title: "Love Story", 
@@ -1017,19 +1018,65 @@ async function loadPlaylist() {
 
         playlist = songs.length > 0 ? songs : defaultSongs;
         
-        // Si hay canciones locales y remotas, las unimos (ya lo hace db.getPlaylist, pero aseguramos defaults si todo falla)
+        // Fallback si no hay conexión
         if (songs.length === 0 && !window.supabaseClient) {
              playlist = defaultSongs;
         }
         
         renderPlaylist();
         
-        // Si hay canciones, preparar la primera
+        // Inicializar reproductor si no existe
+        if (!audioPlayer) initAudioPlayer();
+
+        // Actualizar UI inicial (sin reproducir)
         if (playlist.length > 0) {
-            updatePlayerUI(0);
+            updatePlayerUI(currentSongIndex, false);
         }
     } catch (e) {
         console.error("Error cargando playlist:", e);
+    }
+}
+
+function initAudioPlayer() {
+    // Buscar o crear elemento de audio
+    audioPlayer = document.getElementById('bg-music');
+    if (!audioPlayer) {
+        audioPlayer = new Audio();
+        audioPlayer.id = 'bg-music';
+        audioPlayer.crossOrigin = "anonymous"; // Importante para evitar problemas CORS
+        document.body.appendChild(audioPlayer);
+    }
+
+    // Event Listeners del Audio
+    audioPlayer.addEventListener('ended', nextSong);
+    
+    audioPlayer.addEventListener('timeupdate', updateProgressBar);
+    
+    audioPlayer.addEventListener('loadedmetadata', () => {
+        const totalTimeEl = document.getElementById('total-time');
+        if (totalTimeEl) totalTimeEl.textContent = formatTime(audioPlayer.duration);
+    });
+    
+    audioPlayer.addEventListener('error', (e) => {
+        console.error("Error en reproductor:", e);
+        // Si hay error, intentar siguiente canción o mostrar aviso
+        if (isPlaying) {
+             showNotification("❌ Error al cargar canción. Saltando...");
+             // setTimeout(nextSong, 2000); // Opcional: saltar auto
+        }
+        isPlaying = false;
+        updatePlayerUI(currentSongIndex);
+    });
+    
+    // Event Listener de la Barra de Progreso (Input)
+    const progressBar = document.getElementById('progress-bar');
+    if (progressBar) {
+        progressBar.addEventListener('input', function() {
+            if (audioPlayer && audioPlayer.duration) {
+                const seekTime = (audioPlayer.duration / 100) * this.value;
+                audioPlayer.currentTime = seekTime;
+            }
+        });
     }
 }
 
@@ -1043,7 +1090,7 @@ function renderPlaylist() {
         const item = document.createElement('div');
         item.className = `playlist-item ${index === currentSongIndex ? 'active' : ''}`;
         
-        // Determinar si es una canción por defecto (sin ID o con ID numérico bajo de ejemplo)
+        // Determinar si es una canción por defecto
         const isDefault = !song.id || (typeof song.id === 'number' && song.id < 1000);
         
         item.innerHTML = `
@@ -1064,16 +1111,13 @@ function renderPlaylist() {
 }
 
 async function deleteSong(index) {
-    // Evitar que el clic se propague si fuera necesario, pero aquí son botones separados
     if (!confirm("¿Estás seguro de que quieres eliminar esta canción de la lista?")) return;
     
     const song = playlist[index];
     
-    // Si es la canción actual, detener reproducción
     if (index === currentSongIndex) {
-        const audio = document.getElementById('bg-music');
-        if (audio) {
-            audio.pause();
+        if (audioPlayer) {
+            audioPlayer.pause();
             isPlaying = false;
         }
     }
@@ -1081,20 +1125,16 @@ async function deleteSong(index) {
     try {
         await db.deleteSong(song.id);
         showNotification("🗑️ Canción eliminada");
-        
-        // Recargar playlist
         await loadPlaylist();
         
-        // Si la lista no está vacía, actualizar UI
         if (playlist.length > 0) {
-            // Si borramos la última y era la actual, ir a la anterior
             if (currentSongIndex >= playlist.length) {
                 currentSongIndex = playlist.length - 1;
             }
-            updatePlayerUI(currentSongIndex);
+            updatePlayerUI(currentSongIndex, false);
         } else {
             currentSongIndex = 0;
-            updatePlayerUI(0);
+            updatePlayerUI(0, false);
         }
         
     } catch (e) {
@@ -1104,32 +1144,47 @@ async function deleteSong(index) {
 }
 
 function togglePlay() {
-    const audio = document.getElementById('bg-music'); // Asegurar que existe <audio> en HTML o crearlo
-    if (!audio) return;
+    if (!audioPlayer) initAudioPlayer();
 
     if (isPlaying) {
-        audio.pause();
+        audioPlayer.pause();
+        isPlaying = false;
     } else {
-        audio.play().catch(e => console.log("Interacción requerida para reproducir audio"));
+        // Verificar si tiene fuente
+        if (!audioPlayer.src || audioPlayer.src === window.location.href || audioPlayer.src === '') {
+            setSong(currentSongIndex);
+            return;
+        }
+        
+        const playPromise = audioPlayer.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                isPlaying = true;
+                updatePlayerUI(currentSongIndex);
+            }).catch(error => {
+                console.error("Error play:", error);
+                isPlaying = false;
+                updatePlayerUI(currentSongIndex);
+                showNotification("⚠️ Dale play nuevamente");
+            });
+        }
     }
-    
-    isPlaying = !isPlaying;
     updatePlayerUI(currentSongIndex);
 }
 
-function updatePlayerUI(index) {
+function updatePlayerUI(index, updateAudio = true) {
     const playBtn = document.getElementById('play-btn');
     const vinyl = document.querySelector('.vinyl-record');
     const titleElement = document.getElementById('current-song');
     const artistElement = document.getElementById('current-artist');
     
-    // Actualizar Textos
+    // Actualizar Info
     if (playlist[index]) {
         if (titleElement) titleElement.textContent = playlist[index].title;
         if (artistElement) artistElement.textContent = playlist[index].artist || 'Desconocido';
     }
 
-    // Actualizar Botón Play/Pause principal
+    // Actualizar Botón Play
     if (playBtn) {
         playBtn.textContent = isPlaying ? '⏸️' : '▶️';
     }
@@ -1140,64 +1195,46 @@ function updatePlayerUI(index) {
         else vinyl.classList.remove('playing');
     }
     
-    // Actualizar lista
+    // Actualizar lista visualmente
     renderPlaylist();
 }
 
 function setSong(index) {
     if (index < 0 || index >= playlist.length) return;
+    if (!audioPlayer) initAudioPlayer();
     
-    // Si es la misma canción, solo toggle play
-    if (currentSongIndex === index) {
+    // Si es la misma canción, toggle
+    const song = playlist[index];
+    const isSameSong = currentSongIndex === index && audioPlayer.src === song.url;
+    
+    if (isSameSong) {
         togglePlay();
         return;
     }
 
     currentSongIndex = index;
-    const song = playlist[index];
     
-    // Actualizar fuente de audio
-    let audio = document.getElementById('bg-music');
-    if (!audio) {
-        audio = new Audio();
-        audio.id = 'bg-music';
-        audio.loop = true; // Loop por defecto, o cambiar lógica para siguiente canción
-        document.body.appendChild(audio);
-        
-        // Al terminar, pasar a la siguiente
-        audio.addEventListener('ended', nextSong);
-    }
-    
-    if (song.url && song.url !== '#') {
-        audio.src = song.url;
-        
-        // Manejo de errores de carga
-        audio.onerror = function() {
-            console.error("Error cargando audio:", song.url);
-            showNotification("❌ Error: No se puede reproducir la URL. Asegúrate que sea un archivo de audio (mp3).");
-            isPlaying = false;
-            updatePlayerUI(index);
-        };
+    console.log("Reproduciendo:", song.url); // Debug
 
-        audio.play().then(() => {
+    if (song.url && song.url !== '#') {
+        audioPlayer.src = song.url;
+        audioPlayer.load(); // Forzar carga
+        
+        audioPlayer.play().then(() => {
             isPlaying = true;
             updatePlayerUI(index);
         }).catch(e => {
             console.error("Error reproduciendo:", e);
-            if (e.name === 'NotAllowedError') {
-                showNotification("⚠️ Toca 'Play' para iniciar la música");
-            } else {
-                showNotification("❌ Error al reproducir canción");
-            }
+            // showNotification("⚠️ Cargando..."); // A veces es solo delay
             isPlaying = false;
             updatePlayerUI(index);
         });
     } else {
-        // Fallback para canciones dummy
-        showNotification("Canción de ejemplo (sin audio real)");
-        isPlaying = true;
-        updatePlayerUI(index);
+        showNotification("Canción no válida");
     }
+    
+    // Asegurar UI actualizada
+    updatePlayerUI(index);
 }
 
 function nextSong() {
@@ -1208,6 +1245,29 @@ function nextSong() {
 function previousSong() {
     let prevIndex = (currentSongIndex - 1 + playlist.length) % playlist.length;
     setSong(prevIndex);
+}
+
+function updateProgressBar() {
+    const progressBar = document.getElementById('progress-bar');
+    const currentTimeEl = document.getElementById('current-time');
+    
+    if (audioPlayer && progressBar) {
+        const currentTime = audioPlayer.currentTime;
+        const duration = audioPlayer.duration;
+        
+        if (duration) {
+            const value = (currentTime / duration) * 100;
+            progressBar.value = value;
+            if (currentTimeEl) currentTimeEl.textContent = formatTime(currentTime);
+        }
+    }
+}
+
+function formatTime(seconds) {
+    if (!seconds || isNaN(seconds)) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 }
 
 // Modal de Subida y Tabs
