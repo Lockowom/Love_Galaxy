@@ -113,20 +113,32 @@ static void spawn() {
     e.wob    = 0.0f;
 
     float base = gW * 0.34f;            // velocidad horizontal base
+
+    // Vida de recuperación 💗: aparece de vez en cuando, y MÁS cuanto menos vida
+    // te quede, para poder recuperarte tras los golpes.
+    if (lives < MAX_LIVES) {
+        float lifeChance = 0.05f + (float)(START_LIVES - lives) * 0.05f;
+        if (lifeChance < 0.05f) lifeChance = 0.05f;
+        if (frand() < lifeChance) {
+            e.type = T_LIFE; e.r = minDim * 0.040f; e.vx = base * rrange(0.85f, 1.0f); e.wob = minDim * 0.05f;
+            return;
+        }
+    }
+
     float roll = frand();
     if (roll < 0.42f) {                 // corazón (común)
         e.type = T_HEART;  e.r = minDim * 0.032f; e.vx = base * rrange(0.9f, 1.1f); e.wob = minDim * 0.05f;
-    } else if (roll < 0.56f) {          // mensaje de amor (puntúa más)
+    } else if (roll < 0.55f) {          // mensaje de amor (puntúa más)
         e.type = T_MSG;    e.r = minDim * 0.040f; e.vx = base * rrange(0.8f, 1.0f); e.wob = minDim * 0.07f;
-    } else if (roll < 0.84f) {          // roca / asteroide (peligro)
+    } else if (roll < 0.61f) {          // estrella (coleccionable raro, +50)
+        e.type = T_STAR;   e.r = minDim * 0.042f; e.vx = base * rrange(0.85f, 1.05f); e.wob = minDim * 0.06f;
+    } else if (roll < 0.86f) {          // roca / asteroide (peligro)
         e.type = T_ROCK;   e.r = minDim * rrange(0.038f, 0.060f); e.vx = base * rrange(1.0f, 1.35f);
     } else {                            // power-ups (raros): elegir uno
         float pr = frand();
-        if      (pr < 0.30f) { e.type = T_SHIELD; e.r = minDim * 0.036f; }
-        else if (pr < 0.55f) { e.type = T_BOOST;  e.r = minDim * 0.036f; }
-        else if (pr < 0.78f) { e.type = T_MAGNET; e.r = minDim * 0.036f; }
-        else if (pr < 0.92f) { e.type = T_STAR;   e.r = minDim * 0.042f; }
-        else                 { e.type = T_LIFE;   e.r = minDim * 0.038f; }
+        if      (pr < 0.34f) { e.type = T_SHIELD; e.r = minDim * 0.036f; }
+        else if (pr < 0.64f) { e.type = T_BOOST;  e.r = minDim * 0.036f; }
+        else                 { e.type = T_MAGNET; e.r = minDim * 0.036f; }
         e.vx = base * rrange(0.85f, 1.05f); e.wob = minDim * 0.045f;
     }
 }

@@ -13,7 +13,7 @@
 (function () {
     'use strict';
 
-    window.LG_BUILD = '12';
+    window.LG_BUILD = '13';
 
     var HER = 'Tamara';
     var PHRASES = [

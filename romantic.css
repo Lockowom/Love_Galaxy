@@ -1,0 +1,169 @@
+/* ==========================================================================
+   LOVE GALAXY — CAPA ROMÁNTICA
+   Se carga DESPUÉS de styles.css, mobile-styles.css y theme-minimal.css, así
+   que tiene la última palabra. Aporta romanticismo (aurora, brillos, glow,
+   micro-interacciones) SIN alterar el layout y respetando la paleta pastel.
+   Movimiento desactivable con prefers-reduced-motion.
+   Para Tamara, mi diosa Freya 💛
+   ========================================================================== */
+
+/* 1. Aurora romántica de fondo (detrás del contenido) --------------------- */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(42% 52% at 14% 18%, rgba(217, 138, 163, 0.20), transparent 70%),
+        radial-gradient(46% 56% at 86% 24%, rgba(201, 179, 217, 0.18), transparent 70%),
+        radial-gradient(52% 52% at 50% 92%, rgba(240, 191, 168, 0.18), transparent 70%),
+        radial-gradient(40% 40% at 70% 70%, rgba(253, 238, 241, 0.30), transparent 70%);
+    background-size: 200% 200%;
+    animation: lg-aurora 26s ease-in-out infinite alternate;
+}
+@keyframes lg-aurora {
+    0%   { background-position: 0% 0%; }
+    100% { background-position: 100% 100%; }
+}
+
+/* 2. Títulos con degradado brillante y filete de corazón ------------------- */
+.hero-title,
+.hero-name,
+.section-title {
+    background-image: linear-gradient(100deg, #b5577a, #d98aa3, #c9b3d9, #f0bfa8, #b5577a);
+    background-size: 240% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    animation: lg-shimmer 10s linear infinite;
+}
+@keyframes lg-shimmer {
+    to { background-position: 240% center; }
+}
+.hero-name { font-weight: 700; }
+
+.section-title {
+    position: relative;
+    padding-bottom: 0.55rem;
+}
+.section-title::after {
+    content: '⸻ ♡ ⸻';
+    display: block;
+    margin-top: 0.45rem;
+    font-size: 0.95rem;
+    letter-spacing: 2px;
+    color: var(--primary-color);
+    -webkit-text-fill-color: var(--primary-color); /* anula el clip del título */
+    opacity: 0.85;
+    animation: lg-heart-beat 2.4s ease-in-out infinite;
+}
+@keyframes lg-heart-beat {
+    0%, 100% { transform: scale(1); }
+    14%      { transform: scale(1.12); }
+    28%      { transform: scale(1); }
+}
+
+/* 3. Tarjetas con elevación y glow suave ----------------------------------- */
+.game-card,
+.featured-game,
+.stat-card,
+.poem-card,
+.memory-card {
+    transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+}
+.game-card:hover,
+.featured-game:hover,
+.poem-card:hover,
+.memory-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 38px rgba(201, 111, 142, 0.22);
+    border-color: rgba(217, 138, 163, 0.45);
+}
+
+.featured-game {
+    position: relative;
+    overflow: hidden;
+}
+.featured-game::before {
+    content: '';
+    position: absolute;
+    inset: -40%;
+    background: conic-gradient(from 0deg, transparent 0 75%, rgba(217, 138, 163, 0.35) 88%, transparent 100%);
+    animation: lg-rotate 9s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+.featured-game > * { position: relative; z-index: 1; }
+@keyframes lg-rotate { to { transform: rotate(360deg); } }
+
+/* 4. Botones con destello al pasar ---------------------------------------- */
+.btn-primary,
+.btn-game,
+.btn-featured,
+.hero-btn {
+    position: relative;
+    overflow: hidden;
+}
+.btn-primary::after,
+.btn-game::after,
+.btn-featured::after,
+.hero-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -130%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    transform: skewX(-20deg);
+    transition: left 0.6s ease;
+    pointer-events: none;
+}
+.btn-primary:hover::after,
+.btn-game:hover::after,
+.btn-featured:hover::after,
+.hero-btn:hover::after {
+    left: 150%;
+}
+
+/* 5. Barra de desplazamiento romántica ------------------------------------ */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) var(--surface-tint, #fdf3f5);
+}
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: var(--surface-tint, #fdf3f5); }
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+    border-radius: 999px;
+    border: 2px solid var(--surface-tint, #fdf3f5);
+}
+
+/* 6. Capas de la ambientación romántica (romantic.js) --------------------- */
+#romantic-hearts { z-index: -1; }
+#romantic-burst { z-index: 9998; }
+#romantic-hearts span,
+#romantic-burst span { user-select: none; }
+
+/* 7. Tarjeta destacada del juego: un poco más de cariño ------------------- */
+.galaxy-icon {
+    animation: lg-float 4s ease-in-out infinite;
+    display: inline-block;
+}
+@keyframes lg-float {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50%      { transform: translateY(-8px) rotate(2deg); }
+}
+
+/* 8. Respeto por quien prefiere menos movimiento -------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    body::before,
+    .hero-title, .hero-name, .section-title,
+    .section-title::after,
+    .featured-game::before,
+    .galaxy-icon {
+        animation: none !important;
+    }
+}

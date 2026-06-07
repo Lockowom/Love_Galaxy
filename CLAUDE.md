@@ -26,7 +26,11 @@ No dejes la documentación desincronizada con el código.
   2. **publica en `window`** las funciones usadas por `onclick` inline,
   3. expone `window.XManager = { init, ... }`.
 - Scripts **clásicos** (no módulos): `supabase-client.js`, `db.js`, `achievements.js`,
-  `animations.js`, `extras.js`, `galaxy-game.js`, `dome-gallery.js`, `main.js`.
+  `animations.js`, `extras.js`, `galaxy-game.js`, `dome-gallery.js`, `main.js`, `romantic.js`.
+- **CSS** (en cascada): `styles.css` → `mobile-styles.css` → `theme-minimal.css`
+  (tema pastel claro) → `romantic.css` (capa romántica final: aurora, brillos de
+  títulos, glow, scrollbar; respeta `prefers-reduced-motion`). `romantic.js` añade
+  corazones flotantes de fondo y estallido al pulsar botones (Web Animations API).
 
 ### 🎮 Juego "Galaxia del Amor" (C++ → WebAssembly)
 - Es el **único** juego (los antiguos mini-juegos y `love-games.js` se eliminaron).
