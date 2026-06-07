@@ -157,13 +157,123 @@ body::before {
     50%      { transform: translateY(-8px) rotate(2deg); }
 }
 
+/* 9. HERO rediseñado ------------------------------------------------------ */
+.hero-eyebrow {
+    display: inline-block;
+    font-family: var(--font-primary);
+    font-size: 0.85rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--dark-pink);
+    opacity: 0.9;
+    margin-bottom: 0.6rem;
+}
+
+.hero-title { font-size: clamp(2.4rem, 6vw, 4rem); margin-bottom: 0.6rem; }
+.hero-name  { font-size: clamp(3.4rem, 11vw, 6.5rem); }
+
+/* Frase rotativa: altura estable para que no salte el layout */
+#hero-rotating {
+    min-height: 2.4em;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    margin-bottom: 1.2rem;
+}
+#hero-rotating.is-out { opacity: 0; transform: translateY(8px); }
+
+/* Contador "en vivo" del tiempo juntos */
+.hero-live {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.7rem 1.3rem;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(217, 138, 163, 0.14), rgba(201, 179, 217, 0.12));
+    border: 1px solid rgba(217, 138, 163, 0.30);
+    box-shadow: var(--shadow-md);
+    margin-bottom: 1.5rem;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}
+.hero-live-label { font-size: 0.8rem; color: var(--text-secondary); letter-spacing: 0.4px; }
+.hero-live-time {
+    font-family: var(--font-elegant);
+    font-size: clamp(1.05rem, 3.4vw, 1.5rem);
+    font-weight: 700;
+    color: var(--dark-pink);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Retrato circular con anillo giratorio y resplandor */
+.hero-portrait {
+    position: relative;
+    width: clamp(230px, 32vw, 380px);
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.hero-portrait-glow {
+    position: absolute;
+    inset: 4%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(217, 138, 163, 0.45), transparent 70%);
+    filter: blur(22px);
+    animation: lg-heart-beat 3s ease-in-out infinite;
+}
+.hero-portrait-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    padding: 6px;
+    background: conic-gradient(from 0deg, #d98aa3, #c9b3d9, #f0bfa8, #fdeef1, #d98aa3);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+    animation: lg-rotate 14s linear infinite;
+}
+.hero-portrait-img {
+    width: 84%;
+    height: 84%;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 12px 40px rgba(201, 111, 142, 0.35);
+    background: var(--surface, #fff);
+    z-index: 1;
+}
+.hero-portrait-img.is-fallback { object-fit: contain; padding: 14%; background: var(--surface-tint, #fdf3f5); }
+
+/* Órbita de corazones alrededor del retrato */
+.hero-orbit { position: absolute; inset: 0; animation: lg-rotate 24s linear infinite; z-index: 2; }
+.hero-orbit span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: -0.5em 0 0 -0.5em;
+    font-size: clamp(20px, 3vw, 34px);
+    filter: drop-shadow(0 2px 6px rgba(201, 111, 142, 0.45));
+}
+.hero-orbit span:nth-child(1) { transform: rotate(0deg)   translateX(clamp(125px, 18vw, 205px)); }
+.hero-orbit span:nth-child(2) { transform: rotate(60deg)  translateX(clamp(125px, 18vw, 205px)); }
+.hero-orbit span:nth-child(3) { transform: rotate(120deg) translateX(clamp(125px, 18vw, 205px)); }
+.hero-orbit span:nth-child(4) { transform: rotate(180deg) translateX(clamp(125px, 18vw, 205px)); }
+.hero-orbit span:nth-child(5) { transform: rotate(240deg) translateX(clamp(125px, 18vw, 205px)); }
+.hero-orbit span:nth-child(6) { transform: rotate(300deg) translateX(clamp(125px, 18vw, 205px)); }
+
+/* Responsive: apilar y centrar en pantallas pequeñas */
+@media (max-width: 860px) {
+    .hero-section { flex-direction: column-reverse; text-align: center; gap: 2rem; padding-top: 6rem; }
+    .hero-content { display: flex; flex-direction: column; align-items: center; }
+    .hero-image { min-height: auto; }
+    .hero-live { align-items: center; }
+}
+
 /* 8. Respeto por quien prefiere menos movimiento -------------------------- */
 @media (prefers-reduced-motion: reduce) {
     body::before,
     .hero-title, .hero-name, .section-title,
     .section-title::after,
     .featured-game::before,
-    .galaxy-icon {
+    .galaxy-icon,
+    .hero-portrait-ring, .hero-portrait-glow, .hero-orbit {
         animation: none !important;
     }
 }

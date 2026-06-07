@@ -80,12 +80,69 @@
         burstAt(e.clientX, e.clientY);
     }
 
+    // --- 3) Hero: frase rotativa ---
+    var HERO_PHRASES = [
+        'En este universo infinito, tú eres mi galaxia favorita 🌟',
+        'Cada latido mío lleva tu nombre, Tamara 💓',
+        'Eres mi diosa Freya, mi norte y mi hogar 🏠',
+        'Contigo hasta el infinito… y más allá 🚀',
+        'Mi lugar favorito del mundo es a tu lado 💞',
+        'Eres la estrella más bonita de mi cielo ⭐',
+        'Te elegiría en todas las galaxias, siempre 🌌'
+    ];
+    function startHeroPhrases() {
+        var el = document.getElementById('hero-rotating');
+        if (!el || reduce) return;
+        var i = 0;
+        setInterval(function () {
+            if (document.hidden) return;
+            i = (i + 1) % HERO_PHRASES.length;
+            el.classList.add('is-out');
+            setTimeout(function () { el.textContent = HERO_PHRASES[i]; el.classList.remove('is-out'); }, 500);
+        }, 5000);
+    }
+
+    // --- 4) Hero: contador EN VIVO del tiempo juntos ---
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function startHeroLive() {
+        var out = document.getElementById('hero-live-time');
+        if (!out) return;
+        function tick() {
+            var ds = '2024-01-01';
+            var input = document.getElementById('relationship-start');
+            if (input && input.value) ds = input.value;
+            var start = new Date(ds);
+            if (isNaN(start.getTime())) { out.textContent = '—'; return; }
+            var now = new Date();
+            var y = now.getFullYear() - start.getFullYear();
+            var mo = now.getMonth() - start.getMonth();
+            var d = now.getDate() - start.getDate();
+            var h = now.getHours() - start.getHours();
+            var mi = now.getMinutes() - start.getMinutes();
+            var se = now.getSeconds() - start.getSeconds();
+            if (se < 0) { se += 60; mi--; }
+            if (mi < 0) { mi += 60; h--; }
+            if (h < 0) { h += 24; d--; }
+            if (d < 0) { d += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); mo--; }
+            if (mo < 0) { mo += 12; y--; }
+            var parts = [];
+            if (y > 0) parts.push(y + (y === 1 ? ' año' : ' años'));
+            if (mo > 0) parts.push(mo + (mo === 1 ? ' mes' : ' meses'));
+            parts.push(d + (d === 1 ? ' día' : ' días'));
+            out.textContent = parts.join(' · ') + ' · ' + pad(h) + ':' + pad(mi) + ':' + pad(se);
+        }
+        tick();
+        setInterval(tick, 1000);
+    }
+
     function init() {
         if (!document.body) return;
         ambient = layer('romantic-hearts');
         burst = layer('romantic-burst');
         document.addEventListener('click', onClick, true);
         if (!reduce) scheduleHeart();
+        startHeroPhrases();
+        startHeroLive();
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

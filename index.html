@@ -128,13 +128,18 @@
     <!-- Sección Principal -->
     <section id="home" class="hero-section">
         <div class="hero-content">
+            <span class="hero-eyebrow animate-fade-in">✦ Nuestro universo ✦</span>
             <h1 class="hero-title animate-fade-in">
-                Para Mi Amada
+                Para mi amada
                 <span class="hero-name">Tamara</span>
             </h1>
-            <p class="hero-subtitle animate-fade-in-delay">
+            <p class="hero-subtitle animate-fade-in-delay" id="hero-rotating">
                 En este universo infinito, tú eres mi galaxia favorita 🌟
             </p>
+            <div class="hero-live animate-fade-in-delay" id="hero-live" aria-label="Tiempo juntos">
+                <span class="hero-live-label">💞 Juntos desde</span>
+                <span class="hero-live-time" id="hero-live-time">—</span>
+            </div>
             <div class="hero-stats">
                 <div class="stat-card">
                     <div class="stat-number" id="days-together">0</div>
@@ -154,13 +159,17 @@
             </button>
         </div>
         <div class="hero-image">
-            <div class="floating-hearts">
-                <span class="floating-heart">💖</span>
-                <span class="floating-heart">💝</span>
-                <span class="floating-heart">💕</span>
-                <span class="floating-heart">💗</span>
-                <span class="floating-heart">💓</span>
-                <span class="floating-heart">💞</span>
+            <div class="hero-portrait">
+                <div class="hero-portrait-ring"></div>
+                <div class="hero-portrait-glow"></div>
+                <!-- Pon una foto tuya como tamara.jpg en la raíz para que aparezca aquí.
+                     Si no existe, se muestra el logo como respaldo. -->
+                <img src="tamara.jpg" alt="Tamara 💕" class="hero-portrait-img"
+                     onerror="this.onerror=null;this.src='logo.png';this.classList.add('is-fallback');">
+                <div class="hero-orbit" aria-hidden="true">
+                    <span>💖</span><span>💝</span><span>💕</span>
+                    <span>💗</span><span>💓</span><span>💞</span>
+                </div>
             </div>
         </div>
     </section>
@@ -707,7 +716,7 @@
                             ' auth' + (window.__authenticated ? '✓' : '✗');
             b.textContent = 'build ' + build + ' · galaxia ' + ok + ' · ' + mods + authState;
             // Si NO muestra 11 => el navegador sirve una versión vieja en caché.
-            if (build !== '13') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
+            if (build !== '14') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
             // Si algún módulo falta, resaltar en ámbar.
             else if (!(window.AuthUI && window.GalleryManager && window.PlaylistManager && window.TimelineManager)) {
                 b.style.background = '#ffe9c7';
