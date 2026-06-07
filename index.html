@@ -57,10 +57,20 @@
 <body>
     <!-- Pantalla de carga inicial -->
     <div id="loading-screen">
+        <div class="loader-stars" aria-hidden="true"></div>
         <div class="loading-content">
+            <div class="loader-emblem" aria-hidden="true">
+                <span class="loader-ring"></span>
+                <span class="loader-ring loader-ring-2"></span>
+                <span class="loader-orbit">
+                    <span class="loader-sat">💖</span>
+                    <span class="loader-sat">✨</span>
+                    <span class="loader-sat">💫</span>
+                </span>
+                <span class="loader-core">💕</span>
+            </div>
             <h1 class="loading-title">Love Galaxy</h1>
-            <div class="loading-heart">💕</div>
-            <p class="loading-text">Preparando algo especial para Tamara...</p>
+            <p class="loading-text">Preparando algo especial para <span class="loading-name">Tamara</span></p>
             <div class="loading-bar">
                 <div class="loading-progress"></div>
             </div>
@@ -716,7 +726,7 @@
                             ' auth' + (window.__authenticated ? '✓' : '✗');
             b.textContent = 'build ' + build + ' · galaxia ' + ok + ' · ' + mods + authState;
             // Si NO muestra 11 => el navegador sirve una versión vieja en caché.
-            if (build !== '15') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
+            if (build !== '16') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
             // Si algún módulo falta, resaltar en ámbar.
             else if (!(window.AuthUI && window.GalleryManager && window.PlaylistManager && window.TimelineManager)) {
                 b.style.background = '#ffe9c7';
