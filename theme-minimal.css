@@ -393,3 +393,15 @@ input:focus, textarea:focus, select:focus {
     background: #171022 !important;
 }
 .galaxy-game-container canvas { height: 100% !important; max-height: 100% !important; }
+
+/* 22. HERO — quitar la columna vacía (corazones flotantes ocultos) y centrar */
+.hero-image { display: none !important; }
+.hero-content { max-width: 760px; margin: 0 auto; text-align: center; }
+.hero-stats { justify-content: center; justify-items: center; }
+.hero-section { min-height: auto; padding: 110px 1rem 3rem; }
+@media (min-width: 769px) {
+    .hero-section { min-height: 80vh; }
+}
+@media (max-height: 560px) and (orientation: landscape) {
+    .hero-section { min-height: auto; padding-top: 90px; padding-bottom: 2rem; }
+}
