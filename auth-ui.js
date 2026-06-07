@@ -25,11 +25,32 @@ function initAuthGate() {
         applyAuthState(session);
     });
 
-    // Si Supabase no se inicializa en un tiempo razonable, mostrar el login con aviso
+    // Resolución INICIAL explícita: no dependemos solo del evento 'auth-change'
+    // (que se emite de forma asíncrona y podría no capturarse). Preguntamos
+    // directamente a Supabase por la sesión en cuanto el cliente esté listo.
+    let resolved = false;
+    const resolveInitial = () => {
+        if (resolved) return;
+        const client = window.supabaseClient;
+        if (client && client.auth && typeof client.auth.getSession === 'function') {
+            resolved = true;
+            client.auth.getSession()
+                .then(({ data }) => applyAuthState(data && data.session))
+                .catch(() => showAuthScreen());
+        }
+    };
+    resolveInitial();
+    const poll = setInterval(() => { resolveInitial(); if (resolved) clearInterval(poll); }, 250);
+
+    // Respaldo final (4s): si no se pudo resolver la sesión (sin cliente o sin
+    // conexión), mostrar el login para que el usuario pueda intentar entrar.
     setTimeout(() => {
-        if (!window.supabaseClient) {
+        clearInterval(poll);
+        if (!resolved) {
             showAuthScreen();
-            showAuthError('No se pudo conectar con la base de datos. Revisa tu conexión e inténtalo de nuevo.');
+            if (!window.supabaseClient) {
+                showAuthError('No se pudo conectar con la base de datos. Revisa tu conexión e inténtalo de nuevo.');
+            }
         }
     }, 4000);
 }
