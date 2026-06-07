@@ -9,7 +9,7 @@
     // Marca de versión: la etiqueta de diagnóstico solo mostrará "6" si ESTE
     // archivo (el nuevo) realmente se ejecutó. Si muestra algo distinto, el
     // navegador/servidor está sirviendo una versión vieja en caché.
-    window.LG_BUILD = '9';
+    window.LG_BUILD = '10';
 
     const HER = 'Tamara';
     const NICK = 'mi diosa Freya';
@@ -320,11 +320,17 @@
     };
 
     function launch(key) {
+        // DIAGNÓSTICO: confirmar que el clic llega y a qué juego (visible en la franja).
+        if (window.__lgShowErr) window.__lgShowErr('launch: ' + key);
         try {
             if (games[key]) games[key]();
-            else toast('Ese juego no está disponible.');
+            else {
+                toast('Ese juego no está disponible.');
+                if (window.__lgShowErr) window.__lgShowErr('juego no encontrado: ' + key);
+            }
         } catch (err) {
             console.error('[LoveGames] error al abrir', key, err);
+            if (window.__lgShowErr) window.__lgShowErr('ERROR juego "' + key + '": ' + (err && err.message ? err.message : err));
             toast('Ups, no se pudo abrir el juego. Reintenta 💕');
         }
     }
