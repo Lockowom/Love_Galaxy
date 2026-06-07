@@ -5,6 +5,21 @@
 
 const db = {
     // ================================================
+    // UTILIDADES INTERNAS
+    // ================================================
+    /**
+     * Notifica un error de guardado al usuario sin interrumpir el flujo.
+     * Registra en consola y, si existe, muestra un toast visible.
+     */
+    _notifyError(userMsg, err) {
+        if (err) console.error(userMsg, err);
+        else console.error(userMsg);
+        if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
+            try { window.showToast('⚠️ ' + userMsg); } catch (e) { /* noop */ }
+        }
+    },
+
+    // ================================================
     // CONFIGURACIÓN
     // ================================================
     async getConfig(key) {
@@ -26,7 +41,7 @@ const db = {
                 .from('app_config')
                 .upsert({ key, value });
             
-            if (error) console.error('Error guardando config en Supabase:', error);
+            if (error) this._notifyError('No se pudo guardar en la nube (se guardó solo en este dispositivo)', error);
         }
         localStorage.setItem(key, value);
     },
@@ -55,9 +70,9 @@ const db = {
                 .select();
             
             if (!error) return data[0];
-            console.error('Error guardando evento:', error);
+            this._notifyError('No se pudo guardar el evento en la nube (guardado en este dispositivo)', error);
         }
-        
+
         // Fallback LocalStorage
         const events = JSON.parse(localStorage.getItem('timelineEvents') || '[]');
         events.push(event);
@@ -72,7 +87,7 @@ const db = {
                 .update(event)
                 .eq('id', id);
             
-            if (error) console.error('Error actualizando evento:', error);
+            if (error) this._notifyError('No se pudo actualizar el evento en la nube', error);
         } else {
             // LocalStorage usa índices numéricos como ID en la versión actual
             const events = JSON.parse(localStorage.getItem('timelineEvents') || '[]');
@@ -90,7 +105,7 @@ const db = {
                 .delete()
                 .eq('id', id);
             
-            if (error) console.error('Error eliminando evento:', error);
+            if (error) this._notifyError('No se pudo eliminar el evento en la nube', error);
         } else {
             const events = JSON.parse(localStorage.getItem('timelineEvents') || '[]');
             events.splice(id, 1);
@@ -263,7 +278,7 @@ const db = {
                 .delete()
                 .eq('id', id);
             
-            if (error) console.error('Error eliminando foto:', error);
+            if (error) this._notifyError('No se pudo eliminar la foto en la nube', error);
         }
         
         const photos = JSON.parse(localStorage.getItem('galleryPhotos') || '{}');
@@ -330,7 +345,7 @@ const db = {
                     details: details
                 }]);
             
-            if (error) console.error('Error guardando puntuación:', error);
+            if (error) this._notifyError('No se pudo guardar la puntuación en la nube', error);
         }
         
         // Guardar high score localmente también por rendimiento y fallback
@@ -394,7 +409,7 @@ const db = {
                     answer: answer
                 }]);
             
-            if (error) console.error('Error guardando respuesta:', error);
+            if (error) this._notifyError('No se pudo guardar la respuesta en la nube (guardada en este dispositivo)', error);
         }
 
         // Guardar localmente también
@@ -430,7 +445,7 @@ const db = {
                 .select();
             
             if (!error) return data[0];
-            console.error('Error guardando mensaje:', error);
+            this._notifyError('No se pudo enviar el mensaje a la nube (guardado en este dispositivo)', error);
         }
 
         const messages = JSON.parse(localStorage.getItem('customMessages') || '[]');
