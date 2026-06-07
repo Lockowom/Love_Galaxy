@@ -11,6 +11,12 @@ services:
       - path: /*.html
         name: Cache-Control
         value: no-cache
+      - path: /*.js
+        name: Cache-Control
+        value: no-cache, max-age=0, must-revalidate
+      - path: /*.css
+        name: Cache-Control
+        value: no-cache, max-age=0, must-revalidate
       - path: /*
         name: X-Content-Type-Options
         value: nosniff
