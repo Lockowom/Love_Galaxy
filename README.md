@@ -24,7 +24,7 @@
 - ✨ **Efectos Visuales Impresionantes**: Partículas animadas, corazones flotantes y efectos especiales
 - 🎮 **Juegos Interactivos**: Diversión romántica para compartir en pareja
 - 📱 **Diseño Responsivo**: Perfecto en cualquier dispositivo
-- 💾 **Almacenamiento Local**: Guarda todos tus recuerdos directamente en el navegador
+- 💾 **Almacenamiento en la Nube**: Guarda tus recuerdos en Supabase de forma privada y segura (con respaldo local)
 - 🎨 **Interfaz Moderna**: Gradientes, animaciones y experiencia de usuario excepcional
 
 ---
@@ -319,15 +319,16 @@ Love_Galaxy/
   - Intersection Observer API
   - RequestAnimationFrame para animaciones fluidas
 
-### 📦 Almacenamiento Local
+### 📦 Almacenamiento y Cuentas
 
-La aplicación utiliza `localStorage` para guardar:
-- Recuerdos personales
-- Fotos subidas (como base64)
-- Respuestas a preguntas
-- Mensajes personalizados
-- Fecha de inicio de relación
-- Configuraciones personales
+La aplicación guarda los datos en **Supabase** (base de datos + Storage en la nube),
+protegidos por **cuentas de usuario (email + contraseña)** y seguridad por fila (RLS):
+cada cuenta sólo accede a sus propios recuerdos, fotos, mensajes, playlist, etc.
+
+`localStorage` se usa como **respaldo/caché** local cuando no hay conexión con la nube.
+
+Configuración paso a paso (crear las tablas, activar el login y los buckets privados):
+ver **[GUIA_SUPABASE.md](GUIA_SUPABASE.md)**.
 
 ### 🎯 Características de Rendimiento
 
@@ -433,11 +434,11 @@ La aplicación está optimizada para todos los tamaños de pantalla:
 
 ## 🔐 Privacidad y Datos
 
-- **100% Local**: Todos los datos se guardan en tu navegador
-- **Sin servidor**: No se envía información a ningún servidor externo
-- **Sin cookies**: No se utilizan cookies de seguimiento
+- **Datos privados por cuenta**: Cada usuario sólo puede ver y modificar sus propios datos, gracias a la autenticación (email + contraseña) y a la seguridad por fila (RLS) de Supabase
+- **Storage privado**: Las fotos y canciones se sirven mediante URLs firmadas temporales, no son públicas
 - **Sin analytics**: Sin Google Analytics ni tracking
-- **Offline first**: Funciona completamente sin internet
+- **Respaldo local**: Si no hay conexión con la nube, se usa `localStorage` como caché temporal
+- **Tú controlas tus credenciales**: La URL y la clave pública (`anon`) de Supabase van en `supabase-client.js`; la `anon key` es pública por diseño y es segura porque la RLS restringe el acceso
 
 ---
 
