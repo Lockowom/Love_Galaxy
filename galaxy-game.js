@@ -50,7 +50,7 @@
 
     // --------------------------------------------------------------- estado UI
     var ex = null;                 // exports del wasm
-    var canvas, ctx, hudEl, startEl, overEl, container;
+    var canvas, ctx, startEl, overEl, container, closeBtn;
     var raf = 0, lastT = 0, running = false, started = false, builtUI = false;
     var dpr = 1, W = 0, H = 0;
     var stars = [], trail = [], floaters = [];
@@ -94,24 +94,73 @@
     }
 
     // --------------------------------------------------------------- UI (DOM)
+    // Inyecta (una vez) los estilos que hacen el juego inmersivo: oculta el cromo
+    // del modal (× rosa, título e instrucciones) y deja el lienzo a sangre.
+    function injectImmersiveCSS() {
+        if (document.getElementById('gg-immersive-style')) return;
+        var st = document.createElement('style');
+        st.id = 'gg-immersive-style';
+        st.textContent =
+            '#galaxy-game-modal.gg-on .modal-close,' +
+            '#galaxy-game-modal.gg-on > .modal-content > h2,' +
+            '#galaxy-game-modal.gg-on .galaxy-instructions{display:none !important}' +
+            '#galaxy-game-modal.gg-on .galaxy-modal-content,' +
+            '#galaxy-game-modal.gg-on .galaxy-game-container{padding:0 !important;border:none !important;' +
+            'box-shadow:none !important;border-radius:0 !important;background:#05010d !important}' +
+            '#galaxy-game-modal.gg-on .galaxy-modal-content::before{display:none !important}' +
+            '.gg-pill{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);padding:6px 13px;border-radius:999px;' +
+            'background:rgba(18,7,30,.42);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);' +
+            'border:1px solid rgba(255,150,200,.22);box-shadow:0 2px 14px rgba(0,0,0,.4),inset 0 0 14px rgba(255,120,190,.07);' +
+            'color:#fff;font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.6);font-size:clamp(13px,3.6vw,18px);' +
+            'display:flex;align-items:center;gap:.45rem;pointer-events:none;z-index:4;line-height:1;white-space:nowrap}' +
+            '#gg-close{position:absolute;top:calc(env(safe-area-inset-top,0px) + 8px);right:10px;width:42px;height:42px;' +
+            'border-radius:50%;background:rgba(18,7,30,.5);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);' +
+            'border:1px solid rgba(255,150,200,.35);color:#ffd3e6;font-size:20px;display:flex;align-items:center;' +
+            'justify-content:center;cursor:pointer;pointer-events:auto;z-index:6;box-shadow:0 2px 14px rgba(0,0,0,.45);' +
+            'transition:transform .15s ease,background .15s ease,box-shadow .15s ease}' +
+            '#gg-close:hover{background:rgba(255,60,140,.55);box-shadow:0 0 18px rgba(255,80,160,.6);transform:scale(1.06)}' +
+            '#gg-close:active{transform:scale(.92)}';
+        document.head.appendChild(st);
+    }
+
     function buildUI() {
         if (builtUI) return;
+        injectImmersiveCSS();
         container = document.getElementById('galaxy-game-container');
         if (!container) return;
         container.innerHTML = '';
         container.style.position = 'relative';
         container.style.touchAction = 'none';
+        container.style.overflow = 'hidden';
 
         canvas = document.createElement('canvas');
-        canvas.style.cssText = 'display:block;width:100%;height:100%;border-radius:12px;cursor:none;';
+        canvas.style.cssText = 'display:block;width:100%;height:100%;cursor:none;';
         container.appendChild(canvas);
         ctx = canvas.getContext('2d');
 
-        hudEl = document.createElement('div');
-        hudEl.style.cssText = 'position:absolute;top:10px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;' +
-            'font-family:inherit;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.6);pointer-events:none;font-size:clamp(13px,3.4vw,18px);font-weight:600;';
-        hudEl.innerHTML = '<span id="gg-score">💖 0</span><span id="gg-shield"></span><span id="gg-best">🏆 0</span>';
-        container.appendChild(hudEl);
+        // HUD en píldoras de cristal: izquierda (puntos+récord), centro (vidas/escudo).
+        var stats = document.createElement('div');
+        stats.className = 'gg-pill';
+        stats.style.left = '10px';
+        stats.innerHTML = '<span>💖&nbsp;<b id="gg-score">0</b></span>' +
+            '<span style="opacity:.4">·</span>' +
+            '<span style="font-size:.82em;opacity:.92">🏆&nbsp;<span id="gg-best">0</span></span>';
+        container.appendChild(stats);
+
+        var livesPill = document.createElement('div');
+        livesPill.className = 'gg-pill';
+        livesPill.style.left = '50%';
+        livesPill.style.transform = 'translateX(-50%)';
+        livesPill.innerHTML = '<span id="gg-lives">❤️❤️❤️</span>';
+        container.appendChild(livesPill);
+
+        closeBtn = document.createElement('button');
+        closeBtn.id = 'gg-close';
+        closeBtn.type = 'button';
+        closeBtn.setAttribute('aria-label', 'Cerrar juego');
+        closeBtn.innerHTML = '✕';
+        closeBtn.addEventListener('click', closeGalaxyGame);
+        container.appendChild(closeBtn);
 
         startEl = overlay();
         startEl.innerHTML =
@@ -139,7 +188,7 @@
         var d = document.createElement('div');
         d.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;' +
             'color:#fff;padding:1.2rem;background:radial-gradient(circle at 50% 35%,rgba(40,12,55,.72),rgba(10,4,20,.92));' +
-            'backdrop-filter:blur(3px);border-radius:12px;font-family:inherit;z-index:3;';
+            'backdrop-filter:blur(3px);font-family:inherit;z-index:5;';
         return d;
     }
 
@@ -231,22 +280,30 @@
     }
 
     function updateHud() {
-        var sc = document.getElementById('gg-score'); if (sc) sc.textContent = '💖 ' + ex.getScore();
-        var be = document.getElementById('gg-best'); if (be) be.textContent = '🏆 ' + Math.max(savedBest, ex.getBest());
-        var sh = document.getElementById('gg-shield');
-        if (sh) {
-            if (ex.getShield()) { sh.textContent = '🛡️ ' + Math.ceil(ex.shieldPct() * 6) + 's'; }
-            else { var lives = ex.getLives(); sh.textContent = '❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, 3 - lives)); }
+        var sc = document.getElementById('gg-score'); if (sc) sc.textContent = ex.getScore();
+        var be = document.getElementById('gg-best'); if (be) be.textContent = Math.max(savedBest, ex.getBest());
+        var lv = document.getElementById('gg-lives');
+        if (lv) {
+            if (ex.getShield()) { lv.textContent = '🛡️ ' + Math.ceil(ex.shieldPct() * 6) + 's'; }
+            else { var lives = ex.getLives(); lv.textContent = '❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, 3 - lives)); }
         }
     }
 
     // --------------------------------------------------------------- dibujo
     var EMO = ['💖', '💌', '☄️', '🛡️'];
+    var bgT = 0;
     function draw(dt) {
-        // fondo
-        var g = ctx.createRadialGradient(W * 0.5, H * 0.35, 0, W * 0.5, H * 0.35, Math.max(W, H) * 0.85);
-        g.addColorStop(0, '#241038'); g.addColorStop(0.6, '#140a24'); g.addColorStop(1, '#070310');
+        bgT += dt;
+        // fondo profundo
+        var g = ctx.createRadialGradient(W * 0.5, H * 0.4, 0, W * 0.5, H * 0.4, Math.max(W, H) * 0.9);
+        g.addColorStop(0, '#1d0d33'); g.addColorStop(0.55, '#100820'); g.addColorStop(1, '#05010d');
         ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+        // nebulosas suaves que derivan (profundidad/inmersión)
+        ctx.globalCompositeOperation = 'lighter';
+        nebula(W * (0.30 + 0.05 * Math.sin(bgT * 0.07)), H * (0.30 + 0.04 * Math.cos(bgT * 0.05)), Math.max(W, H) * 0.45, 'rgba(150,40,160,0.16)');
+        nebula(W * (0.74 + 0.05 * Math.cos(bgT * 0.06)), H * (0.66 + 0.05 * Math.sin(bgT * 0.04)), Math.max(W, H) * 0.5, 'rgba(40,70,180,0.14)');
+        ctx.globalCompositeOperation = 'source-over';
 
         // estrellas (parallax)
         for (var i = 0; i < stars.length; i++) {
@@ -318,6 +375,17 @@
             ctx.fillText(fl.t, fl.x, fl.y);
         }
         ctx.globalAlpha = 1;
+
+        // viñeta: oscurece los bordes para dar foco y profundidad
+        var vg = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.34, W * 0.5, H * 0.5, Math.max(W, H) * 0.72);
+        vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.55)');
+        ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+    }
+
+    function nebula(x, y, r, color) {
+        var ng = ctx.createRadialGradient(x, y, 0, x, y, r);
+        ng.addColorStop(0, color); ng.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = ng; ctx.fillRect(0, 0, W, H);
     }
 
     // Pinta un frame estático mientras está la pantalla de inicio.
@@ -327,7 +395,7 @@
     function startGalaxyLoveGame() {
         var modal = document.getElementById('galaxy-game-modal');
         if (!modal) return;
-        modal.classList.add('active', 'full-screen');
+        modal.classList.add('active', 'full-screen', 'gg-on');
         loadBest();
         buildUI();
         loadWasm().then(function (inst) {
@@ -350,7 +418,7 @@
         running = false;
         cancelAnimationFrame(raf);
         var modal = document.getElementById('galaxy-game-modal');
-        if (modal) modal.classList.remove('active', 'full-screen');
+        if (modal) modal.classList.remove('active', 'full-screen', 'gg-on');
     }
 
     // Pausar si se oculta la pestaña; reanudar al volver.
