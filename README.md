@@ -73,11 +73,15 @@ Pilota una nave por la galaxia capturando corazones y mensajes de amor mientras
 esquivas asteroides. El motor (física, colisiones, puntuación) está escrito en
 **C++** y compilado a **WebAssembly** (`galaxy.wasm`); el renderizado va en
 `<canvas>` con JavaScript.
-- Captura corazones 💖 (+10) y mensajes de amor 💌 (+30, muestra una frase)
-- Esquiva asteroides ☄️ (3 vidas); recoge el escudo 🛡️ para protegerte
-- Dificultad progresiva, récord guardado (Supabase + `localStorage`)
+- Captura corazones 💖 (+10), mensajes 💌 (+30, con frase) y estrellas ⭐ (+50)
+- **Power-ups**: ⚡ boost x2 · 🧲 imán (atrae objetos) · 🛡️ escudo · 💗 vida extra
+- **Combos**: encadena recogidas sin chocar para sumar bonus 🔥
+- **Skins** de nave seleccionables (🚀 💖 🦋 🌟 🛸 🐉), guardadas en `localStorage`
+- **Música** procedural (WebAudio) con botón de silencio 🎵/🔇
+- **Tabla de marcadores** (top 10 local + Supabase) y récord guardado
+- Esquiva asteroides ☄️ (hasta 5 vidas); dificultad progresiva
 - Control táctil (deslizar), ratón o flechas ↑↓; pausa con **P**
-- Estrellas con parallax, estela de la nave, sonidos y frases flotantes
+- Estrellas con parallax, nebulosas, viñeta, estela y frases flotantes por hitos
 
 #### 💗 **Amor-ómetro**
 - Medidor visual del nivel de amor (sempre al 100%)
@@ -365,12 +369,13 @@ ver **[GUIA_SUPABASE.md](GUIA_SUPABASE.md)**.
 
 **Objetivo**: sumar la mayor puntuación pilotando la nave por la galaxia.
 
-- **Mueve la nave** 🚀: en móvil desliza el dedo arriba/abajo; en PC mueve el ratón
+- **Mueve la nave**: en móvil desliza el dedo arriba/abajo; en PC mueve el ratón
   o usa las flechas **↑ ↓**. Pulsa **P** para pausar.
-- **Captura** corazones 💖 (+10) y mensajes de amor 💌 (+30, con frase dedicada).
-- **Esquiva** los asteroides ☄️: tienes **3 vidas**.
-- **Recoge el escudo** 🛡️: te protege de un golpe durante unos segundos.
-- La **dificultad** sube con el tiempo; tu **récord** se guarda (Supabase + localStorage).
+- **Elige tu skin** en la pantalla de inicio (🚀 💖 🦋 🌟 🛸 🐉) y activa/silencia la **música** 🎵.
+- **Captura** corazones 💖 (+10), mensajes 💌 (+30, con frase) y estrellas ⭐ (+50).
+- **Power-ups**: ⚡ boost x2 · 🧲 imán · 🛡️ escudo · 💗 vida extra. Encadena **combos** 🔥 para más puntos.
+- **Esquiva** los asteroides ☄️: empiezas con **3 vidas** (hasta 5 con 💗).
+- **Tabla de marcadores** (top 10) y récord guardados; la dificultad sube con el tiempo.
 
 ### 🛠️ ¿Cómo está hecho? (C++ → WebAssembly)
 

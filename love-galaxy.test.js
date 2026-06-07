@@ -55,7 +55,8 @@ describe('Galaxia del Amor — motor C++ → WebAssembly', () => {
 
     test('exporta la API esperada', () => {
         ['init', 'start', 'update', 'setPointer', 'getState', 'getScore', 'getLives',
-         'getBest', 'getShield', 'playerXf', 'playerYf', 'playerRf',
+         'getBest', 'getCombo', 'getMaxCombo', 'getShield', 'getBoost', 'getMagnet',
+         'evtPower', 'playerXf', 'playerYf', 'playerRf',
          'renderPtr', 'renderCount', 'floatsPer', 'memory']
             .forEach((name) => expect(ex[name]).toBeDefined());
     });
@@ -98,7 +99,7 @@ describe('Galaxia del Amor — motor C++ → WebAssembly', () => {
             const type = buf[i * fp];
             const r = buf[i * fp + 3];
             expect(type).toBeGreaterThanOrEqual(0);
-            expect(type).toBeLessThanOrEqual(3);
+            expect(type).toBeLessThanOrEqual(7); // 8 tipos: corazón…vida
             expect(r).toBeGreaterThan(0);
         }
     });
