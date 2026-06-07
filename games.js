@@ -32,7 +32,7 @@ function showGameMessage(title, message, icon = '✨') {
 }
 
 function createConfetti() {
-    const colors = ['#ff1493', '#ff69b4', '#ffd700', '#00ffff', '#ffffff'];
+    const colors = ['#d98aa3', '#c9b3d9', '#f0bfa8', '#fbd5e0', '#ffffff'];
     for (let i = 0; i < 50; i++) {
         const confetti = document.createElement('div');
         confetti.style.cssText = `
@@ -112,10 +112,10 @@ class MemoryGame {
             // Estructura interna para flip 3D
             cardElement.innerHTML = `
                 <div class="card-inner" style="position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d;">
-                    <div class="card-front" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: linear-gradient(135deg, #ff1493, #ff69b4); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 2rem; border: 2px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+                    <div class="card-front" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: linear-gradient(135deg, #d98aa3, #c9b3d9); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 2rem; border: 1px solid #fff; box-shadow: 0 4px 10px rgba(74,59,67,0.12);">
                         ❓
                     </div>
-                    <div class="card-back" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: #fff; border-radius: 15px; transform: rotateY(180deg); display: flex; align-items: center; justify-content: center; font-size: 3rem; border: 2px solid #ff1493;">
+                    <div class="card-back" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: #fff; border-radius: 15px; transform: rotateY(180deg); display: flex; align-items: center; justify-content: center; font-size: 3rem; border: 1px solid #efe1e6;">
                         ${card}
                     </div>
                 </div>
@@ -276,20 +276,18 @@ class LoveRoulette {
     init() {
         this.canvas = document.getElementById('roulette-canvas');
         if (!this.canvas) return;
-        
-        // Ajustar resolución para pantallas retina
+
+        // Tamaño lógico fijo (la rueda mide ~400px); el CSS la escala de forma
+        // responsive sin recortes ni distorsión. Nítida en pantallas retina.
         const dpr = window.devicePixelRatio || 1;
-        const rect = this.canvas.getBoundingClientRect();
-        this.canvas.width = rect.width * dpr;
-        this.canvas.height = rect.height * dpr;
-        
+        const size = 420;
+        this.canvas.width = size * dpr;
+        this.canvas.height = size * dpr;
+
         this.ctx = this.canvas.getContext('2d');
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0); // reset por si se reinicializa
         this.ctx.scale(dpr, dpr);
-        
-        // Ajustar tamaño lógico
-        this.canvas.style.width = `${rect.width}px`;
-        this.canvas.style.height = `${rect.height}px`;
-        
+
         this.drawRouletteWheel();
         
         const spinBtn = document.getElementById('spin-btn');
@@ -329,8 +327,8 @@ class LoveRoulette {
         for(let i = 0; i < this.options.length; i++) {
             const angle = this.startAngle + i * this.arc;
             
-            // Colores alternados vibrantes
-            this.ctx.fillStyle = i % 2 === 0 ? '#ff1493' : '#ff69b4';
+            // Colores alternados pastel
+            this.ctx.fillStyle = i % 2 === 0 ? '#d98aa3' : '#c9b3d9';
 
             this.ctx.beginPath();
             this.ctx.arc(centerX, centerY, outsideRadius, angle, angle + this.arc, false);
@@ -351,7 +349,7 @@ class LoveRoulette {
         }
 
         // Flecha indicadora
-        this.ctx.fillStyle = "#ffd700";
+        this.ctx.fillStyle = "#f0bfa8";
         this.ctx.beginPath();
         this.ctx.moveTo(centerX - 15, centerY - (outsideRadius + 20));
         this.ctx.lineTo(centerX + 15, centerY - (outsideRadius + 20));
@@ -366,7 +364,7 @@ class LoveRoulette {
         
         this.ctx.beginPath();
         this.ctx.arc(centerX, centerY, insideRadius - 10, 0, 2 * Math.PI);
-        this.ctx.fillStyle = '#ff1493';
+        this.ctx.fillStyle = '#c96f8e';
         this.ctx.fill();
         
         this.ctx.font = '30px Arial';
@@ -461,8 +459,8 @@ function calculateCompatibility() {
             );
             
             // Desbloquear logro si es la primera vez
-            if (window.achievementsManager) {
-                window.achievementsManager.unlock('love_scientist');
+            if (window.achievements && window.achievements.unlock) {
+                window.achievements.unlock('love_scientist');
             }
         }, 2000);
         
@@ -472,9 +470,10 @@ function calculateCompatibility() {
 }
 
 async function saveQuestionAnswer() {
-    const answer = document.querySelector('.answer-input');
-    if (answer && answer.value.trim()) {
-        const questionText = document.querySelector('.question-text').textContent;
+    const answer = document.querySelector('#question-content .answer-input');
+    const questionEl = document.querySelector('#question-content .question-text');
+    if (answer && answer.value.trim() && questionEl) {
+        const questionText = questionEl.textContent;
         
         if (window.db && window.db.saveQuestionAnswer) {
             await window.db.saveQuestionAnswer(questionText, answer.value);
@@ -497,11 +496,11 @@ async function saveQuestionAnswer() {
 
 function generateLoveLetter() {
     const parts = [
-        ["Mi amor,", "Querida mía,", "Amor de mi vida,", "Mi cielo,"],
-        ["cada vez que te veo,", "cuando pienso en ti,", "al despertar,", "en mis sueños,"],
-        ["mi corazón late más fuerte.", "sonrío sin razón.", "el mundo se ilumina.", "me siento completo."],
-        ["Gracias por ser tú.", "Te amo infinitamente.", "Eres mi todo.", "Siempre tuyo."],
-        ["Con amor.", "Eternamente.", "Tu amor.", "Besos."]
+        ["Mi amor,", "Querida mía,", "Amor de mi vida,", "Mi cielo,", "Mi persona favorita,", "Dueña de mi corazón,"],
+        ["cada vez que te veo,", "cuando pienso en ti,", "al despertar,", "en mis sueños,", "cuando escucho tu voz,", "con solo tu sonrisa,"],
+        ["mi corazón late más fuerte.", "sonrío sin razón.", "el mundo se ilumina.", "me siento completo.", "todo cobra sentido.", "el tiempo se detiene."],
+        ["Gracias por ser tú.", "Te amo infinitamente.", "Eres mi todo.", "Siempre tuyo.", "Eres mi lugar seguro.", "Contigo todo es mejor."],
+        ["Con amor.", "Eternamente.", "Tu amor.", "Besos.", "Por siempre.", "Tuyo, hoy y siempre."]
     ];
     
     let letter = "";
@@ -523,9 +522,225 @@ function generateDateIdea() {
         "Hacer una cápsula del tiempo 📦",
         "Ir a un parque de atracciones 🎡",
         "Noche de juegos de mesa 🎲",
-        "Ver el amanecer juntos ☀️"
+        "Ver el amanecer juntos ☀️",
+        "Cata de postres por la ciudad 🍰",
+        "Sesión de fotos divertida 📸",
+        "Ruta en bici al atardecer 🚲",
+        "Noche de estrellas con telescopio 🔭",
+        "Tarde de karaoke en casa 🎤",
+        "Plantar algo juntos 🌱",
+        "Escribirse cartas y leerlas 💌",
+        "Maratón de la serie favorita 🍿",
+        "Bailar lento en la sala 💃",
+        "Escapada sorpresa de un día 🧳"
     ];
     
     const idea = ideas[Math.floor(Math.random() * ideas.length)];
     showGameMessage('Idea para Cita 💡', idea, '💑');
 }
+
+// ================================================
+// CABLEADO DE JUEGOS (inicio / cierre / control)
+// ================================================
+
+let memoryGameInstance = null;
+let loveRouletteInstance = null;
+
+function openGameModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.classList.add('active');
+}
+function closeGameModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.classList.remove('active');
+}
+
+// --- Juego de Memoria ---
+function startMemoryGame() {
+    openGameModal('memory-game-modal');
+    if (!memoryGameInstance) memoryGameInstance = new MemoryGame();
+    // reset() limpia el temporizador anterior y vuelve a inicializar (barajar/render)
+    memoryGameInstance.reset();
+}
+function resetMemoryGame() {
+    if (memoryGameInstance) memoryGameInstance.reset();
+    else startMemoryGame();
+}
+function closeMemoryGame() {
+    closeGameModal('memory-game-modal');
+    if (memoryGameInstance && memoryGameInstance.timerInterval) {
+        clearInterval(memoryGameInstance.timerInterval);
+    }
+}
+
+// --- Pregunta del Día ---
+function startQuestionGame() {
+    const container = document.getElementById('question-content');
+    if (container) {
+        const bank = (typeof dailyQuestions !== 'undefined' && dailyQuestions.length)
+            ? dailyQuestions
+            : [{ question: '¿Qué es lo que más amas de nuestra relación?' }];
+        const q = bank[new Date().getDate() % bank.length];
+
+        container.innerHTML = `
+            <p class="question-text">${escapeHtml(q.question)}</p>
+            <textarea class="answer-input" rows="4" placeholder="Escribe tu respuesta con el corazón..."></textarea>
+            <button class="btn-primary" style="margin-top: 1rem;" onclick="saveQuestionAnswer()">💌 Guardar respuesta</button>
+            <div id="previous-answers" class="previous-answers"></div>
+        `;
+        loadPreviousAnswers();
+    }
+    openGameModal('question-modal');
+}
+function closeQuestionModal() {
+    closeGameModal('question-modal');
+}
+async function loadPreviousAnswers() {
+    const box = document.getElementById('previous-answers');
+    if (!box) return;
+    try {
+        if (window.db && window.db.getQuestionAnswers) {
+            const answers = await window.db.getQuestionAnswers();
+            if (answers && answers.length) {
+                box.innerHTML = '<h4 style="margin:1.5rem 0 0.5rem; color: var(--dark-pink, #c96f8e);">Respuestas anteriores 💭</h4>' +
+                    answers.slice(0, 5).map(a => `
+                        <div class="prev-answer" style="background: var(--surface-tint, #fdf3f5); border:1px solid var(--border-soft,#efe1e6); border-radius:12px; padding:0.85rem 1rem; margin-bottom:0.6rem; text-align:left;">
+                            <strong style="color: var(--dark-pink,#c96f8e); display:block; font-size:0.85rem; margin-bottom:0.25rem;">${escapeHtml(a.question)}</strong>
+                            <span style="color: var(--text-secondary,#8a7b82);">${escapeHtml(a.answer)}</span>
+                        </div>`).join('');
+            }
+        }
+    } catch (e) { /* sin historial disponible */ }
+}
+
+// --- Ruleta del Amor ---
+function startRouletteGame() {
+    openGameModal('roulette-modal');
+    if (!loveRouletteInstance) loveRouletteInstance = new LoveRoulette();
+    // Esperar a que el modal sea visible para medir el canvas correctamente
+    setTimeout(() => loveRouletteInstance.init(), 120);
+}
+function spinRoulette() {
+    if (loveRouletteInstance) loveRouletteInstance.spin();
+}
+function closeRouletteModal() {
+    closeGameModal('roulette-modal');
+    if (loveRouletteInstance && loveRouletteInstance.spinTimeout) {
+        clearTimeout(loveRouletteInstance.spinTimeout);
+    }
+}
+
+// --- Test de Compatibilidad ---
+const compatibilityQuestions = [
+    {
+        q: '¿Cómo es su plan ideal de fin de semana?',
+        options: [
+            { text: 'Aventura y viajes 🌍', pts: 3 },
+            { text: 'Maratón de pelis en casa 🍿', pts: 2 },
+            { text: 'Salir con amigos 🥂', pts: 1 }
+        ]
+    },
+    {
+        q: '¿Cuál es su lenguaje del amor?',
+        options: [
+            { text: 'Tiempo de calidad ⏳', pts: 3 },
+            { text: 'Palabras de afirmación 💬', pts: 2 },
+            { text: 'Detalles y regalos 🎁', pts: 2 }
+        ]
+    },
+    {
+        q: 'Ante una discusión, ¿qué hacen?',
+        options: [
+            { text: 'Hablamos y lo resolvemos 🤝', pts: 3 },
+            { text: 'Nos damos espacio y volvemos 🌿', pts: 2 },
+            { text: 'Un abrazo lo cura todo 🤗', pts: 3 }
+        ]
+    },
+    {
+        q: '¿Comparten gustos musicales?',
+        options: [
+            { text: '¡Casi siempre! 🎵', pts: 3 },
+            { text: 'A veces 🎧', pts: 2 },
+            { text: 'Opuestos que se atraen 🎸', pts: 2 }
+        ]
+    },
+    {
+        q: '¿Cómo ven el futuro juntos?',
+        options: [
+            { text: 'Construyendo todo en pareja 🏡', pts: 3 },
+            { text: 'Disfrutando el presente 🌅', pts: 2 },
+            { text: 'Creciendo cada quien y juntos 🌱', pts: 3 }
+        ]
+    }
+];
+
+function startCompatibilityTest() {
+    const c = document.getElementById('compatibility-test');
+    if (c) {
+        c.innerHTML = compatibilityQuestions.map((item, qi) => `
+            <div class="compatibility-question">
+                <h4>${qi + 1}. ${escapeHtml(item.q)}</h4>
+                <div class="compatibility-options">
+                    ${item.options.map(op => `
+                        <div class="compatibility-option" data-q="${qi}" data-pts="${op.pts}" onclick="selectCompatOption(this)">${escapeHtml(op.text)}</div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('') + `
+            <button class="btn-primary" style="display:block; margin: 1rem auto 0;" onclick="computeCompatibility()">💞 Ver resultado</button>
+            <div id="compat-result"></div>
+        `;
+    }
+    openGameModal('compatibility-modal');
+}
+function selectCompatOption(el) {
+    const q = el.dataset.q;
+    document.querySelectorAll('.compatibility-option[data-q="' + q + '"]').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+}
+function computeCompatibility() {
+    const total = compatibilityQuestions.length;
+    let answered = 0, pts = 0;
+    for (let i = 0; i < total; i++) {
+        const sel = document.querySelector('.compatibility-option.selected[data-q="' + i + '"]');
+        if (sel) { answered++; pts += parseInt(sel.dataset.pts, 10) || 0; }
+    }
+    if (answered < total) {
+        showGameMessage('Casi...', 'Responde todas las preguntas para descubrir su compatibilidad 💕', '📝');
+        return;
+    }
+    const maxPts = total * 3;
+    const pct = Math.round(85 + (pts / maxPts) * 15); // siempre entre 85% y 100%
+
+    let msg;
+    if (pct >= 98) msg = '¡Almas gemelas! El universo los hizo el uno para el otro. 🌌';
+    else if (pct >= 94) msg = '¡Conexión cósmica! Su química es innegable. 🚀';
+    else if (pct >= 90) msg = '¡Amor verdadero! Una historia para la eternidad. 📖';
+    else msg = '¡Pareja perfecta! Juntos son imparables. 💪';
+
+    const box = document.getElementById('compat-result');
+    if (box) {
+        box.innerHTML = `
+            <div class="compatibility-result">
+                <div class="compatibility-percentage">${pct}%</div>
+                <p>${msg}</p>
+            </div>`;
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    createConfetti();
+    if (window.achievements && window.achievements.unlock) {
+        window.achievements.unlock('love_scientist');
+    }
+}
+function closeCompatibilityModal() {
+    closeGameModal('compatibility-modal');
+}
+
+// Exportar a window (los onclick del HTML son globales)
+Object.assign(window, {
+    startMemoryGame, resetMemoryGame, closeMemoryGame,
+    startQuestionGame, closeQuestionModal,
+    startRouletteGame, spinRoulette, closeRouletteModal,
+    startCompatibilityTest, selectCompatOption, computeCompatibility, closeCompatibilityModal,
+    generateDateIdea, generateLoveLetter, calculateCompatibility, saveQuestionAnswer
+});

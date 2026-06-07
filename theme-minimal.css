@@ -335,3 +335,48 @@ input:focus, textarea:focus, select:focus {
 
 /* 19. BOTÓN FLOTANTE DE AJUSTES (⚙️) — coherente con el tema --------------- */
 /* (su color base ya usa variables; el override fino se aplica en extras.js) */
+
+/* 20. JUEGOS — ajustes responsive y pastel -------------------------------- */
+#roulette-canvas {
+    width: 100%;
+    max-width: 340px;
+    height: auto;
+    aspect-ratio: 1 / 1;
+}
+.roulette-result {
+    background: var(--surface-tint);
+    color: var(--dark-pink);
+}
+.answer-input {
+    background: var(--surface-tint);
+    border: 1px solid var(--border-soft);
+    color: var(--text-primary);
+}
+.compatibility-option {
+    background: var(--surface-tint);
+    border: 1px solid var(--border-soft);
+    color: var(--text-primary);
+}
+.compatibility-option:hover,
+.compatibility-option.selected {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+.compatibility-result { background: var(--surface-tint); }
+.compatibility-percentage { color: var(--dark-pink); }
+.compatibility-question h4 { color: var(--text-primary); }
+.game-stats span span { color: var(--dark-pink); }
+.game-icon { filter: none; }
+/* Modal de mensaje de juego: título acorde */
+#game-message-modal #msg-title { color: var(--dark-pink) !important; }
+
+/* Cartas del JUEGO de memoria: evitar que hereden el estilo de las
+   tarjetas del Libro de Recuerdos (ambas usan la clase .memory-card) */
+.memory-game-board .memory-card {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+.memory-game-board .memory-card:hover { transform: none !important; }
