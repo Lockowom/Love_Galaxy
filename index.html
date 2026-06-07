@@ -32,6 +32,36 @@
         </div>
     </div>
 
+    <!-- Pantalla de autenticación (login / registro) -->
+    <div id="auth-screen" class="auth-screen" style="display: none;">
+        <div class="auth-card">
+            <div class="auth-heart">💖</div>
+            <h2 class="auth-title">Love Galaxy</h2>
+            <p class="auth-subtitle" id="auth-subtitle">Inicia sesión para entrar a nuestro universo</p>
+
+            <form id="auth-form" autocomplete="on">
+                <div class="auth-field">
+                    <label for="auth-email">Email</label>
+                    <input type="email" id="auth-email" required autocomplete="email" placeholder="tucorreo@ejemplo.com">
+                </div>
+                <div class="auth-field">
+                    <label for="auth-password">Contraseña</label>
+                    <input type="password" id="auth-password" required minlength="6" autocomplete="current-password" placeholder="Mínimo 6 caracteres">
+                </div>
+
+                <div id="auth-error" class="auth-error" style="display: none;"></div>
+                <div id="auth-info" class="auth-info" style="display: none;"></div>
+
+                <button type="submit" class="btn btn-primary auth-submit" id="auth-submit-btn">Entrar</button>
+            </form>
+
+            <p class="auth-toggle-line">
+                <span id="auth-toggle-text">¿No tienes cuenta?</span>
+                <a href="#" id="auth-toggle-link">Crear cuenta</a>
+            </p>
+        </div>
+    </div>
+
     <!-- Navegación -->
     <nav class="main-nav">
         <div class="nav-container">
@@ -50,6 +80,7 @@
                 <li><a href="#poems" class="nav-link">Poemas</a></li>
                 <li><a href="#playlist" class="nav-link">Playlist</a></li>
                 <li><button class="btn-small" onclick="openAchievementsModal()" style="margin-left: 10px;">🏆 Logros</button></li>
+                <li><button class="btn-small" id="logout-btn" onclick="handleLogout()" style="margin-left: 10px; display: none;">🚪 Salir</button></li>
             </ul>
             <button class="nav-toggle" id="nav-toggle">
                 <span></span>

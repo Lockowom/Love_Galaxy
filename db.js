@@ -39,7 +39,7 @@ const db = {
         if (window.supabaseClient) {
             const { error } = await supabaseClient
                 .from('app_config')
-                .upsert({ key, value });
+                .upsert({ key, value }, { onConflict: 'user_id,key' });
             
             if (error) this._notifyError('No se pudo guardar en la nube (se guardó solo en este dispositivo)', error);
         }
@@ -122,13 +122,36 @@ const db = {
                 .from('gallery_photos')
                 .select('*')
                 .order('created_at', { ascending: false });
-            
-            if (!error) return data;
+
+            if (!error && data) {
+                // El bucket es privado: regenerar URLs firmadas a partir de storage_path
+                return await Promise.all(data.map(async (photo) => {
+                    if (photo.storage_path) {
+                        const signed = await this._signedGalleryUrl(photo.storage_path);
+                        if (signed) return { ...photo, url: signed };
+                    }
+                    return photo;
+                }));
+            }
         }
-        
+
         // Convertir objeto de localStorage a array
         const photosObj = JSON.parse(localStorage.getItem('galleryPhotos') || '{}');
         return Object.values(photosObj);
+    },
+
+    // Genera una URL firmada para una imagen del bucket privado love_gallery
+    async _signedGalleryUrl(storagePath) {
+        try {
+            const { data, error } = await supabaseClient
+                .storage
+                .from('love_gallery')
+                .createSignedUrl(storagePath, 3600 * 24); // 24 horas
+            if (!error && data && data.signedUrl) return data.signedUrl;
+        } catch (e) {
+            console.warn('No se pudo firmar URL de imagen:', storagePath);
+        }
+        return null;
     },
 
     // Helper para comprimir imagen
@@ -218,8 +241,10 @@ const db = {
                     await supabaseClient.storage.from('love_gallery').remove([fileName]);
                     throw dbError;
                 }
-                
-                return dbData[0];
+
+                // Devolver con URL firmada para mostrarla de inmediato (bucket privado)
+                const signed = await this._signedGalleryUrl(fileName);
+                return signed ? { ...dbData[0], url: signed } : dbData[0];
 
             } catch (error) {
                 console.error('Error crítico subiendo foto:', error);
@@ -511,6 +536,14 @@ const db = {
                     .select();
 
                 if (dbError) throw dbError;
+
+                // Firmar URL para reproducción inmediata (bucket privado)
+                try {
+                    const { data: signed } = await supabaseClient
+                        .storage.from('love_songs')
+                        .createSignedUrl(fileName, 3600 * 24);
+                    if (signed && signed.signedUrl) return { ...data[0], url: signed.signedUrl };
+                } catch (e) { /* se firmará al recargar la playlist */ }
                 return data[0];
 
             } catch (error) {

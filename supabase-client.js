@@ -62,10 +62,22 @@ function initSupabase() {
         isSupabaseReady = true;
 
         console.log('✅ Cliente Supabase creado exitosamente.');
-        
+
+        // Escuchar cambios de sesión (login / logout / refresh) y avisar a la app
+        client.auth.onAuthStateChange((event, session) => {
+            window.dispatchEvent(new CustomEvent('auth-change', { detail: { event, session } }));
+        });
+
+        // Emitir el estado inicial de sesión una vez resuelto
+        client.auth.getSession().then(({ data }) => {
+            window.dispatchEvent(new CustomEvent('auth-change', {
+                detail: { event: 'INITIAL_SESSION', session: data ? data.session : null }
+            }));
+        });
+
         // Verificar conexión real haciendo un ping simple
         checkConnection();
-        
+
         return client;
 
     } catch (error) {
@@ -136,3 +148,32 @@ if (document.readyState === 'loading') {
 
 // Exportar función de reintento manual
 window.retrySupabaseConnection = initSupabase;
+
+// ==================================================================
+// AUTENTICACIÓN (email + contraseña)
+// ==================================================================
+
+/** Registra una cuenta nueva con email y contraseña. */
+window.authSignUp = async function(email, password) {
+    if (!supabaseClient) return { error: { message: 'Sin conexión con la base de datos. Recarga la página.' } };
+    return await supabaseClient.auth.signUp({ email, password });
+};
+
+/** Inicia sesión con email y contraseña. */
+window.authSignIn = async function(email, password) {
+    if (!supabaseClient) return { error: { message: 'Sin conexión con la base de datos. Recarga la página.' } };
+    return await supabaseClient.auth.signInWithPassword({ email, password });
+};
+
+/** Cierra la sesión actual. */
+window.authSignOut = async function() {
+    if (!supabaseClient) return;
+    return await supabaseClient.auth.signOut();
+};
+
+/** Devuelve el usuario autenticado actual (o null). */
+window.getCurrentUser = async function() {
+    if (!supabaseClient) return null;
+    const { data } = await supabaseClient.auth.getUser();
+    return data ? data.user : null;
+};
