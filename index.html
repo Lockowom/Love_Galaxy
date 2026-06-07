@@ -267,7 +267,6 @@
             </form>
         </div>
     </div>
-    </section>
 
     <!-- Sección Recuerdos -->
     <section id="memories" class="memories-section">
@@ -695,5 +694,14 @@
     <script src="dome-gallery.js?v=5"></script>
     <script src="main.js?v=5"></script>
     <script src="love-games.js?v=5"></script>
+
+    <!-- Indicador de versión (diagnóstico): muestra la versión cargada y si los juegos se inicializaron -->
+    <div id="lg-build" style="position:fixed; bottom:6px; left:8px; font-size:11px; color:#c96f8e; background:rgba(255,255,255,.9); padding:2px 8px; border-radius:10px; z-index:9; box-shadow:0 1px 4px rgba(0,0,0,.12);">v5</div>
+    <script>
+        setTimeout(function () {
+            var b = document.getElementById('lg-build');
+            if (b) b.textContent = 'v5 ' + (window.LoveGames ? '· juegos ✓' : '· juegos ✗');
+        }, 1500);
+    </script>
 </body>
 </html>
