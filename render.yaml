@@ -40,6 +40,16 @@ services:
       - path: /*.png
         name: Cache-Control
         value: public, max-age=31536000, immutable
+      # Fotos versionadas con ?v=: caché larga e inmutable.
+      - path: /*.jpg
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*.jpeg
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*.webp
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
       # El .wasm del juego se descarga con ?v=<buildId>, así que es cacheable.
       - path: /*.wasm
         name: Cache-Control
