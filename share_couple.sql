@@ -29,8 +29,8 @@ as $$
   select auth.uid() in (
     select id from auth.users
     where lower(email) in (
-      lower('EMAIL_1@ejemplo.com'),   -- 👈 EDITA: email del usuario 1
-      lower('EMAIL_2@ejemplo.com')    -- 👈 EDITA: email del usuario 2
+      lower('metalfilt@gmail.com'),      -- usuario 1 (tú)
+      lower('Tamara.islier@gmail.com')   -- usuario 2 (Tamara)
     )
   );
 $$;
