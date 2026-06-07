@@ -235,11 +235,12 @@ body::before {
     height: 84%;
     border-radius: 50%;
     object-fit: cover;
+    object-position: center 72%; /* encuadra hacia su rostro recortando el cielo */
     box-shadow: 0 12px 40px rgba(201, 111, 142, 0.35);
     background: var(--surface, #fff);
     z-index: 1;
 }
-.hero-portrait-img.is-fallback { object-fit: contain; padding: 14%; background: var(--surface-tint, #fdf3f5); }
+.hero-portrait-img.is-fallback { object-fit: contain; object-position: center; padding: 14%; background: var(--surface-tint, #fdf3f5); }
 
 /* Órbita de corazones alrededor del retrato */
 .hero-orbit { position: absolute; inset: 0; animation: lg-rotate 24s linear infinite; z-index: 2; }

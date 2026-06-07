@@ -36,9 +36,9 @@ function main() {
     const buildId = getBuildId();
     const html = fs.readFileSync(INDEX, 'utf8');
 
-    // Reemplaza `archivo.(js|css|png)?v=CUALQUIERCOSA` por `...?v=<buildId>`
+    // Reemplaza `archivo.(js|css|png|jpg|jpeg|webp)?v=CUALQUIERCOSA` por `...?v=<buildId>`
     // (idempotente: sirve tanto en local como en el build efímero de Render).
-    const re = /(\.(?:js|css|png))\?v=[^"'\s]*/g;
+    const re = /(\.(?:js|css|png|jpe?g|webp))\?v=[^"'\s]*/g;
     let count = 0;
     const out = html.replace(re, (m, ext) => { count++; return `${ext}?v=${buildId}`; });
 
