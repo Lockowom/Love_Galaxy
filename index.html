@@ -9,9 +9,9 @@
     <link rel="icon" type="image/png" href="logo.png">
     
     <title>Love Galaxy - Para Mi Amada Tamara 💕</title>
-    <link rel="stylesheet" href="styles.css?v=3">
-    <link rel="stylesheet" href="mobile-styles.css?v=3">
-    <link rel="stylesheet" href="theme-minimal.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
+    <link rel="stylesheet" href="mobile-styles.css?v=4">
+    <link rel="stylesheet" href="theme-minimal.css?v=4">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
@@ -314,7 +314,7 @@
                     <div class="game-icon">🎴</div>
                     <h3>Memoria del Amor</h3>
                     <p>Encuentra las parejas de corazones en este clásico juego de memoria.</p>
-                    <button class="btn-game" onclick="startMemoryGame()">Jugar</button>
+                    <button class="btn-game" onclick="__callGame('startMemoryGame')">Jugar</button>
                 </div>
 
                 <!-- Juego 2: Pregunta del Día -->
@@ -322,7 +322,7 @@
                     <div class="game-icon">❓</div>
                     <h3>Pregunta del Día</h3>
                     <p>Responde preguntas románticas y conoce más sobre tu pareja.</p>
-                    <button class="btn-game" onclick="startQuestionGame()">Jugar</button>
+                    <button class="btn-game" onclick="__callGame('startQuestionGame')">Jugar</button>
                 </div>
 
                 <!-- Juego 3: Ruleta del Amor -->
@@ -330,7 +330,7 @@
                     <div class="game-icon">🎡</div>
                     <h3>Ruleta del Amor</h3>
                     <p>Gira la ruleta y descubre qué actividad romántica hacer hoy.</p>
-                    <button class="btn-game" onclick="startRouletteGame()">Jugar</button>
+                    <button class="btn-game" onclick="__callGame('startRouletteGame')">Jugar</button>
                 </div>
 
                 <!-- Juego 4: Test de Compatibilidad -->
@@ -338,7 +338,7 @@
                     <div class="game-icon">💞</div>
                     <h3>Test de Compatibilidad</h3>
                     <p>Descubre tu nivel de compatibilidad con preguntas divertidas.</p>
-                    <button class="btn-game" onclick="startCompatibilityTest()">Jugar</button>
+                    <button class="btn-game" onclick="__callGame('startCompatibilityTest')">Jugar</button>
                 </div>
 
                 <!-- Juego 5: Generador de Citas -->
@@ -346,7 +346,7 @@
                     <div class="game-icon">🌹</div>
                     <h3>Generador de Citas</h3>
                     <p>Obtén ideas creativas para tu próxima cita romántica.</p>
-                    <button class="btn-game" onclick="generateDateIdea()">Generar</button>
+                    <button class="btn-game" onclick="__callGame('generateDateIdea')">Generar</button>
                 </div>
 
                 <!-- Juego 6: Carta de Amor Aleatoria -->
@@ -354,7 +354,7 @@
                     <div class="game-icon">💌</div>
                     <h3>Carta Sorpresa</h3>
                     <p>Genera una carta de amor personalizada con frases románticas.</p>
-                    <button class="btn-game" onclick="generateLoveLetter()">Generar</button>
+                    <button class="btn-game" onclick="__callGame('generateLoveLetter')">Generar</button>
                 </div>
 
                 <!-- Juego 7: Galaxia del Amor -->
@@ -367,7 +367,7 @@
                         <span class="feature-tag">💕 Power-ups</span>
                         <span class="feature-tag">🏆 Puntuaciones</span>
                     </div>
-                    <button class="btn-game btn-featured" onclick="startGalaxyLoveGame()">🚀 Despegar</button>
+                    <button class="btn-game btn-featured" onclick="__callGame('startGalaxyLoveGame')">🚀 Despegar</button>
                 </div>
             </div>
         </div>
@@ -735,14 +735,32 @@
         }
     </script>
     <script src="https://www.youtube.com/iframe_api"></script>
-    <script src="supabase-client.js?v=3"></script>
-    <script src="db.js?v=3"></script>
-    <script src="achievements.js?v=3"></script>
-    <script src="animations.js?v=3"></script>
-    <script src="games.js?v=3"></script>
-    <script src="extras.js?v=3"></script>
-    <script src="galaxy-game.js?v=3"></script>
-    <script src="dome-gallery.js?v=3"></script>
-    <script src="main.js?v=3"></script>
+    <script src="supabase-client.js?v=4"></script>
+    <script src="db.js?v=4"></script>
+    <script src="achievements.js?v=4"></script>
+    <script src="animations.js?v=4"></script>
+    <script src="games.js?v=4"></script>
+    <script src="extras.js?v=4"></script>
+    <script src="galaxy-game.js?v=4"></script>
+    <script src="dome-gallery.js?v=4"></script>
+    <script src="main.js?v=4"></script>
+    <script>
+        // Lanzador robusto de juegos: si por caché una función no cargó,
+        // lo informa en pantalla en vez de "no hacer nada".
+        (function () {
+            window.__callGame = function (fnName) {
+                try {
+                    var fn = window[fnName];
+                    if (typeof fn === 'function') { fn(); return; }
+                    alert('No se pudo iniciar el juego: "' + fnName + '" no está disponible.\n\n' +
+                          'Suele ser caché del navegador. Solución: recarga forzada ' +
+                          '(mantén pulsado Recargar y elige "Vaciar caché") o cierra y abre la pestaña.');
+                } catch (err) {
+                    alert('Error al iniciar el juego "' + fnName + '": ' + (err && err.message ? err.message : err));
+                    console.error(err);
+                }
+            };
+        })();
+    </script>
 </body>
 </html>
