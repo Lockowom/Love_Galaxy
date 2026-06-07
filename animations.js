@@ -547,25 +547,13 @@ class GlitchEffect {
 // ================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Inicializar efectos
-    new ParallaxEffect();
+    // Diseño minimalista: solo revelado suave al hacer scroll
     new ScrollReveal();
-    
-    // Cursor personalizado (opcional, puede molestar en móviles)
-    if (window.innerWidth > 768) {
-        new CustomCursor();
-    }
-    
-    // Floating elements
-    new FloatingElements('.floating-heart');
-    
-    // Confeti global
+
+    // Confeti disponible bajo demanda (p.ej. logros), sin efectos de fondo
     window.confetti = new ConfettiEffect();
-    
-    // Aplicar efecto 3D a títulos
-    new Text3DEffect(document.querySelectorAll('.hero-name'));
-    
-    console.log('✨ Sistema de animaciones cargado correctamente');
+
+    console.log('✨ Animaciones minimalistas cargadas');
 });
 
 // ================================================
@@ -594,14 +582,15 @@ window.showToast = function(message, duration = 3000) {
         position: fixed;
         bottom: 20px;
         right: 20px;
-        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-        color: white;
-        padding: 1rem 2rem;
-        border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(255, 20, 147, 0.5);
+        background: #ffffff;
+        color: var(--text-primary, #4a3b43);
+        padding: 0.9rem 1.5rem;
+        border: 1px solid var(--border-soft, #efe1e6);
+        border-radius: 12px;
+        box-shadow: 0 4px 14px rgba(74, 59, 67, 0.10);
         z-index: 10001;
         animation: slideInUp 0.5s ease;
-        font-weight: 600;
+        font-weight: 500;
     `;
     toast.textContent = message;
     document.body.appendChild(toast);

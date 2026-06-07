@@ -1,0 +1,287 @@
+/* ==========================================================================
+   LOVE GALAXY — TEMA MINIMALISTA PASTEL
+   Se carga DESPUÉS de styles.css y mobile-styles.css para reemplazar el
+   aspecto (colores, superficies, sombras, tipografía) sin alterar el layout.
+   Estilo: minimalista elegante · paleta pastel · efectos reducidos.
+   ========================================================================== */
+
+/* 1. PALETA Y VARIABLES (se propagan a casi todo vía var()) ---------------- */
+:root {
+    --primary-color: #d98aa3;     /* rosa empolvado */
+    --secondary-color: #c9b3d9;   /* lavanda */
+    --accent-color: #f0bfa8;      /* durazno */
+    --dark-pink: #c96f8e;         /* rosa viejo (acentos fuertes) */
+    --light-pink: #fdeef1;        /* rosa muy claro (tintes) */
+
+    --bg-dark: #ffffff;           /* ahora superficies claras */
+    --bg-gradient-start: #fbf5f3; /* crema cálida */
+    --bg-gradient-end: #f6edf0;   /* crema rosada */
+
+    --surface: #ffffff;
+    --surface-tint: #fdf3f5;
+    --border-soft: #efe1e6;
+
+    --text-primary: #4a3b43;      /* carbón cálido */
+    --text-secondary: #8a7b82;
+    --text-accent: #c96f8e;
+
+    --shadow-sm: 0 1px 3px rgba(74, 59, 67, 0.05);
+    --shadow-md: 0 4px 14px rgba(74, 59, 67, 0.07);
+    --shadow-lg: 0 12px 32px rgba(74, 59, 67, 0.10);
+    --shadow-glow: 0 4px 14px rgba(217, 138, 163, 0.18);
+
+    /* Tipografía elegante: títulos en serif refinada en vez de script */
+    --font-decorative: 'Playfair Display', serif;
+    --font-elegant: 'Playfair Display', serif;
+}
+
+/* 2. BASE ------------------------------------------------------------------ */
+body {
+    background: var(--bg-gradient-start);
+    color: var(--text-primary);
+    font-weight: 400;
+}
+
+::selection {
+    background: var(--light-pink);
+    color: var(--dark-pink);
+}
+
+/* Quitar los lienzos de partículas/estrellas (efectos eliminados) */
+#hearts-canvas,
+#stars-canvas {
+    display: none !important;
+}
+
+h1, h2, h3, h4, .section-title, .hero-title, .hero-name {
+    text-shadow: none !important;
+    letter-spacing: 0.2px;
+}
+
+/* 3. PANTALLA DE CARGA ----------------------------------------------------- */
+#loading-screen {
+    background: var(--bg-gradient-start);
+}
+.loading-title { color: var(--dark-pink); font-family: var(--font-elegant); }
+.loading-text { color: var(--text-secondary); }
+.loading-bar { background: rgba(74, 59, 67, 0.08); }
+.loading-progress { background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); }
+
+/* 4. PANTALLA DE AUTENTICACIÓN (versión clara) ----------------------------- */
+.auth-screen {
+    background: radial-gradient(circle at 50% 20%, #ffffff, var(--bg-gradient-end));
+}
+.auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: none;
+}
+.auth-title { color: var(--dark-pink); font-family: var(--font-elegant); }
+.auth-field input {
+    background: var(--surface-tint);
+    border: 1px solid var(--border-soft);
+    color: var(--text-primary);
+}
+.auth-field input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(217, 138, 163, 0.18);
+}
+
+/* 5. NAVEGACIÓN ------------------------------------------------------------ */
+.main-nav {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 1px 0 var(--border-soft);
+}
+.logo-img {
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-sm);
+    animation: none;            /* sin flotar */
+}
+.logo-text {
+    font-family: var(--font-elegant);
+    font-weight: 700;
+    -webkit-text-fill-color: var(--dark-pink);
+    background: none;
+    color: var(--dark-pink);
+}
+.nav-link { color: var(--text-secondary); }
+.nav-link:hover, .nav-link.active { color: var(--dark-pink); }
+.nav-link::after { background: var(--primary-color); }
+.nav-toggle span { background: var(--dark-pink); }
+
+/* 6. TÍTULOS DE SECCIÓN ---------------------------------------------------- */
+.section-title {
+    font-family: var(--font-elegant);
+    font-weight: 700;
+    color: var(--text-primary);
+    background: none;
+    -webkit-text-fill-color: currentColor;
+}
+.section-subtitle { color: var(--text-secondary); font-weight: 300; }
+
+/* 7. BOTONES --------------------------------------------------------------- */
+.btn-primary, .hero-btn, .btn-game, .control-btn {
+    background: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    border-radius: 999px;
+    box-shadow: var(--shadow-sm);
+    font-weight: 500;
+    transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.btn-primary:hover, .hero-btn:hover, .btn-game:hover, .control-btn:hover {
+    background: var(--dark-pink);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+.btn-small, .filter-btn {
+    background: var(--surface);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-soft);
+    border-radius: 999px;
+    box-shadow: none;
+    font-weight: 500;
+}
+.btn-small:hover, .filter-btn:hover { color: var(--dark-pink); border-color: var(--primary-color); }
+.filter-btn.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+.btn-delete { background: transparent; color: #c0607a; border: 1px solid #eccfd7; border-radius: 999px; box-shadow: none; }
+.btn-delete:hover { background: #fbe9ee; }
+
+/* 8. HERO ------------------------------------------------------------------ */
+.hero-title { color: var(--text-secondary); font-weight: 300; }
+.hero-name {
+    font-family: var(--font-elegant);
+    color: var(--dark-pink);
+    background: none;
+    -webkit-text-fill-color: var(--dark-pink);
+}
+.hero-subtitle { color: var(--text-secondary); }
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: none;
+}
+.stat-number { color: var(--dark-pink); }
+.stat-label { color: var(--text-secondary); }
+
+/* 9. SUPERFICIES / TARJETAS (genérico) ------------------------------------- */
+.timeline-content,
+.gallery-item, .gallery-placeholder,
+.memory-card, .add-memory-card,
+.game-card,
+.meter-stat,
+.message-card, .special-message, .daily-message,
+.quote-display,
+.modal-content,
+.song-item, .playlist-container, .song-card,
+.achievement-item, .poem-card {
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: none;
+}
+.timeline-content:hover,
+.memory-card:hover,
+.game-card:hover,
+.message-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+/* Timeline */
+.timeline::before, .timeline-line { background: var(--border-soft); }
+.timeline-icon {
+    background: var(--surface-tint);
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-sm);
+}
+.timeline-date { color: var(--dark-pink); }
+
+/* Galería */
+.gallery-placeholder { color: var(--text-secondary); }
+.gallery-overlay { background: rgba(74, 59, 67, 0.45); }
+
+/* 10. FORMULARIOS ---------------------------------------------------------- */
+#memory-form input, #memory-form textarea, #memory-form select,
+.custom-message input, .custom-message textarea,
+input[type="text"], input[type="email"], input[type="password"],
+input[type="date"], input[type="url"], textarea, select {
+    background: var(--surface-tint);
+    border: 1px solid var(--border-soft);
+    color: var(--text-primary);
+}
+#memory-form input:focus, #memory-form textarea:focus, #memory-form select:focus,
+input:focus, textarea:focus, select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(217, 138, 163, 0.15);
+    outline: none;
+}
+::placeholder { color: #b8aab0; }
+
+/* 11. AMOR-ÓMETRO ---------------------------------------------------------- */
+.meter-bg { stroke: var(--border-soft); }
+.meter-fill { stroke: var(--primary-color); }
+.meter-value, .meter-label { color: var(--dark-pink); }
+.stat-text { color: var(--text-secondary); }
+
+/* 12. MENSAJES / CHAT ------------------------------------------------------ */
+.message-from, .message-signature { color: var(--dark-pink); }
+.special-message { background: var(--surface-tint); }
+
+/* 13. MODALES -------------------------------------------------------------- */
+.modal { background: rgba(74, 59, 67, 0.35); }
+.modal-close { color: var(--text-secondary); }
+.modal-close:hover { color: var(--dark-pink); }
+
+/* 14. PIE DE PÁGINA -------------------------------------------------------- */
+.main-footer {
+    background: var(--surface-tint);
+    border-top: 1px solid var(--border-soft);
+    color: var(--text-secondary);
+}
+.main-footer a { color: var(--dark-pink); }
+
+/* 15. TOASTS / NOTIFICACIONES --------------------------------------------- */
+.toast {
+    background: var(--surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-md);
+}
+
+/* 16. APLANAR ANIMACIONES DECORATIVAS ------------------------------------- */
+.floating-heart, .floating-hearts { display: none !important; }
+.logo-heart, .loading-heart { animation-duration: 3s; }
+
+/* 17. COMPONENTES ADICIONALES --------------------------------------------- */
+.achievement-card {
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-sm);
+}
+.achievement-card.locked { opacity: 0.55; }
+
+.view-btn {
+    background: var(--surface);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-soft);
+}
+.view-btn.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+
+.playlist-item { border-bottom: 1px solid var(--border-soft); }
+.playlist-item:hover { background: var(--surface-tint); }
+
+.love-calculator input, .answer-input, .custom-message textarea {
+    background: var(--surface-tint);
+    border: 1px solid var(--border-soft);
+    color: var(--text-primary);
+}
+
+/* Contenedores con tinte rosa fuerte → tinte pastel suave */
+.question-container, .daily-message { background: var(--surface-tint) !important; }
+
+/* Transiciones suaves y discretas en general */
+a, button, .card, .game-card, .memory-card { transition: all var(--transition-fast); }
