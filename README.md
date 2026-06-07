@@ -231,32 +231,11 @@ Edita las variables en `styles.css` (líneas 5-30):
     --accent-color: #ff6b9d;       /* Color de acento */
     /* ... más colores */
 }
-```obile-styles.css       # Estilos específicos para móviles ¡NUEVO!
-├── main.js                 # Lógica principal y funcionalidades
-├── particles.js            # Sistema de partículas y efectos visuales
-├── games.js                # Juegos interactivos
-├── animations.js           # Animaciones avanzadas
-├── extras.js               # Características extras (logros, poemas, estadísticas)
-├── galaxy-game.js          # Juego de la Galaxia del Amor
-├── romantic-effects.js     # Efectos románticos adicionales
-├── GUIA_JUEGO_GALAXIA.md  # Guía completa del juego espacial
-└── README.md              # Documentación (este archivo)
 ```
 
-### 📄 Descripción de Archivos
+### 🎵 Cambiar Música
 
-- **index.html** (~640 líneas): Estructura completa con 8 secciones principales + juego de galaxia
-- **styles.css** (~2,310 líneas): Sistema de diseño completo con variables CSS y responsive
-- **mobile-styles.css** (~700 líneas): Estilos dedicados para móviles, tablets y touch ¡NUEVO!
-- **main.js** (~1,240 líneas): Funcionalidad principal, galería, timeline editable, controles táctiles ¡ACTUALIZADO!
-- **particles.js** (~459 líneas): Efectos de partículas, mouse trail, explosiones
-- **games.js** (~611 líneas): 6 juegos completos interactivos
-- **animations.js** (~682 líneas): Biblioteca de animaciones reutilizables
-- **extras.js** (~616 líneas): Sistema de logros, generador de poemas, estadísticas
-- **galaxy-game.js** (~1,048 líneas): Juego espacial completo con físicas, colisiones, power-ups
-- **romantic-effects.js** (~567 líneas): Efectos románticos interactivos y panel de control
-
-**Total: ~9,02Playlist del `index.html`, edita las canciones:
+En la sección Playlist del `index.html`, edita las canciones:
 
 ```html
 <h4>Nombre de tu Canción</h4>
@@ -284,29 +263,41 @@ Love_Galaxy/
 │
 ├── index.html              # Página principal HTML
 ├── styles.css              # Estilos globales y componentes
+├── mobile-styles.css       # Estilos específicos para móviles y touch
+├── supabase-client.js      # Inicialización de Supabase y autenticación
+├── db.js                   # Capa de datos (Supabase + localStorage)
 ├── main.js                 # Lógica principal y funcionalidades
 ├── particles.js            # Sistema de partículas y efectos visuales
 ├── games.js                # Juegos interactivos
 ├── animations.js           # Animaciones avanzadas
 ├── extras.js               # Características extras (logros, poemas, estadísticas)
-├── galaxy-game.js          # Juego de la Galaxia del Amor ¡NUEVO!
-├── romantic-effects.js     # Efectos románticos adicionales ¡NUEVO!
-└── README.md              # Documentación (este archivo)
+├── achievements.js         # Sistema de logros
+├── audio-visualizer.js     # Visualizador de audio
+├── dome-gallery.js         # Galería tipo cúpula 3D
+├── galaxy-game.js          # Juego de la Galaxia del Amor
+├── romantic-effects.js     # Efectos románticos adicionales
+└── README.md               # Documentación (este archivo)
 ```
 
 ### 📄 Descripción de Archivos
 
-- **index.html** (~630 líneas): Estructura completa con 8 secciones principales + juego de galaxia
-- **styles.css** (~2,350 líneas): Sistema de diseño completo con variables CSS, responsive y efectos especiales
-- **main.js** (~714 líneas): Funcionalidad principal, contadores, navegación
+- **index.html** (~723 líneas): Estructura completa con 8 secciones principales + juego de galaxia
+- **styles.css** (~3,084 líneas): Sistema de diseño completo con variables CSS, responsive y efectos especiales
+- **mobile-styles.css** (~766 líneas): Estilos dedicados para móviles, tablets y touch
+- **supabase-client.js** (~138 líneas): Cliente de Supabase, autenticación y gestión de sesión
+- **db.js** (~632 líneas): Capa de datos con persistencia en Supabase y respaldo en localStorage
+- **main.js** (~2,223 líneas): Funcionalidad principal, galería, timeline editable, controles táctiles
 - **particles.js** (~459 líneas): Efectos de partículas, mouse trail, explosiones
-- **games.js** (~611 líneas): 6 juegos completos interactivos
+- **games.js** (~530 líneas): Juegos completos interactivos
 - **animations.js** (~682 líneas): Biblioteca de animaciones reutilizables
-- **extras.js** (~616 líneas): Sistema de logros, generador de poemas, estadísticas
-- **galaxy-game.js** (~1,048 líneas): Juego espacial completo con físicas, colisiones, power-ups
-- **romantic-effects.js** (~567 líneas): Efectos románticos interactivos y panel de control
+- **extras.js** (~638 líneas): Sistema de logros, generador de poemas, estadísticas
+- **achievements.js** (~229 líneas): Sistema de logros e insignias
+- **audio-visualizer.js** (~156 líneas): Visualizador de audio reactivo
+- **dome-gallery.js** (~291 líneas): Galería de fotos tipo cúpula 3D
+- **galaxy-game.js** (~1,151 líneas): Juego espacial completo con físicas, colisiones, power-ups
+- **romantic-effects.js** (~566 líneas): Efectos románticos interactivos y panel de control
 
-**Total: ~7,677 líneas de código profesional**
+**Total: ~12,000 líneas de código**
 
 ---
 
