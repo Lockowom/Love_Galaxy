@@ -9,7 +9,7 @@
     // Marca de versión: la etiqueta de diagnóstico solo mostrará "6" si ESTE
     // archivo (el nuevo) realmente se ejecutó. Si muestra algo distinto, el
     // navegador/servidor está sirviendo una versión vieja en caché.
-    window.LG_BUILD = '8';
+    window.LG_BUILD = '9';
 
     const HER = 'Tamara';
     const NICK = 'mi diosa Freya';

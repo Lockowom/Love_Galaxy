@@ -756,15 +756,20 @@
             var authState = ' · cli' + (window.supabaseClient ? '✓' : '✗') +
                             ' auth' + (window.__authenticated ? '✓' : '✗');
             b.textContent = 'build ' + build + ' · juegos ' + ok + ' · ' + mods + authState;
-            // Si NO muestra 8 => el navegador sirve una versión vieja en caché.
-            if (build !== '8') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
+            // Si NO muestra 9 => el navegador sirve una versión vieja en caché.
+            if (build !== '9') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
             // Si algún módulo falta, resaltar en ámbar.
             else if (!(window.AuthUI && window.GalleryManager && window.PlaylistManager && window.TimelineManager)) {
                 b.style.background = '#ffe9c7';
+            } else {
+                b.style.background = 'rgba(255,255,255,.9)';
             }
         }
-        // Re-evaluar varias veces: la sesión puede tardar unos segundos en resolverse.
-        [1500, 3000, 5000, 7000].forEach(function (t) { setTimeout(lgUpdateBadge, t); });
+        // El badge se actualiza EN VIVO: arranque, cada 2s, y al cambiar la sesión,
+        // para que el estado de 'auth' refleje siempre la realidad (no quede congelado).
+        [800, 1500, 3000].forEach(function (t) { setTimeout(lgUpdateBadge, t); });
+        setInterval(lgUpdateBadge, 2000);
+        window.addEventListener('auth-change', function () { setTimeout(lgUpdateBadge, 50); });
     </script>
 </body>
 </html>
