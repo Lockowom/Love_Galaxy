@@ -49,6 +49,7 @@
     <link rel="stylesheet" href="styles.css?v=b9ab9f2">
     <link rel="stylesheet" href="mobile-styles.css?v=b9ab9f2">
     <link rel="stylesheet" href="theme-minimal.css?v=b9ab9f2">
+    <link rel="stylesheet" href="romantic.css?v=b9ab9f2">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
@@ -684,6 +685,7 @@
     <script type="module" src="playlist-manager.js?v=b9ab9f2"></script>
     <script type="module" src="timeline-manager.js?v=b9ab9f2"></script>
     <script src="main.js?v=b9ab9f2"></script>
+    <script src="romantic.js?v=b9ab9f2"></script>
 
     <!-- Indicador de versión (diagnóstico): muestra la versión cargada y si los juegos se inicializaron -->
     <div id="lg-build" style="position:fixed; bottom:6px; left:8px; font-size:11px; color:#c96f8e; background:rgba(255,255,255,.9); padding:2px 8px; border-radius:10px; z-index:9; box-shadow:0 1px 4px rgba(0,0,0,.12);">cargando…</div>
@@ -705,7 +707,7 @@
                             ' auth' + (window.__authenticated ? '✓' : '✗');
             b.textContent = 'build ' + build + ' · galaxia ' + ok + ' · ' + mods + authState;
             // Si NO muestra 11 => el navegador sirve una versión vieja en caché.
-            if (build !== '12') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
+            if (build !== '13') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
             // Si algún módulo falta, resaltar en ámbar.
             else if (!(window.AuthUI && window.GalleryManager && window.PlaylistManager && window.TimelineManager)) {
                 b.style.background = '#ffe9c7';

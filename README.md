@@ -287,6 +287,8 @@ Love_Galaxy/
 ├── extras.js               # Poemas, estadísticas, exportar datos
 ├── dome-gallery.js         # Galería tipo cúpula 3D
 │
+├── romantic.css            # Capa romántica final (aurora, brillos, glow, scrollbar)
+├── romantic.js             # Corazones flotantes + estallido al pulsar (Web Animations)
 ├── scripts/stamp-version.js  # Cache-busting: sella ?v=<buildId> en el build
 ├── scripts/build-wasm.sh     # Compila wasm/galaxy.cpp → galaxy.wasm (clang)
 ├── love-galaxy.test.js     # Tests (Jest + jsdom + motor WASM)
