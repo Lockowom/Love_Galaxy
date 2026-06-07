@@ -306,68 +306,68 @@
     <section id="games" class="games-section">
         <div class="container">
             <h2 class="section-title">Juegos del Amor</h2>
-            <p class="section-subtitle">Diversión romántica para compartir 🎮</p>
-            
+            <p class="section-subtitle">Hechos con amor para mi diosa Freya 💛</p>
+
             <div class="games-grid">
-                <!-- Juego 1: Memoria del Amor -->
+                <!-- Memoria del Amor -->
                 <div class="game-card">
-                    <div class="game-icon">🎴</div>
+                    <div class="game-icon">🃏</div>
                     <h3>Memoria del Amor</h3>
-                    <p>Encuentra las parejas de corazones en este clásico juego de memoria.</p>
-                    <button class="btn-game" onclick="__callGame('startMemoryGame')">Jugar</button>
+                    <p>Encuentra las parejas de corazones, Tamara. ¿Cuántos movimientos necesitas?</p>
+                    <button class="btn-game" data-game="memory">Jugar</button>
                 </div>
 
-                <!-- Juego 2: Pregunta del Día -->
+                <!-- Razones para Amarte -->
                 <div class="game-card">
-                    <div class="game-icon">❓</div>
-                    <h3>Pregunta del Día</h3>
-                    <p>Responde preguntas románticas y conoce más sobre tu pareja.</p>
-                    <button class="btn-game" onclick="__callGame('startQuestionGame')">Jugar</button>
+                    <div class="game-icon">💌</div>
+                    <h3>Razones para Amarte</h3>
+                    <p>Descubre, una a una, todas las razones por las que te amo.</p>
+                    <button class="btn-game" data-game="reasons">Descubrir</button>
                 </div>
 
-                <!-- Juego 3: Ruleta del Amor -->
+                <!-- Ruleta del Amor -->
                 <div class="game-card">
                     <div class="game-icon">🎡</div>
                     <h3>Ruleta del Amor</h3>
-                    <p>Gira la ruleta y descubre qué actividad romántica hacer hoy.</p>
-                    <button class="btn-game" onclick="__callGame('startRouletteGame')">Jugar</button>
+                    <p>Gira la ruleta y descubre qué premio romántico te toca hoy.</p>
+                    <button class="btn-game" data-game="roulette">Girar</button>
                 </div>
 
-                <!-- Juego 4: Test de Compatibilidad -->
+                <!-- Piropos para mi Diosa -->
+                <div class="game-card">
+                    <div class="game-icon">🌹</div>
+                    <h3>Piropos para mi Diosa</h3>
+                    <p>Palabras bonitas pensadas solo para ti, mi diosa Freya.</p>
+                    <button class="btn-game" data-game="piropos">Recibir</button>
+                </div>
+
+                <!-- Test de Compatibilidad -->
                 <div class="game-card">
                     <div class="game-icon">💞</div>
                     <h3>Test de Compatibilidad</h3>
-                    <p>Descubre tu nivel de compatibilidad con preguntas divertidas.</p>
-                    <button class="btn-game" onclick="__callGame('startCompatibilityTest')">Jugar</button>
+                    <p>Responde y descubre lo mucho que encajamos.</p>
+                    <button class="btn-game" data-game="compat">Jugar</button>
                 </div>
 
-                <!-- Juego 5: Generador de Citas -->
+                <!-- Pregunta del Día -->
                 <div class="game-card">
-                    <div class="game-icon">🌹</div>
-                    <h3>Generador de Citas</h3>
-                    <p>Obtén ideas creativas para tu próxima cita romántica.</p>
-                    <button class="btn-game" onclick="__callGame('generateDateIdea')">Generar</button>
+                    <div class="game-icon">❓</div>
+                    <h3>Pregunta del Día</h3>
+                    <p>Una pregunta romántica al día; guarda tus respuestas y revívelas.</p>
+                    <button class="btn-game" data-game="question">Responder</button>
                 </div>
 
-                <!-- Juego 6: Carta de Amor Aleatoria -->
-                <div class="game-card">
-                    <div class="game-icon">💌</div>
-                    <h3>Carta Sorpresa</h3>
-                    <p>Genera una carta de amor personalizada con frases románticas.</p>
-                    <button class="btn-game" onclick="__callGame('generateLoveLetter')">Generar</button>
-                </div>
-
-                <!-- Juego 7: Galaxia del Amor -->
+                <!-- Galaxia del Amor -->
                 <div class="game-card featured-game">
                     <div class="game-icon galaxy-icon">🌌</div>
                     <h3>Galaxia del Amor</h3>
-                    <p>¡NUEVO! Viaja por una galaxia llena de corazones, captura mensajes de amor y evita obstáculos en este emocionante juego espacial.</p>
+                    <p>Vuela por la galaxia, captura corazones y mensajes de amor, esquiva obstáculos y consigue power-ups.</p>
                     <div class="game-features">
-                        <span class="feature-tag">🎮 Súper Interactivo</span>
+                        <span class="feature-tag">🎮 Interactivo</span>
                         <span class="feature-tag">💕 Power-ups</span>
-                        <span class="feature-tag">🏆 Puntuaciones</span>
+                        <span class="feature-tag">🏆 Récord</span>
                     </div>
-                    <button class="btn-game btn-featured" onclick="__callGame('startGalaxyLoveGame')">🚀 Despegar</button>
+                    <button class="btn-game btn-featured" data-game="galaxy">🚀 Despegar</button>
                 </div>
             </div>
         </div>
@@ -636,57 +636,8 @@
         </div>
     </div>
 
-    <!-- Modal de Juego de Memoria -->
-    <div id="memory-game-modal" class="modal game-modal">
-        <div class="modal-content game-modal-content">
-            <span class="modal-close" onclick="closeMemoryGame()">&times;</span>
-            <h2>Juego de Memoria del Amor 🎴</h2>
-            <div class="game-stats">
-                <span>Movimientos: <span id="moves-count">0</span></span>
-                <span>Tiempo: <span id="game-time">0:00</span></span>
-                <span>Parejas: <span id="pairs-found">0</span>/8</span>
-            </div>
-            <div class="memory-game-board" id="memory-board">
-                <!-- Las cartas se generarán dinámicamente -->
-            </div>
-            <button class="btn-primary" onclick="resetMemoryGame()">Nuevo Juego</button>
-        </div>
-    </div>
-
-    <!-- Modal de Pregunta del Día -->
-    <div id="question-modal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeQuestionModal()">&times;</span>
-            <h2>Pregunta del Día ❓</h2>
-            <div class="question-content" id="question-content">
-                <!-- La pregunta se genera aquí -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Ruleta -->
-    <div id="roulette-modal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeRouletteModal()">&times;</span>
-            <h2>Ruleta del Amor 🎡</h2>
-            <div class="roulette-container">
-                <canvas id="roulette-canvas" width="400" height="400"></canvas>
-                <button class="btn-primary spin-btn" onclick="spinRoulette()">Girar</button>
-                <div class="roulette-result" id="roulette-result"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal de Test de Compatibilidad -->
-    <div id="compatibility-modal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeCompatibilityModal()">&times;</span>
-            <h2>Test de Compatibilidad 💞</h2>
-            <div class="compatibility-test" id="compatibility-test">
-                <!-- Test se genera aquí -->
-            </div>
-        </div>
-    </div>
+    <!-- Los juegos (memoria, ruleta, razones, piropos, compatibilidad,
+         pregunta del día) crean su modal dinámicamente desde love-games.js -->
 
     <!-- Modal de Galaxia del Amor -->
     <div id="galaxy-game-modal" class="modal game-modal">
@@ -739,28 +690,10 @@
     <script src="db.js?v=4"></script>
     <script src="achievements.js?v=4"></script>
     <script src="animations.js?v=4"></script>
-    <script src="games.js?v=4"></script>
     <script src="extras.js?v=4"></script>
     <script src="galaxy-game.js?v=4"></script>
     <script src="dome-gallery.js?v=4"></script>
     <script src="main.js?v=4"></script>
-    <script>
-        // Lanzador robusto de juegos: si por caché una función no cargó,
-        // lo informa en pantalla en vez de "no hacer nada".
-        (function () {
-            window.__callGame = function (fnName) {
-                try {
-                    var fn = window[fnName];
-                    if (typeof fn === 'function') { fn(); return; }
-                    alert('No se pudo iniciar el juego: "' + fnName + '" no está disponible.\n\n' +
-                          'Suele ser caché del navegador. Solución: recarga forzada ' +
-                          '(mantén pulsado Recargar y elige "Vaciar caché") o cierra y abre la pestaña.');
-                } catch (err) {
-                    alert('Error al iniciar el juego "' + fnName + '": ' + (err && err.message ? err.message : err));
-                    console.error(err);
-                }
-            };
-        })();
-    </script>
+    <script src="love-games.js?v=4"></script>
 </body>
 </html>
