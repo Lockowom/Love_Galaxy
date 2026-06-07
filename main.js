@@ -192,42 +192,39 @@ const dailyQuestions = [
 // ================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Mostrar pantalla de carga
-    setTimeout(() => {
-        const loadingScreen = document.getElementById('loading-screen');
-        if (loadingScreen) {
-            loadingScreen.classList.add('hidden');
+    // Ejecuta cada paso de forma AISLADA: si uno lanza una excepción, no debe impedir
+    // que se ejecuten los demás. Antes, un fallo en (p.ej.) las animaciones abortaba
+    // todo el arranque y la autenticación nunca se inicializaba (no aparecía el login).
+    const safe = (label, fn) => {
+        try { fn(); }
+        catch (e) {
+            console.error('[init] fallo en ' + label, e);
+            if (window.__lgShowErr) window.__lgShowErr('init ' + label + ': ' + (e && e.message ? e.message : e));
         }
-    }, 2500);
+    };
 
-    // Inicializar contadores
-    updateCounters();
-    setInterval(updateCounters, 1000);
+    // 1) Arrancar PRIMERO los módulos (cada uno expone su init en window). La
+    //    autenticación bloquea la app; los datos del usuario se cargan tras iniciar
+    //    sesión (loadUserData). Se hace lo primero para que el login siempre aparezca.
+    safe('AuthUI.init',          () => { if (window.AuthUI) window.AuthUI.init(); });
+    safe('GalleryManager.init',  () => { if (window.GalleryManager) window.GalleryManager.init(); });
+    safe('PlaylistManager.init', () => { if (window.PlaylistManager) window.PlaylistManager.init(); });
+    safe('TimelineManager.init', () => { if (window.TimelineManager) window.TimelineManager.init(); });
 
-    // Inicializar navegación
-    initNavigation();
-
-    // Generar mensaje del día
-    generateDailyMessage();
-
-    // Mostrar frase de amor inicial
-    generateNewQuote();
-
-    // Inicializar observadores de scroll (GSAP se encarga ahora)
-    // initScrollAnimations(); -> Reemplazado por initGsapAnimations que se auto-registra
-
-    // Renderizar Poemas Cósmicos
-    renderCosmicPoems();
-
-    // Optimizaciones para móviles
-    initMobileOptimizations();
-
-    // Inicializar módulos (cada uno expone su init en window). La autenticación
-    // bloquea la app; los datos del usuario se cargan tras iniciar sesión (loadUserData).
-    if (window.AuthUI) window.AuthUI.init();
-    if (window.GalleryManager) window.GalleryManager.init();
-    if (window.PlaylistManager) window.PlaylistManager.init();
-    if (window.TimelineManager) window.TimelineManager.init();
+    // 2) Pantalla de carga, contadores y resto de la UI (no crítico para la auth).
+    safe('loadingScreen', () => {
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) loadingScreen.classList.add('hidden');
+        }, 2500);
+    });
+    safe('updateCounters', () => { updateCounters(); setInterval(updateCounters, 1000); });
+    safe('initNavigation', initNavigation);
+    safe('generateDailyMessage', generateDailyMessage);
+    safe('generateNewQuote', generateNewQuote);
+    // initScrollAnimations -> reemplazado por initGsapAnimations (se auto-registra).
+    safe('renderCosmicPoems', renderCosmicPoems);
+    safe('initMobileOptimizations', initMobileOptimizations);
 });
 
 /**
@@ -675,10 +672,15 @@ function generateNewQuote() {
         const randomQuote = loveQuotes[Math.floor(Math.random() * loveQuotes.length)];
         const quoteText = quoteDisplay.querySelector('.quote-text');
         if (quoteText) {
-            gsap.to(quoteText, { opacity: 0, duration: 0.3, onComplete: () => {
+            if (window.gsap) {
+                gsap.to(quoteText, { opacity: 0, duration: 0.3, onComplete: () => {
+                    quoteText.textContent = `"${randomQuote}"`;
+                    gsap.to(quoteText, { opacity: 1, duration: 0.5 });
+                }});
+            } else {
+                // Sin GSAP: actualizar la frase sin animación (evita romper el arranque).
                 quoteText.textContent = `"${randomQuote}"`;
-                gsap.to(quoteText, { opacity: 1, duration: 0.5 });
-            }});
+            }
         }
     }
 }

@@ -5,6 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="theme-color" content="#d98aa3">
     <meta name="description" content="Love Galaxy - Una experiencia romántica interactiva dedicada al amor">
+    <!-- DIAGNÓSTICO: reportero de errores en pantalla. Se registra ANTES que cualquier
+         otro script para capturar fallos de carga/ejecución (incluidos los módulos ES).
+         Solo se muestra si hay un error; sirve para depurar en móvil sin consola. -->
+    <script>
+        (function () {
+            var buf = [], box = null;
+            function render() {
+                if (!box) {
+                    box = document.createElement('div');
+                    box.id = 'lg-errbox';
+                    box.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;max-height:45vh;overflow:auto;background:#2a0010;color:#ffd6e0;font:12px/1.45 monospace;padding:8px 34px 8px 10px;white-space:pre-wrap;box-shadow:0 2px 12px rgba(0,0,0,.55)';
+                    var b = document.createElement('button');
+                    b.textContent = '×';
+                    b.setAttribute('aria-label', 'cerrar');
+                    b.style.cssText = 'position:absolute;right:8px;top:4px;background:none;border:none;color:#fff;font-size:20px;line-height:1;cursor:pointer';
+                    b.onclick = function () { box.remove(); box = null; };
+                    box.appendChild(b);
+                    (document.body || document.documentElement).appendChild(box);
+                }
+                box.appendChild(document.createTextNode(buf.join('\n') + '\n'));
+                buf = [];
+            }
+            function show(msg) { buf.push('⚠️ ' + msg); if (document.body) render(); }
+            window.__lgShowErr = show;
+            window.addEventListener('error', function (e) {
+                show((e.message || 'Error') + (e.filename ? (' @ ' + String(e.filename).split('/').pop() + ':' + e.lineno) : ''));
+            });
+            window.addEventListener('unhandledrejection', function (e) {
+                var r = e.reason; show('promesa rechazada: ' + ((r && (r.message || (r.toString && r.toString()))) || r));
+            });
+            document.addEventListener('DOMContentLoaded', function () { if (buf.length) render(); });
+        })();
+    </script>
     <!-- Anti-caché del HTML (refuerzo; la autoridad son las cabeceras de render.yaml) -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -713,9 +746,19 @@
             // window.LG_BUILD solo existe si el love-games.js NUEVO se ejecutó.
             var build = window.LG_BUILD || '?';
             var ok = window.LoveGames ? '✓' : '✗';
-            b.textContent = 'build ' + build + ' · juegos ' + ok;
-            // Si NO muestra 6 => el navegador sirve una versión vieja en caché.
-            if (build !== '6') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
+            // Estado de los módulos ES: A=Auth G=Galería P=Playlist T=Timeline.
+            // Si alguno aparece como ✗, ese módulo NO se ejecutó en el navegador.
+            var mods = 'A' + (window.AuthUI ? '✓' : '✗') +
+                       ' G' + (window.GalleryManager ? '✓' : '✗') +
+                       ' P' + (window.PlaylistManager ? '✓' : '✗') +
+                       ' T' + (window.TimelineManager ? '✓' : '✗');
+            b.textContent = 'build ' + build + ' · juegos ' + ok + ' · ' + mods;
+            // Si NO muestra 7 => el navegador sirve una versión vieja en caché.
+            if (build !== '7') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
+            // Si algún módulo falta, resaltar en ámbar.
+            else if (!(window.AuthUI && window.GalleryManager && window.PlaylistManager && window.TimelineManager)) {
+                b.style.background = '#ffe9c7';
+            }
         }, 1500);
     </script>
 </body>
