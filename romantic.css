@@ -394,6 +394,11 @@ body::before {
 }
 @keyframes lg-sheen { 0% { left: -40%; } 100% { left: 110%; } }
 
+/* 11. CHAT en perspectiva: mis mensajes a la derecha, los de mi pareja a la
+   izquierda (independiente del color por remitente). -------------------------- */
+.chat-message.mine   { align-self: flex-end !important; }
+.chat-message.theirs { align-self: flex-start !important; }
+
 /* 8. Respeto por quien prefiere menos movimiento -------------------------- */
 @media (prefers-reduced-motion: reduce) {
     body::before,

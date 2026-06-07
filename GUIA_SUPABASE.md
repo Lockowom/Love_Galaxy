@@ -70,3 +70,19 @@ Ahora tu proyecto "Love Galaxy" guardará de forma segura y privada:
 Si Supabase no está conectado (o hay un error de red), la app avisa y usa la
 memoria local del navegador (`localStorage`) como respaldo temporal de algunos
 datos.
+
+---
+
+## 💑 Modo pareja: compartir TODO entre 2 usuarios
+
+Por defecto, cada cuenta ve **solo sus propios** datos (RLS por usuario). Para que
+**los dos** veáis las mismas fotos, recuerdos, chat y marcadores:
+
+1. Crea **2 cuentas** (una para cada uno) en *Authentication → Users* (o registraos en la app).
+2. (Recomendado) En *Authentication* desactiva **"Allow new users to sign up"** para que nadie más entre.
+3. Abre **`share_couple.sql`**, edita los **2 emails** arriba del archivo.
+4. Pega todo el script en *SQL Editor* de Supabase y ejecútalo.
+
+A partir de ahí, ambos compartís: galería de fotos, recuerdos, timeline, chat,
+marcadores de juegos y playlist. El acceso queda restringido **solo** a esos 2 emails.
+En el chat, cada uno elige una vez "Soy …" y sus mensajes aparecen a la derecha.

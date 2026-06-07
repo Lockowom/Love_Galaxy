@@ -13,7 +13,7 @@
 (function () {
     'use strict';
 
-    window.LG_BUILD = '17';
+    window.LG_BUILD = '18';
 
     var HER = 'Tamara';
     var PHRASES = [
@@ -189,18 +189,35 @@
         try { if (window.db && window.db.saveGameScore) window.db.saveGameScore('galaxyLove', score, { maxCombo: combo }); } catch (e) {}
         try { if (score > 0 && window.achievements && window.achievements.unlock) window.achievements.unlock('galaxy_explorer'); } catch (e) {}
     }
-    function boardHTML() {
-        var b = loadBoard();
-        if (!b.length) return '<p class="gg-muted">Aún no hay marcadores. ¡Sé la primera, ' + HER + '! 🚀</p>';
+    function boardHTMLFrom(b) {
+        if (!b || !b.length) return '<p class="gg-muted">Aún no hay marcadores. ¡Sé la primera, ' + HER + '! 🚀</p>';
         var medals = ['🥇', '🥈', '🥉'];
-        var rows = b.map(function (e, i) {
-            var d = new Date(e.d), fecha = d.toLocaleDateString();
+        return '<ul class="gg-board">' + b.map(function (e, i) {
+            var fecha = e.d ? new Date(e.d).toLocaleDateString() : '';
             var rank = medals[i] || (i + 1);
             return '<li class="' + (i === 0 ? 'top' : '') + '"><span class="rank">' + rank + '</span>' +
                 '<span>💖 ' + e.s + (e.c ? ' <span class="gg-muted">·🔥' + e.c + '</span>' : '') + '</span>' +
                 '<span class="gg-muted">' + fecha + '</span></li>';
-        }).join('');
-        return '<ul class="gg-board">' + rows + '</ul>';
+        }).join('') + '</ul>';
+    }
+    // Marcador inmediato (local) envuelto para poder refrescarlo con la nube.
+    function boardHTML() { return '<div class="gg-board-wrap">' + boardHTMLFrom(loadBoard()) + '</div>'; }
+
+    // Fusiona el marcador local con el de la nube (ambos usuarios) y refresca la UI.
+    function refreshCloudBoard() {
+        if (!(window.db && window.db.getHighScores)) return;
+        Promise.resolve(window.db.getHighScores('galaxyLove')).then(function (rows) {
+            if (!rows || !rows.length) return;
+            var cloud = rows.map(function (r) {
+                return { s: r.score || 0, c: (r.details && r.details.maxCombo) || 0, d: r.created_at ? new Date(r.created_at).getTime() : 0 };
+            });
+            var all = loadBoard().concat(cloud).sort(function (a, b) { return b.s - a.s; });
+            var seen = {}, uniq = [];
+            all.forEach(function (e) { var k = e.s + '|' + (e.c || 0); if (!seen[k]) { seen[k] = 1; uniq.push(e); } });
+            var html = boardHTMLFrom(uniq.slice(0, 10));
+            var wraps = document.querySelectorAll('#galaxy-game-modal .gg-board-wrap');
+            for (var i = 0; i < wraps.length; i++) wraps[i].innerHTML = html;
+        }).catch(function () {});
     }
 
     // --------------------------------------------------------------- UI (DOM)
@@ -345,6 +362,7 @@
             '<button id="gg-back" class="btn btn-primary" style="margin-top:.8rem;padding:.7rem 1.8rem;border-radius:999px">⟵ Volver</button>';
         overEl.style.display = 'flex';
         overEl.querySelector('#gg-back').addEventListener('click', function () { overEl.style.display = 'none'; showStart(); });
+        refreshCloudBoard();
     }
 
     function onPointer(e) { if (!ex) return; var r = canvas.getBoundingClientRect(); ex.setPointer((e.clientY - r.top) * dpr); }
@@ -413,6 +431,7 @@
         overEl.style.display = 'flex';
         overEl.querySelector('#gg-again').addEventListener('click', beginPlay);
         overEl.querySelector('#gg-menu').addEventListener('click', function () { overEl.style.display = 'none'; showStart(); });
+        refreshCloudBoard();
     }
 
     // --------------------------------------------------------------- bucle

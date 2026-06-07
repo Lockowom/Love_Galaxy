@@ -28,13 +28,15 @@ const db = {
     // ================================================
     async getConfig(key) {
         if (window.supabaseClient) {
+            // En modo pareja puede haber una fila por usuario: cogemos la más reciente.
             const { data, error } = await supabaseClient
                 .from('app_config')
                 .select('value')
                 .eq('key', key)
-                .single();
-            
-            if (!error && data) return data.value;
+                .order('updated_at', { ascending: false })
+                .limit(1);
+
+            if (!error && data && data.length) return data[0].value;
         }
         return localStorage.getItem(key);
     },
