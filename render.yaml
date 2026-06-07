@@ -2,12 +2,11 @@ services:
   - type: web
     name: love-galaxy
     env: static
-    buildCommand: echo "No build required for static site"
+    # Sella ?v=<buildId> en index.html antes de publicar (cache-busting automático).
+    buildCommand: node scripts/stamp-version.js
     staticPublishPath: .
     headers:
-      - path: /*
-        name: Cache-Control
-        value: no-cache, max-age=0, must-revalidate
+      # --- Seguridad (todas las rutas) ---
       - path: /*
         name: X-Content-Type-Options
         value: nosniff
@@ -20,7 +19,31 @@ services:
       - path: /*
         name: Content-Security-Policy
         value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://www.youtube.com https://www.youtube-nocookie.com; base-uri 'self'"
+      # --- HTML: nunca cachear (siempre se revalida, evita quedarse pegado) ---
+      - path: /
+        name: Cache-Control
+        value: no-store, must-revalidate
+      - path: /index.html
+        name: Cache-Control
+        value: no-store, must-revalidate
+      - path: /*.html
+        name: Cache-Control
+        value: no-store, must-revalidate
+      # --- Assets versionados con ?v=: caché larga e inmutable ---
+      - path: /*.js
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*.css
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*.png
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
+    # NOTA: healthCheckPath es propio de web services; en static sites Render suele
+    # ignorarlo (la raíz responde 200). Si el deploy fallara por validación, elimina
+    # esta línea — no es funcionalmente necesaria para un sitio estático.
+    healthCheckPath: /

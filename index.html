@@ -5,13 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="theme-color" content="#d98aa3">
     <meta name="description" content="Love Galaxy - Una experiencia romántica interactiva dedicada al amor">
+    <!-- Anti-caché del HTML (refuerzo; la autoridad son las cabeceras de render.yaml) -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <!-- Favicon / Logo de la pestaña -->
     <link rel="icon" type="image/png" href="logo.png">
     
     <title>Love Galaxy - Para Mi Amada Tamara 💕</title>
-    <link rel="stylesheet" href="styles.css?v=6">
-    <link rel="stylesheet" href="mobile-styles.css?v=6">
-    <link rel="stylesheet" href="theme-minimal.css?v=6">
+    <link rel="stylesheet" href="styles.css?v=b9ab9f2">
+    <link rel="stylesheet" href="mobile-styles.css?v=b9ab9f2">
+    <link rel="stylesheet" href="theme-minimal.css?v=b9ab9f2">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
@@ -685,15 +689,20 @@
         }
     </script>
     <script src="https://www.youtube.com/iframe_api"></script>
-    <script src="supabase-client.js?v=6"></script>
-    <script src="db.js?v=6"></script>
-    <script src="achievements.js?v=6"></script>
-    <script src="animations.js?v=6"></script>
-    <script src="extras.js?v=6"></script>
-    <script src="galaxy-game.js?v=6"></script>
-    <script src="dome-gallery.js?v=6"></script>
-    <script src="main.js?v=6"></script>
-    <script src="love-games.js?v=6"></script>
+    <script src="supabase-client.js?v=b9ab9f2"></script>
+    <script src="db.js?v=b9ab9f2"></script>
+    <script src="achievements.js?v=b9ab9f2"></script>
+    <script src="animations.js?v=b9ab9f2"></script>
+    <script src="extras.js?v=b9ab9f2"></script>
+    <script src="galaxy-game.js?v=b9ab9f2"></script>
+    <script src="dome-gallery.js?v=b9ab9f2"></script>
+    <!-- Módulos ES extraídos de main.js (exponen window.XManager = { init } y sus funciones onclick) -->
+    <script type="module" src="auth-ui.js?v=b9ab9f2"></script>
+    <script type="module" src="gallery-manager.js?v=b9ab9f2"></script>
+    <script type="module" src="playlist-manager.js?v=b9ab9f2"></script>
+    <script type="module" src="timeline-manager.js?v=b9ab9f2"></script>
+    <script src="main.js?v=b9ab9f2"></script>
+    <script src="love-games.js?v=b9ab9f2"></script>
 
     <!-- Indicador de versión (diagnóstico): muestra la versión cargada y si los juegos se inicializaron -->
     <div id="lg-build" style="position:fixed; bottom:6px; left:8px; font-size:11px; color:#c96f8e; background:rgba(255,255,255,.9); padding:2px 8px; border-radius:10px; z-index:9; box-shadow:0 1px 4px rgba(0,0,0,.12);">cargando…</div>
