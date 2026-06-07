@@ -744,8 +744,11 @@ async function loadCustomMessages(isAutoRefresh = false) {
                 senderName = 'Cris';
             }
 
-            msgEl.className = `chat-message ${senderClass}`;
-            
+            // Perspectiva: mis mensajes a la derecha, los de mi pareja a la izquierda.
+            const myIdentity = localStorage.getItem('chatIdentity') || 'Cris';
+            const sideClass = (senderName === myIdentity) ? 'mine' : 'theirs';
+            msgEl.className = `chat-message ${senderClass} ${sideClass}`;
+
             // Formatear fecha
             const date = new Date(msg.created_at);
             const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -811,6 +814,7 @@ async function sendChatMessage() {
     if (input && input.value.trim() && senderSelect) {
         const text = input.value.trim();
         const sender = senderSelect.value;
+        localStorage.setItem('chatIdentity', sender); // recordar quién soy en este dispositivo
         const fullMessage = `${sender}: ${text}`;
 
         const btn = document.querySelector('.btn-send');
@@ -838,10 +842,23 @@ async function sendChatMessage() {
     }
 }
 
-// Auto-refresh chat cada 10 segundos (solo con sesión activa)
+// Auto-refresh chat cada 4 segundos (solo con sesión activa) para que los
+// mensajes de la pareja aparezcan casi al instante.
 setInterval(() => {
     if (window.__authenticated) loadCustomMessages(true);
-}, 10000);
+}, 4000);
+
+// Recordar la identidad elegida en el chat por dispositivo (cada uno la fija una vez).
+document.addEventListener('DOMContentLoaded', () => {
+    const sel = document.getElementById('chat-sender');
+    if (!sel) return;
+    const saved = localStorage.getItem('chatIdentity');
+    if (saved) sel.value = saved;
+    sel.addEventListener('change', () => {
+        localStorage.setItem('chatIdentity', sel.value);
+        if (window.__authenticated) loadCustomMessages();
+    });
+});
 
 // Enter para enviar
 document.addEventListener('DOMContentLoaded', () => {
