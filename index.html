@@ -740,7 +740,7 @@
     <!-- Indicador de versión (diagnóstico): muestra la versión cargada y si los juegos se inicializaron -->
     <div id="lg-build" style="position:fixed; bottom:6px; left:8px; font-size:11px; color:#c96f8e; background:rgba(255,255,255,.9); padding:2px 8px; border-radius:10px; z-index:9; box-shadow:0 1px 4px rgba(0,0,0,.12);">cargando…</div>
     <script>
-        setTimeout(function () {
+        function lgUpdateBadge() {
             var b = document.getElementById('lg-build');
             if (!b) return;
             // window.LG_BUILD solo existe si el love-games.js NUEVO se ejecutó.
@@ -752,14 +752,19 @@
                        ' G' + (window.GalleryManager ? '✓' : '✗') +
                        ' P' + (window.PlaylistManager ? '✓' : '✗') +
                        ' T' + (window.TimelineManager ? '✓' : '✗');
-            b.textContent = 'build ' + build + ' · juegos ' + ok + ' · ' + mods;
-            // Si NO muestra 7 => el navegador sirve una versión vieja en caché.
-            if (build !== '7') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
+            // Estado de autenticación: cli = cliente Supabase creado; auth = sesión activa.
+            var authState = ' · cli' + (window.supabaseClient ? '✓' : '✗') +
+                            ' auth' + (window.__authenticated ? '✓' : '✗');
+            b.textContent = 'build ' + build + ' · juegos ' + ok + ' · ' + mods + authState;
+            // Si NO muestra 8 => el navegador sirve una versión vieja en caché.
+            if (build !== '8') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
             // Si algún módulo falta, resaltar en ámbar.
             else if (!(window.AuthUI && window.GalleryManager && window.PlaylistManager && window.TimelineManager)) {
                 b.style.background = '#ffe9c7';
             }
-        }, 1500);
+        }
+        // Re-evaluar varias veces: la sesión puede tardar unos segundos en resolverse.
+        [1500, 3000, 5000, 7000].forEach(function (t) { setTimeout(lgUpdateBadge, t); });
     </script>
 </body>
 </html>
