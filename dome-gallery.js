@@ -26,7 +26,7 @@ class DomeGallery {
         this.container.style.position = 'relative';
         this.container.style.width = '100%';
         this.container.style.height = '100%';
-        this.container.style.perspective = '1000px';
+        this.container.style.perspective = 'none'; // pseudo-3D controlado (escala+blur por profundidad)
         this.container.style.overflow = 'hidden';
         this.container.style.display = 'flex';
         this.container.style.justifyContent = 'center';
@@ -55,58 +55,65 @@ class DomeGallery {
 
     createItems() {
         const phi = Math.PI * (3 - Math.sqrt(5)); // Ángulo áureo
-        const n = this.images.length;
-        const radius = this.options.radius;
-        
-        this.images.forEach((imgData, i) => {
+        const size = this.options.itemSize || 110;
+
+        // Construir los nodos: fotos reales + estrellas decorativas para que el
+        // "universo" se vea lleno aunque haya pocas fotos.
+        const nodes = this.images.map(d => ({ kind: 'photo', data: d }));
+        const glyphs = ['✨', '🌟', '💫', '⭐', '💖', '🩷', '🌸'];
+        const MIN_NODES = 16;
+        for (let i = nodes.length; i < MIN_NODES; i++) {
+            nodes.push({ kind: 'star', glyph: glyphs[i % glyphs.length] });
+        }
+        // Mezclar de forma determinista para repartir estrellas entre las fotos.
+        for (let i = nodes.length - 1; i > 0; i--) {
+            const j = (i * 7 + 3) % (i + 1);
+            const t = nodes[i]; nodes[i] = nodes[j]; nodes[j] = t;
+        }
+
+        const n = nodes.length;
+        nodes.forEach((node, i) => {
+            const isPhoto = node.kind === 'photo';
+            const sz = isPhoto ? size : Math.round(size * 0.5);
+
             const item = document.createElement('div');
             item.className = 'dome-item';
-            
-            // Estilos del item
-            item.style.position = 'absolute';
-            item.style.width = '100px';
-            item.style.height = '100px';
-            item.style.left = '-50px';
-            item.style.top = '-50px';
-            item.style.transformStyle = 'preserve-3d';
-            item.style.backfaceVisibility = 'hidden';
-            
-            // Imagen
-            const img = document.createElement('img');
-            img.src = imgData.url || imgData.src || imgData.dataUrl;
-            img.alt = imgData.caption || 'Foto';
-            img.style.width = '100%';
-            img.style.height = '100%';
-            img.style.objectFit = 'cover';
-            img.style.borderRadius = '10px';
-            img.style.border = '2px solid var(--primary-color)';
-            img.style.boxShadow = '0 0 10px rgba(255,20,147,0.5)';
-            img.style.pointerEvents = 'none'; // Para que el click lo capture el div padre
-            
-            // Evento click para ver en grande
-            item.onclick = (e) => {
-                e.stopPropagation(); // Evitar arrastre
-                if (window.viewPhotoFullscreen && imgData.id) {
-                    window.viewPhotoFullscreen(imgData.id);
-                }
-            };
-            
-            item.appendChild(img);
+            item.style.cssText = 'position:absolute;width:' + sz + 'px;height:' + sz + 'px;left:' +
+                (-sz / 2) + 'px;top:' + (-sz / 2) + 'px;transform-style:preserve-3d;backface-visibility:hidden;will-change:transform,opacity,filter;';
+
+            if (isPhoto) {
+                item.style.cursor = 'pointer';
+                const img = document.createElement('img');
+                img.src = node.data.url || node.data.src || node.data.dataUrl;
+                img.alt = node.data.caption || 'Foto';
+                img.loading = 'lazy';
+                img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:16px;' +
+                    'border:2px solid rgba(255,190,215,.9);box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 14px rgba(217,138,163,.45);' +
+                    'background:#1a1226;pointer-events:none;';
+                item.onclick = (e) => {
+                    e.stopPropagation();
+                    if (window.viewPhotoFullscreen && node.data.id) window.viewPhotoFullscreen(node.data.id);
+                };
+                item.appendChild(img);
+            } else {
+                item.style.pointerEvents = 'none';
+                item.style.display = 'flex';
+                item.style.alignItems = 'center';
+                item.style.justifyContent = 'center';
+                item.style.fontSize = Math.round(sz * 0.85) + 'px';
+                item.textContent = node.glyph;
+            }
+
             this.rotator.appendChild(item);
-            
-            // Calcular posición esférica
-            const y = 1 - (i / (n - 1)) * 2; // y va de 1 a -1
-            const radiusAtY = Math.sqrt(1 - y * y);
+
+            // Distribución esférica SIN polos (i+0.5): se reparte bien con pocos puntos.
+            const y = 1 - ((i + 0.5) / n) * 2;
+            const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
             const theta = phi * i;
-            
             const x = Math.cos(theta) * radiusAtY;
             const z = Math.sin(theta) * radiusAtY;
-            
-            // Guardar posición base normalizada (vector unitario)
-            this.items.push({
-                element: item,
-                vector: { x, y, z }
-            });
+
+            this.items.push({ element: item, vector: { x, y, z }, isPhoto });
         });
     }
 
@@ -195,16 +202,21 @@ class DomeGallery {
             const px = x1 * radius;
             const py = y2 * radius;
             const pz = z2 * radius;
-            
-            // Aplicar transformación
-            // translate3d mueve el elemento
-            // La escala simula profundidad adicional
-            const scale = (pz + 2 * radius) / (3 * radius); // Factor de escala simple
-            const opacity = (pz + radius) / (2 * radius) + 0.2;
-            
-            item.element.style.transform = `translate3d(${px}px, ${py}px, ${pz}px) scale(${Math.max(0.5, scale)})`;
-            item.element.style.opacity = Math.max(0.3, Math.min(1, opacity));
-            item.element.style.zIndex = Math.floor(pz);
+
+            // Profundidad normalizada (0 = al fondo, 1 = al frente)
+            const depth = (pz + radius) / (2 * radius);
+            const scale = 0.55 + depth * 0.6;            // los de delante, más grandes
+            const opacity = 0.25 + depth * 0.85;
+            const bright = 0.6 + depth * 0.55;
+            const blur = (1 - depth) * 2.2;              // los del fondo, desenfocados
+
+            const el = item.element;
+            el.style.transform = `translate3d(${px}px, ${py}px, ${pz}px) scale(${scale})`;
+            el.style.opacity = Math.min(1, opacity);
+            el.style.filter = item.isPhoto
+                ? `blur(${blur}px) brightness(${bright})`
+                : `brightness(${bright}) drop-shadow(0 0 6px rgba(255,180,210,.85))`;
+            el.style.zIndex = Math.floor(pz);
         });
     }
 }
@@ -240,13 +252,15 @@ window.initDomeGallery = async function(providedPhotos) {
             return;
         }
 
-        // Determinar radio basado en pantalla
+        // Determinar radio y tamaño según pantalla
         const isMobile = window.innerWidth < 768;
-        const radius = isMobile ? 140 : 280;
+        const radius = isMobile ? 125 : 250;
+        const itemSize = isMobile ? 92 : 120;
 
         // Guardar instancia global
         window.currentDomeInstance = new DomeGallery('dome-gallery-view', photos, {
             radius: radius,
+            itemSize: itemSize,
             autoRotateSpeed: 0.4 // Un poco más rápido para que sea dinámico
         });
         

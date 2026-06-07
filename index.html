@@ -726,7 +726,7 @@
                             ' auth' + (window.__authenticated ? '✓' : '✗');
             b.textContent = 'build ' + build + ' · galaxia ' + ok + ' · ' + mods + authState;
             // Si NO muestra 11 => el navegador sirve una versión vieja en caché.
-            if (build !== '16') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
+            if (build !== '17') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
             // Si algún módulo falta, resaltar en ámbar.
             else if (!(window.AuthUI && window.GalleryManager && window.PlaylistManager && window.TimelineManager)) {
                 b.style.background = '#ffe9c7';
