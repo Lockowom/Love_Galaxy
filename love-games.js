@@ -6,6 +6,11 @@
 (function () {
     'use strict';
 
+    // Marca de versión: la etiqueta de diagnóstico solo mostrará "6" si ESTE
+    // archivo (el nuevo) realmente se ejecutó. Si muestra algo distinto, el
+    // navegador/servidor está sirviendo una versión vieja en caché.
+    window.LG_BUILD = '6';
+
     const HER = 'Tamara';
     const NICK = 'mi diosa Freya';
 
@@ -15,7 +20,8 @@
         const s = document.createElement('style');
         s.id = 'lg-styles';
         s.textContent = `
-        #lg-modal .modal-content { max-width: 560px; text-align: center; }
+        #lg-modal .modal-content { max-width: 560px; max-height: 90vh; overflow-y: auto; text-align: center; }
+        #lg-modal .modal-close { font-size: 2.2rem; width: 44px; height: 44px; line-height: 44px; }
         .lg-title { font-family: var(--font-elegant,'Playfair Display',serif); color: var(--dark-pink,#c96f8e); margin-bottom: .25rem; }
         .lg-sub { color: var(--text-secondary,#8a7b82); margin-bottom: 1.25rem; }
         .lg-btn { display:inline-block; margin-top:1rem; padding:.8rem 1.6rem; border:none; border-radius:999px;
@@ -313,14 +319,42 @@
         galaxy: function () { if (typeof window.startGalaxyLoveGame === 'function') window.startGalaxyLoveGame(); }
     };
 
+    function launch(key) {
+        try {
+            if (games[key]) games[key]();
+            else toast('Ese juego no está disponible.');
+        } catch (err) {
+            console.error('[LoveGames] error al abrir', key, err);
+            toast('Ups, no se pudo abrir el juego. Reintenta 💕');
+        }
+    }
+
     function wire() {
+        // (1) Delegación en FASE DE CAPTURA: se dispara antes que cualquier otro
+        //     listener, así nada puede "robar" el clic con stopPropagation.
         document.addEventListener('click', function (e) {
-            const btn = e.target.closest('[data-game]');
+            const btn = e.target.closest && e.target.closest('[data-game]');
             if (!btn) return;
             e.preventDefault();
-            const key = btn.getAttribute('data-game');
-            if (games[key]) games[key]();
-        });
+            launch(btn.getAttribute('data-game'));
+        }, true);
+
+        // (2) Enlace DIRECTO a cada botón, como respaldo. Se reintenta por si las
+        //     tarjetas se renderizan más tarde.
+        function bindDirect() {
+            document.querySelectorAll('[data-game]').forEach(function (b) {
+                if (b.__lgBound) return;
+                b.__lgBound = true;
+                b.style.cursor = 'pointer';
+                b.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    launch(b.getAttribute('data-game'));
+                });
+            });
+        }
+        bindDirect();
+        setTimeout(bindDirect, 800);
+        setTimeout(bindDirect, 2500);
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
     else wire();
