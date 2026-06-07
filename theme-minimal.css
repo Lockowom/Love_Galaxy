@@ -380,3 +380,16 @@ input:focus, textarea:focus, select:focus {
     box-shadow: none !important;
 }
 .memory-game-board .memory-card:hover { transform: none !important; }
+
+/* 21. JUEGO GALAXIA — pantalla completa limpia ---------------------------- */
+.modal.full-screen .galaxy-modal-content > h2,
+.modal.full-screen .galaxy-instructions { display: none !important; }
+.modal.full-screen .galaxy-modal-content::before { display: none !important; }
+.modal.full-screen .galaxy-game-container {
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: #171022 !important;
+}
+.galaxy-game-container canvas { height: 100% !important; max-height: 100% !important; }

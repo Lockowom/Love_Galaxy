@@ -1,1151 +1,588 @@
 // ================================================
-// GALAXIA DEL AMOR - JUEGO INTERACTIVO MEJORADO
+// GALAXIA DEL AMOR — juego arcade (versión pulida)
+// Vuela con tu corazón, captura corazones y mensajes de amor,
+// evita los obstáculos, consigue power-ups y haz combos.
+// Controles: ratón / dedo (arrastra) / flechas o WASD. P = pausa.
 // ================================================
 
 class GalaxyLoveGame {
     constructor() {
         this.canvas = null;
         this.ctx = null;
-        this.width = window.innerWidth;
-        this.height = window.innerHeight;
-        
-        // Estado del juego
-        this.isPlaying = false;
-        this.isPaused = false;
-        this.score = 0;
-        this.level = 1;
-        this.lives = 3;
-        
-        // High Score
+        this.dpr = window.devicePixelRatio || 1;
+        this.width = 0;
+        this.height = 0;
+
+        this.state = 'start';        // 'start' | 'playing' | 'paused' | 'over'
+        this.rafId = null;
+        this.lastTs = 0;
+
         this.highScore = 0;
         this.loadHighScore();
-        
-        // Jugador (nave/corazón)
-        this.player = {
-            x: 0,
-            y: 0,
-            width: 60,
-            height: 60,
-            speed: 6, // Velocidad aumentada ligeramente
-            emoji: '💖',
-            angle: 0, // Para rotación suave al mover
-            invincible: false,
-            invincibleTime: 0,
-            trail: [] // Estela de movimiento
-        };
-        
-        // Controles
-        this.keys = {};
-        
-        // Elementos del juego
-        this.hearts = [];
-        this.messages = [];
-        this.obstacles = [];
-        this.powerUps = [];
-        this.particles = [];
-        this.stars = [];
-        this.floatingTexts = []; // Textos flotantes separados
-        
-        // Configuración
-        this.heartSpawnRate = 50;
-        this.messageSpawnRate = 150;
-        this.obstacleSpawnRate = 100;
-        this.powerUpSpawnRate = 300;
-        
-        // Mensajes de amor (Extendidos)
-        this.loveMessages = [
-            "Te Amo ✨", "Eres Mi Vida 💕", "Mi Corazón Es Tuyo 💖",
-            "Amor Eterno 💞", "Juntos Por Siempre 💗", "Eres Mi Todo 💓",
-            "Mi Alma Gemela 💝", "Te Adoro 💘", "Mi Inspiración 🌟",
-            "Eres Perfecta 💫", "Mi Felicidad Eres Tú ✨", "Te Necesito 💕",
-            "Eres Mi Sueño 🌙", "Mi Razón de Vivir 💖", "Contigo Soy Feliz 😊",
-            "Mi Amor Infinito ♾️", "Eres Mi Estrella ⭐", "Te Pienso Siempre 💭",
-            "Mi Mundo Eres Tú 🌍", "Eres Única 💎", "Mi Tesoro 💰",
-            "Te Amo Más Cada Día 📈", "Eres Especial 🎁", "Mi Ángel 👼",
-            "Contigo Todo Es Mejor 🌈", "Eres Mi Luz ☀️", "Mi Corazón Late Por Ti 💓",
-            "Eres Mi Paraíso 🏝️", "Te Extraño 😢", "Eres Hermosa 🌺",
-            "Gracias por Existir 🙏", "Mi Lugar Favorito 🏡", "Eres Magia ✨"
-        ];
-        
-        // Power-ups
-        this.powerUpTypes = [
-            { type: 'shield', emoji: '🛡️', name: 'Escudo', duration: 300, color: '#00ffff' }, // 5 segs (60fps)
-            { type: 'magnet', emoji: '🧲', name: 'Imán', duration: 420, color: '#ffd700' }, // 7 segs
-            { type: 'multiplier', emoji: '✖️2️⃣', name: 'x2 Puntos', duration: 600, color: '#00ff00' }, // 10 segs
-            { type: 'slow', emoji: '🐌', name: 'Cámara Lenta', duration: 300, color: '#ff69b4' }, // 5 segs
-            { type: 'life', emoji: '❤️', name: 'Vida Extra', duration: 0, color: '#ff1493' },
-            { type: 'blast', emoji: '💥', name: 'Limpieza', duration: 0, color: '#ff4500' } // Nuevo: Destruye obstáculos
-        ];
-        
-        // Efectos activos
-        this.activeEffects = {
-            shield: 0,
-            magnet: 0,
-            multiplier: 0,
-            slowMotion: 0
-        };
-        
-        // Contadores
-        this.frameCount = 0;
-        this.gameTime = 0;
-        
-        // Combo
-        this.combo = 0;
-        this.comboTime = 0;
-        this.maxCombo = 0;
 
-        // Imágenes pre-renderizadas (optimización)
-        this.offscreenCanvas = document.createElement('canvas');
-        this.offscreenCtx = this.offscreenCanvas.getContext('2d');
+        this.loveMessages = [
+            "Te Amo", "Eres Mi Vida", "Mi Corazón Es Tuyo", "Amor Eterno",
+            "Juntos Por Siempre", "Eres Mi Todo", "Mi Alma Gemela", "Te Adoro",
+            "Mi Inspiración", "Eres Perfecta", "Contigo Soy Feliz", "Mi Estrella",
+            "Eres Mi Luz", "Mi Tesoro", "Eres Única", "Eres Mi Paraíso",
+            "Mi Ángel", "Eres Magia", "Mi Razón de Vivir", "Te Amo Más Cada Día"
+        ];
+
+        this.powerTypes = [
+            { type: 'shield', emoji: '🛡️', name: 'Escudo' },
+            { type: 'magnet', emoji: '🧲', name: 'Imán' },
+            { type: 'x2',     emoji: '⭐', name: 'Puntos x2' },
+            { type: 'slow',   emoji: '🐌', name: 'Cámara lenta' },
+            { type: 'life',   emoji: '❤️', name: 'Vida extra' }
+        ];
+
+        // Vínculos de eventos (para poder removerlos)
+        this._onPointerMove = this._onPointerMove.bind(this);
+        this._onPointerDown = this._onPointerDown.bind(this);
+        this._onKeyDown = this._onKeyDown.bind(this);
+        this._onKeyUp = this._onKeyUp.bind(this);
+        this._onResize = this._onResize.bind(this);
+        this._loop = this._loop.bind(this);
     }
 
     async loadHighScore() {
-        if (window.db && window.db.getHighScore) {
-            this.highScore = await window.db.getHighScore('galaxyLove');
-        } else {
-            this.highScore = parseInt(localStorage.getItem('galaxyLoveHighScore')) || 0;
-        }
+        try {
+            if (window.db && window.db.getHighScore) {
+                this.highScore = await window.db.getHighScore('galaxyLove') || 0;
+            } else {
+                this.highScore = parseInt(localStorage.getItem('galaxyLoveHighScore')) || 0;
+            }
+        } catch (e) { this.highScore = 0; }
     }
 
+    // ----------------------------------------------------------------
     init(containerId) {
-        // Crear canvas
         const container = document.getElementById(containerId);
         if (!container) return;
-        
+        this.container = container;
         container.innerHTML = '';
-        
-        // Ajustar al tamaño real de la ventana para full screen
-        this.width = window.innerWidth;
-        this.height = window.innerHeight;
-        
+
         this.canvas = document.createElement('canvas');
-        this.canvas.width = this.width;
-        this.canvas.height = this.height;
-        this.canvas.style.cssText = `
-            display: block;
-            width: 100%;
-            height: 100%;
-            cursor: none; /* Ocultar cursor nativo dentro del juego */
-        `;
-        
-        this.ctx = this.canvas.getContext('2d', { alpha: false }); // Optimización alpha
+        this.canvas.style.cssText = 'display:block; touch-action:none; cursor:none; border-radius:0;';
         container.appendChild(this.canvas);
-        
-        // Listener para resize
-        window.addEventListener('resize', () => this.handleResize());
-        
-        // Inicializar jugador
-        this.player.x = this.width / 2 - this.player.width / 2;
-        this.player.y = this.height - 100;
-        
-        // Crear estrellas de fondo (más estrellas para efecto profundidad)
-        this.createStars();
-        
-        // Event listeners
-        this.setupControls();
-        
-        // Mostrar menú inicial
-        this.showStartScreen();
+        this.ctx = this.canvas.getContext('2d');
+
+        this._resizeToContainer();
+
+        // Listeners
+        this.canvas.addEventListener('pointermove', this._onPointerMove);
+        this.canvas.addEventListener('pointerdown', this._onPointerDown);
+        window.addEventListener('keydown', this._onKeyDown);
+        window.addEventListener('keyup', this._onKeyUp);
+        window.addEventListener('resize', this._onResize);
+
+        this._initStars();
+        this._resetGame();
+        this.state = 'start';
+
+        // Arrancar el bucle
+        if (this.rafId) cancelAnimationFrame(this.rafId);
+        this.lastTs = performance.now();
+        this.rafId = requestAnimationFrame(this._loop);
     }
 
-    handleResize() {
-        this.width = window.innerWidth;
-        this.height = window.innerHeight;
+    destroy() {
+        if (this.rafId) cancelAnimationFrame(this.rafId);
+        this.rafId = null;
         if (this.canvas) {
-            this.canvas.width = this.width;
-            this.canvas.height = this.height;
+            this.canvas.removeEventListener('pointermove', this._onPointerMove);
+            this.canvas.removeEventListener('pointerdown', this._onPointerDown);
         }
-        // Reajustar posición del jugador si se sale
-        this.clampPlayer();
-        // Regenerar estrellas para cubrir nueva área
-        this.createStars();
+        window.removeEventListener('keydown', this._onKeyDown);
+        window.removeEventListener('keyup', this._onKeyUp);
+        window.removeEventListener('resize', this._onResize);
     }
 
-    setupControls() {
-        // Teclado
-        window.addEventListener('keydown', (e) => {
-            this.keys[e.key] = true;
-            
-            // P para pausar
-            if (e.key === 'p' || e.key === 'P') {
-                this.togglePause();
-            }
-        });
-        
-        window.addEventListener('keyup', (e) => {
-            this.keys[e.key] = false;
-        });
-        
-        // Mouse/Touch para móvil
-        const updatePos = (clientX, clientY) => {
-            if (this.isPlaying && !this.isPaused) {
-                const rect = this.canvas.getBoundingClientRect();
-                const scaleX = this.canvas.width / rect.width;
-                const scaleY = this.canvas.height / rect.height;
-
-                const targetX = (clientX - rect.left) * scaleX - this.player.width / 2;
-                const targetY = (clientY - rect.top) * scaleY - this.player.height / 2;
-                
-                // Interpolación suave para el mouse
-                this.player.x += (targetX - this.player.x) * 0.5;
-                this.player.y += (targetY - this.player.y) * 0.5;
-                
-                this.clampPlayer();
-            }
-        };
-
-        this.canvas.addEventListener('mousemove', (e) => updatePos(e.clientX, e.clientY));
-        
-        this.canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            updatePos(touch.clientX, touch.clientY);
-        }, { passive: false });
+    _resizeToContainer() {
+        const rect = this.container.getBoundingClientRect();
+        this.width = Math.max(320, Math.floor(rect.width));
+        this.height = Math.max(360, Math.floor(rect.height));
+        this.dpr = window.devicePixelRatio || 1;
+        this.canvas.width = this.width * this.dpr;
+        this.canvas.height = this.height * this.dpr;
+        this.canvas.style.width = this.width + 'px';
+        this.canvas.style.height = this.height + 'px';
+        this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     }
 
-    createStars() {
+    _onResize() {
+        if (!this.canvas) return;
+        this._resizeToContainer();
+        this._initStars();
+        // Mantener al jugador dentro
+        if (this.player) {
+            this.player.x = Math.min(this.player.x, this.width - 30);
+            this.player.y = Math.min(this.player.y, this.height - 30);
+        }
+    }
+
+    _initStars() {
         this.stars = [];
-        // 3 capas de estrellas para efecto paralaje
-        const layers = [
-            { count: 50, speed: 0.5, size: 1, color: '#ffffff55' }, // Fondo lejano
-            { count: 30, speed: 1.0, size: 2, color: '#ffffffaa' }, // Medio
-            { count: 20, speed: 2.0, size: 3, color: '#ffffff' }    // Frente
-        ];
-
-        layers.forEach(layer => {
-            for (let i = 0; i < layer.count; i++) {
-                this.stars.push({
-                    x: Math.random() * this.width,
-                    y: Math.random() * this.height,
-                    size: Math.random() * layer.size + 0.5,
-                    baseSpeed: layer.speed,
-                    speed: layer.speed * (Math.random() * 0.5 + 0.8),
-                    color: layer.color,
-                    twinkle: Math.random() * Math.PI * 2
-                });
-            }
-        });
-    }
-
-    showStartScreen() {
-        this.ctx.fillStyle = '#0a0a0f';
-        this.ctx.fillRect(0, 0, this.width, this.height);
-        
-        // Fondo animado simple
-        this.drawStars();
-
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        this.ctx.fillRect(0, 0, this.width, this.height);
-        
-        // Título con efecto de brillo
-        this.ctx.save();
-        this.ctx.shadowColor = '#ff1493';
-        this.ctx.shadowBlur = 20;
-        this.ctx.font = 'bold 54px "Arial", sans-serif';
-        this.ctx.fillStyle = '#ff1493';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('💫 Galaxia del Amor 💫', this.width / 2, 120);
-        this.ctx.restore();
-        
-        // Instrucciones
-        this.ctx.font = '22px Arial';
-        this.ctx.fillStyle = '#e0e0e0';
-        this.ctx.fillText('Navega por el cosmos recolectando amor', this.width / 2, 200);
-        
-        // Iconos
-        const iconsY = 280;
-        this.ctx.font = '30px Arial';
-        this.ctx.fillText('💖   +10 pts', this.width / 2 - 150, iconsY);
-        this.ctx.fillText('💔   -1 Vida', this.width / 2 + 150, iconsY);
-        
-        // Power-ups
-        this.ctx.font = 'bold 20px Arial';
-        this.ctx.fillStyle = '#ff69b4';
-        this.ctx.fillText('Power-ups Especiales:', this.width / 2, 350);
-        
-        this.ctx.font = '18px Arial';
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillText('🛡️ Escudo   🧲 Imán   ✖️2️⃣ Doble Puntos   💥 Limpieza', this.width / 2, 390);
-        
-        // High Score
-        if (this.highScore > 0) {
-            this.ctx.save();
-            this.ctx.shadowColor = '#ffd700';
-            this.ctx.shadowBlur = 10;
-            this.ctx.font = 'bold 26px Arial';
-            this.ctx.fillStyle = '#ffd700';
-            this.ctx.fillText(`🏆 Récord Actual: ${this.highScore}`, this.width / 2, 460);
-            this.ctx.restore();
-        }
-        
-        // Botón start animado
-        const pulse = (Math.sin(Date.now() / 200) + 1) / 2;
-        this.ctx.font = 'bold 28px Arial';
-        this.ctx.fillStyle = `rgba(255, 20, 147, ${0.7 + pulse * 0.3})`;
-        this.ctx.fillText('Haz CLICK o presiona ESPACIO para Iniciar', this.width / 2, 540);
-        
-        // Loop de animación del menú
-        if (!this.isPlaying) {
-            this.menuAnimationId = requestAnimationFrame(() => this.showStartScreen());
-        }
-        
-        // Esperar input (solo una vez)
-        if (!this.inputHandlerAttached) {
-            const startHandler = (e) => {
-                if ((e.key === ' ' || e.type === 'click') && !this.isPlaying) {
-                    cancelAnimationFrame(this.menuAnimationId);
-                    this.startGame();
-                }
-            };
-            window.addEventListener('keydown', startHandler);
-            this.canvas.addEventListener('click', startHandler);
-            this.inputHandlerAttached = true;
+        const n = Math.floor((this.width * this.height) / 9000);
+        for (let i = 0; i < n; i++) {
+            this.stars.push({
+                x: Math.random() * this.width,
+                y: Math.random() * this.height,
+                r: Math.random() * 1.6 + 0.3,
+                tw: Math.random() * Math.PI * 2,
+                sp: Math.random() * 18 + 6
+            });
         }
     }
 
-    startGame() {
-        this.isPlaying = true;
-        this.isPaused = false;
+    _resetGame() {
         this.score = 0;
-        this.level = 1;
         this.lives = 3;
+        this.level = 1;
         this.combo = 0;
+        this.comboTimer = 0;
         this.maxCombo = 0;
-        this.frameCount = 0;
-        this.gameTime = 0;
-        
-        this.hearts = [];
-        this.messages = [];
-        this.obstacles = [];
-        this.powerUps = [];
+        this.time = 0;
+        this.spawnTimer = 0;
+        this.items = [];
         this.particles = [];
-        this.floatingTexts = [];
-        this.player.trail = [];
-        
-        this.activeEffects = {
-            shield: 0,
-            magnet: 0,
-            multiplier: 0,
-            slowMotion: 0
+        this.effects = { shield: 0, magnet: 0, x2: 0, slow: 0 };
+        this.keys = {};
+        this.player = {
+            x: this.width / 2,
+            y: this.height * 0.75,
+            r: 24,
+            tx: this.width / 2,
+            ty: this.height * 0.75,
+            trail: []
         };
-        
-        this.gameLoop();
     }
 
-    gameLoop() {
-        if (!this.isPlaying) return;
-        
-        if (!this.isPaused) {
-            this.update();
+    // ----------------------- INPUT -----------------------
+    _pointerPos(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+    _onPointerMove(e) {
+        if (this.state !== 'playing') return;
+        const p = this._pointerPos(e);
+        this.player.tx = p.x;
+        this.player.ty = p.y;
+    }
+    _onPointerDown(e) {
+        if (this.state === 'start') { this._startGame(); return; }
+        if (this.state === 'over') { this._startGame(); return; }
+        if (this.state === 'paused') { this.state = 'playing'; return; }
+        if (this.state === 'playing') {
+            const p = this._pointerPos(e);
+            this.player.tx = p.x;
+            this.player.ty = p.y;
         }
-        
-        this.draw();
-        
-        requestAnimationFrame(() => this.gameLoop());
+    }
+    _onKeyDown(e) {
+        // Solo actuar si el juego está visible
+        const modal = document.getElementById('galaxy-game-modal');
+        if (!modal || !modal.classList.contains('active')) return;
+
+        if (e.key === 'p' || e.key === 'P') {
+            if (this.state === 'playing') this.state = 'paused';
+            else if (this.state === 'paused') this.state = 'playing';
+            return;
+        }
+        if ((e.key === 'Enter' || e.key === ' ') && (this.state === 'start' || this.state === 'over')) {
+            this._startGame();
+            e.preventDefault();
+            return;
+        }
+        this.keys[e.key] = true;
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
+    }
+    _onKeyUp(e) { this.keys[e.key] = false; }
+
+    _startGame() {
+        this._resetGame();
+        this.state = 'playing';
     }
 
-    update() {
-        this.frameCount++;
-        this.gameTime++;
-        
-        // Actualizar nivel (curva de dificultad más suave)
-        const newLevel = Math.floor(this.score / 800) + 1;
-        if (newLevel > this.level) {
-            this.level = newLevel;
-            this.showLevelUp();
-        }
-        
-        // Movimiento del jugador
-        const speed = this.player.speed * (this.activeEffects.slowMotion > 0 ? 1.5 : 1); // Más rápido en slow motion relativo
-        let dx = 0;
-        let dy = 0;
+    // ----------------------- LÓGICA -----------------------
+    _spawn() {
+        const r = Math.random();
+        let kind;
+        if (r < 0.62) kind = 'heart';
+        else if (r < 0.78) kind = 'message';
+        else if (r < 0.95) kind = 'bad';
+        else kind = 'power';
 
-        if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A']) dx = -speed;
-        if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) dx = speed;
-        if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) dy = -speed;
-        if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) dy = speed;
-        
-        this.player.x += dx;
-        this.player.y += dy;
-        
-        // Rotación suave basada en movimiento horizontal
-        this.player.angle = dx * 0.05;
+        // Posición y velocidad desde un borde aleatorio hacia el interior
+        const speed = (1.1 + this.level * 0.18) * (this.effects.slow > 0 ? 0.45 : 1);
+        const edge = Math.floor(Math.random() * 4);
+        let x, y, vx, vy;
+        const m = 40;
+        if (edge === 0) { x = Math.random() * this.width; y = -m; }
+        else if (edge === 1) { x = this.width + m; y = Math.random() * this.height; }
+        else if (edge === 2) { x = Math.random() * this.width; y = this.height + m; }
+        else { x = -m; y = Math.random() * this.height; }
+        // Velocidad hacia una zona central con algo de aleatoriedad
+        const cx = this.width * (0.3 + Math.random() * 0.4);
+        const cy = this.height * (0.3 + Math.random() * 0.4);
+        const ang = Math.atan2(cy - y, cx - x);
+        vx = Math.cos(ang) * speed;
+        vy = Math.sin(ang) * speed;
 
-        // Estela del jugador
-        if (this.frameCount % 3 === 0) {
-            this.player.trail.push({ x: this.player.x, y: this.player.y, alpha: 0.6 });
-            if (this.player.trail.length > 10) this.player.trail.shift();
-        }
-        this.player.trail.forEach(t => t.alpha -= 0.05);
+        const item = { kind, x, y, vx, vy, r: 18, rot: 0, vr: (Math.random() - 0.5) * 0.05 };
+        if (kind === 'heart') { item.emoji = ['💖', '💗', '💕', '💝'][Math.floor(Math.random() * 4)]; item.r = 18; }
+        else if (kind === 'message') { item.emoji = '💌'; item.text = this.loveMessages[Math.floor(Math.random() * this.loveMessages.length)]; item.r = 20; }
+        else if (kind === 'bad') { item.emoji = ['💔', '☄️', '🪨'][Math.floor(Math.random() * 3)]; item.r = 20; }
+        else { const p = this.powerTypes[Math.floor(Math.random() * this.powerTypes.length)]; item.emoji = p.emoji; item.power = p.type; item.name = p.name; item.r = 19; }
+        this.items.push(item);
+    }
 
-        this.clampPlayer();
-        
-        // Actualizar estrellas
-        this.updateStars();
-        
-        // Spawn elementos
-        this.spawnElements();
-        
-        // Actualizar elementos
-        this.updateHearts();
-        this.updateMessages();
-        this.updateObstacles();
-        this.updatePowerUps();
-        this.updateParticles();
-        this.updateFloatingTexts();
-        
-        // Actualizar efectos
-        this.updateEffects();
-        
-        // Actualizar combo
-        if (this.comboTime > 0) {
-            this.comboTime--;
-        } else {
-            this.combo = 0;
+    _addParticles(x, y, color, n = 10) {
+        for (let i = 0; i < n; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const sp = Math.random() * 3 + 1;
+            this.particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, color, r: Math.random() * 3 + 1.5 });
         }
-        
-        // Invencibilidad temporal
-        if (this.player.invincible) {
-            this.player.invincibleTime--;
-            if (this.player.invincibleTime <= 0) {
-                this.player.invincible = false;
+    }
+
+    _update(dt) {
+        if (this.state !== 'playing') return;
+        this.time += dt;
+
+        // Nivel sube cada 18s o cada 25 corazones aprox
+        this.level = 1 + Math.floor(this.time / 18) + Math.floor(this.score / 400);
+
+        // Combo decae
+        if (this.comboTimer > 0) { this.comboTimer -= dt; if (this.comboTimer <= 0) this.combo = 0; }
+
+        // Efectos decaen
+        for (const k of ['shield', 'magnet', 'x2', 'slow']) {
+            if (this.effects[k] > 0) this.effects[k] = Math.max(0, this.effects[k] - dt);
+        }
+
+        // Movimiento del jugador: teclado mueve el objetivo; el cuerpo sigue suave
+        const ks = 7;
+        if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A']) this.player.tx -= ks;
+        if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) this.player.tx += ks;
+        if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) this.player.ty -= ks;
+        if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) this.player.ty += ks;
+        this.player.tx = Math.max(this.player.r, Math.min(this.width - this.player.r, this.player.tx));
+        this.player.ty = Math.max(this.player.r, Math.min(this.height - this.player.r, this.player.ty));
+        this.player.x += (this.player.tx - this.player.x) * 0.2;
+        this.player.y += (this.player.ty - this.player.y) * 0.2;
+
+        // Estela
+        this.player.trail.push({ x: this.player.x, y: this.player.y });
+        if (this.player.trail.length > 12) this.player.trail.shift();
+
+        // Spawn
+        this.spawnTimer -= dt;
+        const interval = Math.max(0.35, 0.95 - this.level * 0.05);
+        if (this.spawnTimer <= 0) { this._spawn(); this.spawnTimer = interval; }
+
+        // Actualizar items
+        const slowF = this.effects.slow > 0 ? 0.45 : 1;
+        for (let i = this.items.length - 1; i >= 0; i--) {
+            const it = this.items[i];
+            // Imán: atrae corazones/mensajes
+            if (this.effects.magnet > 0 && (it.kind === 'heart' || it.kind === 'message')) {
+                const dx = this.player.x - it.x, dy = this.player.y - it.y;
+                const d = Math.hypot(dx, dy) || 1;
+                if (d < 260) { it.vx += (dx / d) * 0.6; it.vy += (dy / d) * 0.6; }
+            }
+            it.x += it.vx * slowF * dt * 60;
+            it.y += it.vy * slowF * dt * 60;
+            it.rot += it.vr;
+
+            // Fuera de pantalla
+            if (it.x < -60 || it.x > this.width + 60 || it.y < -60 || it.y > this.height + 60) {
+                this.items.splice(i, 1);
+                continue;
+            }
+
+            // Colisión con jugador
+            const dist = Math.hypot(this.player.x - it.x, this.player.y - it.y);
+            if (dist < this.player.r + it.r - 6) {
+                this._collide(it);
+                this.items.splice(i, 1);
+            }
+        }
+
+        // Partículas
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.x += p.vx; p.y += p.vy; p.vy += 0.04; p.life -= dt * 1.6;
+            if (p.life <= 0) this.particles.splice(i, 1);
+        }
+    }
+
+    _collide(it) {
+        if (it.kind === 'heart') {
+            this.combo++; this.comboTimer = 2.5; this.maxCombo = Math.max(this.maxCombo, this.combo);
+            const base = 10 + Math.min(this.combo, 10) * 2;
+            this.score += base * (this.effects.x2 > 0 ? 2 : 1);
+            this._addParticles(it.x, it.y, '#e29bb0', 10);
+        } else if (it.kind === 'message') {
+            this.combo++; this.comboTimer = 2.5; this.maxCombo = Math.max(this.maxCombo, this.combo);
+            this.score += 30 * (this.effects.x2 > 0 ? 2 : 1);
+            this._addParticles(it.x, it.y, '#c9b3d9', 16);
+            this._float(it.text || 'Te Amo', it.x, it.y);
+        } else if (it.kind === 'power') {
+            this._applyPower(it.power, it.name);
+            this._addParticles(it.x, it.y, '#f0bfa8', 18);
+        } else { // bad
+            if (this.effects.shield > 0) {
+                this.effects.shield = 0; // el escudo absorbe el golpe
+                this._addParticles(it.x, it.y, '#9fd8e6', 18);
+                this._float('🛡️ ¡Escudo!', it.x, it.y);
+            } else {
+                this.lives--; this.combo = 0;
+                this._addParticles(this.player.x, this.player.y, '#e08a8a', 20);
+                this._float('💔', it.x, it.y);
+                if (this.lives <= 0) this._gameOver();
             }
         }
     }
 
-    updateStars() {
-        const speedFactor = this.activeEffects.slowMotion > 0 ? 0.2 : 1;
-        this.stars.forEach(star => {
-            star.y += star.speed * speedFactor;
-            star.twinkle += 0.05;
-            if (star.y > this.height) {
-                star.y = 0;
-                star.x = Math.random() * this.width;
-            }
-        });
+    _applyPower(type, name) {
+        if (type === 'life') { this.lives = Math.min(5, this.lives + 1); }
+        else if (type === 'shield') this.effects.shield = 6;
+        else if (type === 'magnet') this.effects.magnet = 7;
+        else if (type === 'x2') this.effects.x2 = 9;
+        else if (type === 'slow') this.effects.slow = 5;
+        this._float('✨ ' + (name || ''), this.player.x, this.player.y - 30);
     }
 
-    spawnElements() {
-        const speedMod = this.activeEffects.slowMotion > 0 ? 2 : 1;
-        const levelFactor = Math.min(this.level, 10); // Cap dificultad
-
-        // Spawn corazones
-        if (this.frameCount % Math.floor(this.heartSpawnRate / (1 + levelFactor * 0.1) * speedMod) === 0) {
-            this.spawnHeart();
-        }
-        
-        // Spawn mensajes
-        if (this.frameCount % Math.floor(this.messageSpawnRate * speedMod) === 0) {
-            this.spawnMessage();
-        }
-        
-        // Spawn obstáculos
-        if (this.frameCount % Math.floor(this.obstacleSpawnRate / (1 + levelFactor * 0.15) * speedMod) === 0) {
-            this.spawnObstacle();
-        }
-        
-        // Spawn power-ups
-        if (this.frameCount % Math.floor(this.powerUpSpawnRate * speedMod) === 0) {
-            this.spawnPowerUp();
-        }
+    _float(text, x, y) {
+        this.particles.push({ x, y, vx: 0, vy: -0.6, life: 1.2, color: '#fff', text, r: 0, isText: true });
     }
 
-    spawnHeart() {
-        const heartTypes = ['💕', '💖', '💗', '💓', '💞', '💝', '❤️', '💘'];
-        this.hearts.push({
-            x: Math.random() * (this.width - 40),
-            y: -40,
-            width: 40,
-            height: 40,
-            speed: (2 + Math.random() + this.level * 0.2),
-            emoji: heartTypes[Math.floor(Math.random() * heartTypes.length)],
-            points: 10,
-            rotation: Math.random() * Math.PI * 2,
-            rotationSpeed: (Math.random() - 0.5) * 0.1,
-            scale: 1,
-            pulse: 0,
-            oscillation: Math.random() * Math.PI * 2
-        });
-    }
-
-    spawnMessage() {
-        const message = this.loveMessages[Math.floor(Math.random() * this.loveMessages.length)];
-        this.messages.push({
-            x: Math.random() * (this.width - 150),
-            y: -50,
-            width: 160,
-            height: 40,
-            speed: (1.5 + this.level * 0.1),
-            text: message,
-            points: 50,
-            color: `hsl(${Math.random() * 60 + 300}, 100%, 75%)`,
-            glow: 0
-        });
-    }
-
-    spawnObstacle() {
-        const obstacleTypes = ['💔', '☁️', '🌑', '⚡', '🧊'];
-        this.obstacles.push({
-            x: Math.random() * (this.width - 50),
-            y: -50,
-            width: 50,
-            height: 50,
-            speed: (2.5 + Math.random() + this.level * 0.3),
-            emoji: obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)],
-            rotation: 0,
-            rotationSpeed: (Math.random() - 0.5) * 0.2
-        });
-    }
-
-    spawnPowerUp() {
-        const powerUp = this.powerUpTypes[Math.floor(Math.random() * this.powerUpTypes.length)];
-        this.powerUps.push({
-            x: Math.random() * (this.width - 45),
-            y: -45,
-            width: 45,
-            height: 45,
-            speed: 2,
-            type: powerUp.type,
-            emoji: powerUp.emoji,
-            name: powerUp.name,
-            duration: powerUp.duration,
-            color: powerUp.color,
-            pulse: 0
-        });
-    }
-
-    updateHearts() {
-        const speedMod = this.activeEffects.slowMotion > 0 ? 0.4 : 1;
-        
-        this.hearts = this.hearts.filter(heart => {
-            heart.y += heart.speed * speedMod;
-            heart.x += Math.sin(heart.oscillation + this.frameCount * 0.05) * 0.5; // Ligera oscilación lateral
-            heart.rotation += heart.rotationSpeed;
-            heart.pulse += 0.1;
-            heart.scale = 1 + Math.sin(heart.pulse) * 0.1;
-            
-            // Efecto imán mejorado
-            if (this.activeEffects.magnet > 0) {
-                const dx = this.player.x + this.player.width / 2 - (heart.x + heart.width / 2);
-                const dy = this.player.y + this.player.height / 2 - (heart.y + heart.height / 2);
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < 300) {
-                    heart.x += dx * 0.08;
-                    heart.y += dy * 0.08;
-                }
-            }
-            
-            if (this.checkCollision(this.player, heart)) {
-                this.collectHeart(heart);
-                return false;
-            }
-            
-            return heart.y < this.height + 50;
-        });
-    }
-
-    updateMessages() {
-        const speedMod = this.activeEffects.slowMotion > 0 ? 0.4 : 1;
-        
-        this.messages = this.messages.filter(message => {
-            message.y += message.speed * speedMod;
-            message.glow = Math.abs(Math.sin(this.frameCount * 0.1)) * 15;
-            
-            if (this.activeEffects.magnet > 0) {
-                const dx = this.player.x + this.player.width / 2 - (message.x + message.width / 2);
-                const dy = this.player.y + this.player.height / 2 - (message.y + message.height / 2);
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < 300) {
-                    message.x += dx * 0.05;
-                    message.y += dy * 0.05;
-                }
-            }
-            
-            if (this.checkCollision(this.player, message)) {
-                this.collectMessage(message);
-                return false;
-            }
-            
-            return message.y < this.height + 50;
-        });
-    }
-
-    updateObstacles() {
-        const speedMod = this.activeEffects.slowMotion > 0 ? 0.4 : 1;
-        
-        this.obstacles = this.obstacles.filter(obstacle => {
-            obstacle.y += obstacle.speed * speedMod;
-            obstacle.rotation += obstacle.rotationSpeed;
-            
-            if (!this.player.invincible && this.activeEffects.shield <= 0 && 
-                this.checkCollision(this.player, obstacle)) {
-                this.hitObstacle();
-                return false;
-            }
-            
-            // Si hay escudo, el obstáculo se destruye al tocar
-            if (this.activeEffects.shield > 0 && this.checkCollision(this.player, obstacle)) {
-                this.createParticles(obstacle.x, obstacle.y, '✨', '#fff');
-                return false;
-            }
-            
-            return obstacle.y < this.height + 50;
-        });
-    }
-
-    updatePowerUps() {
-        const speedMod = this.activeEffects.slowMotion > 0 ? 0.4 : 1;
-        
-        this.powerUps = this.powerUps.filter(powerUp => {
-            powerUp.y += powerUp.speed * speedMod;
-            powerUp.pulse += 0.15;
-            
-            if (this.checkCollision(this.player, powerUp)) {
-                this.collectPowerUp(powerUp);
-                return false;
-            }
-            
-            return powerUp.y < this.height + 50;
-        });
-    }
-
-    updateParticles() {
-        this.particles = this.particles.filter(particle => {
-            particle.x += particle.vx;
-            particle.y += particle.vy;
-            particle.vy += 0.1; // Gravedad
-            particle.life--;
-            particle.opacity = particle.life / particle.maxLife;
-            particle.rotation += particle.rotationSpeed;
-            
-            return particle.life > 0;
-        });
-    }
-
-    updateFloatingTexts() {
-        this.floatingTexts = this.floatingTexts.filter(text => {
-            text.y += text.vy;
-            text.life--;
-            text.opacity = Math.min(1, text.life / 30);
-            text.scale = 1 + Math.sin((text.maxLife - text.life) * 0.1) * 0.2;
-            return text.life > 0;
-        });
-    }
-
-    updateEffects() {
-        for (const effect in this.activeEffects) {
-            if (this.activeEffects[effect] > 0) {
-                this.activeEffects[effect]--;
-            }
-        }
-    }
-
-    collectHeart(heart) {
-        const points = heart.points * (this.activeEffects.multiplier > 0 ? 2 : 1);
-        this.score += points;
-        
-        this.combo++;
-        this.comboTime = 150; // 2.5s
-        if (this.combo > this.maxCombo) this.maxCombo = this.combo;
-        
-        if (this.combo > 5) this.score += this.combo * 5;
-        
-        // Efectos
-        this.createParticles(heart.x, heart.y, heart.emoji);
-        this.showFloatingText(`+${points}`, heart.x, heart.y, '#ff69b4');
-        if (this.combo > 1) this.showFloatingText(`${this.combo}x Combo!`, heart.x, heart.y - 30, '#ffd700');
-    }
-
-    collectMessage(message) {
-        const points = message.points * (this.activeEffects.multiplier > 0 ? 2 : 1);
-        this.score += points;
-        this.combo += 2;
-        this.comboTime = 150;
-        
-        this.createParticles(message.x, message.y, '✨', message.color);
-        this.showFloatingText(message.text, message.x, message.y, message.color, 40);
-        this.showFloatingText(`+${points}`, message.x, message.y - 40, '#fff');
-    }
-
-    collectPowerUp(powerUp) {
-        if (powerUp.type === 'life') {
-            this.lives = Math.min(this.lives + 1, 5);
-        } else if (powerUp.type === 'blast') {
-            // Destruir todos los obstáculos visibles
-            this.obstacles.forEach(obs => this.createParticles(obs.x, obs.y, '💥'));
-            this.obstacles = [];
-            this.showFloatingText("¡Limpieza!", this.player.x, this.player.y - 50, '#ff4500');
-        } else if (powerUp.duration > 0) {
-            this.activeEffects[powerUp.type] = powerUp.duration;
-        }
-        
-        this.showFloatingText(powerUp.name, powerUp.x, powerUp.y, powerUp.color, 30);
-        this.createExplosion(powerUp.x, powerUp.y, powerUp.color);
-    }
-
-    hitObstacle() {
-        this.lives--;
-        this.combo = 0;
-        
-        // Shake screen effect (simulado)
-        this.screenShake = 10;
-        
-        if (this.lives <= 0) {
-            this.gameOver();
-        } else {
-            this.player.invincible = true;
-            this.player.invincibleTime = 120;
-            this.createParticles(this.player.x, this.player.y, '💔', '#ff0000');
-            this.showFloatingText("-1 Vida", this.player.x, this.player.y - 50, '#ff0000');
-        }
-    }
-
-    createParticles(x, y, emoji, color = null) {
-        const count = 10;
-        for (let i = 0; i < count; i++) {
-            this.particles.push({
-                x: x + Math.random() * 40,
-                y: y + Math.random() * 40,
-                vx: (Math.random() - 0.5) * 10,
-                vy: (Math.random() - 0.5) * 10,
-                emoji: emoji,
-                color: color,
-                life: 40 + Math.random() * 20,
-                maxLife: 60,
-                opacity: 1,
-                size: Math.random() * 20 + 5,
-                rotation: Math.random() * Math.PI * 2,
-                rotationSpeed: (Math.random() - 0.5) * 0.2
-            });
-        }
-    }
-
-    createExplosion(x, y, color) {
-        for (let i = 0; i < 20; i++) {
-            const angle = (Math.PI * 2 / 20) * i;
-            const speed = 5 + Math.random() * 5;
-            this.particles.push({
-                x: x + 20,
-                y: y + 20,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                color: color,
-                emoji: null, // Partícula geométrica
-                life: 50,
-                maxLife: 50,
-                opacity: 1,
-                size: 5 + Math.random() * 5,
-                rotation: 0,
-                rotationSpeed: 0
-            });
-        }
-    }
-
-    showFloatingText(text, x, y, color = '#fff', fontSize = 24) {
-        this.floatingTexts.push({
-            x: x,
-            y: y,
-            vy: -1.5,
-            text: text,
-            life: 60,
-            maxLife: 60,
-            opacity: 1,
-            color: color,
-            fontSize: fontSize,
-            scale: 1
-        });
-    }
-
-    showLevelUp() {
-        this.showFloatingText(`¡NIVEL ${this.level}!`, this.width / 2 - 50, this.height / 2, '#00ffff', 48);
-        this.createExplosion(this.width / 2, this.height / 2, '#00ffff');
-    }
-
-    checkCollision(rect1, rect2) {
-        const padding = 10; // Hitbox más permisiva
-        return rect1.x + padding < rect2.x + rect2.width - padding &&
-               rect1.x + rect1.width - padding > rect2.x + padding &&
-               rect1.y + padding < rect2.y + rect2.height - padding &&
-               rect1.y + rect1.height - padding > rect2.y + padding;
-    }
-
-    clampPlayer() {
-        this.player.x = Math.max(0, Math.min(this.width - this.player.width, this.player.x));
-        this.player.y = Math.max(0, Math.min(this.height - this.player.height, this.player.y));
-    }
-
-    togglePause() {
-        if (!this.isPlaying) return;
-        this.isPaused = !this.isPaused;
-        if (this.isPaused) this.showPauseScreen();
-    }
-
-    showPauseScreen() {
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(0, 0, this.width, this.height);
-        this.ctx.font = 'bold 48px Arial';
-        this.ctx.fillStyle = '#ff1493';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('⏸️ PAUSA', this.width / 2, this.height / 2);
-    }
-
-    async gameOver() {
-        this.isPlaying = false;
-        
-        // Verificar Logros
-        if (window.achievements) {
-            if (this.score >= 1000) {
-                window.achievements.unlock('galaxy_explorer');
-            }
-            if (this.score >= 5000) {
-                window.achievements.unlock('galaxy_master');
-            }
-        }
-
-        if (this.score > this.highScore) {
-            this.highScore = this.score;
+    async _gameOver() {
+        this.state = 'over';
+        if (this.score > this.highScore) this.highScore = this.score;
+        try {
             if (window.db && window.db.saveGameScore) {
                 await window.db.saveGameScore('galaxyLove', this.score, { level: this.level, maxCombo: this.maxCombo });
             } else {
-                localStorage.setItem('galaxyLoveHighScore', this.highScore);
+                const prev = parseInt(localStorage.getItem('galaxyLoveHighScore')) || 0;
+                if (this.score > prev) localStorage.setItem('galaxyLoveHighScore', String(this.score));
             }
+            if (window.achievements && window.achievements.unlock) window.achievements.unlock('galaxy_explorer');
+        } catch (e) { /* noop */ }
+    }
+
+    // ----------------------- DIBUJO -----------------------
+    _loop(ts) {
+        const dt = Math.min(0.05, (ts - this.lastTs) / 1000) || 0;
+        this.lastTs = ts;
+        this._update(dt);
+        this._draw(dt);
+        this.rafId = requestAnimationFrame(this._loop);
+    }
+
+    _draw(dt) {
+        const ctx = this.ctx;
+        if (!ctx) return;
+
+        // Fondo: degradado plomo/ciruela suave
+        const g = ctx.createLinearGradient(0, 0, 0, this.height);
+        g.addColorStop(0, '#241a30');
+        g.addColorStop(1, '#171022');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        // Estrellas
+        for (const s of this.stars) {
+            s.tw += dt * 3;
+            s.y += s.sp * dt;
+            if (s.y > this.height) s.y = 0;
+            const a = 0.4 + Math.abs(Math.sin(s.tw)) * 0.6;
+            ctx.globalAlpha = a;
+            ctx.fillStyle = '#f3e6ee';
+            ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
         }
-        
-        this.showGameOverScreen();
-    }
+        ctx.globalAlpha = 1;
 
-    showGameOverScreen() {
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-        this.ctx.fillRect(0, 0, this.width, this.height);
-        
-        this.ctx.font = 'bold 58px Arial';
-        this.ctx.fillStyle = '#ff1493';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('Game Over 💔', this.width / 2, 100);
-        
-        this.ctx.font = 'bold 32px Arial';
-        this.ctx.fillStyle = '#ffd700';
-        this.ctx.fillText(`Puntuación: ${this.score}`, this.width / 2, 180);
-        
-        // Mensaje de reinicio
-        const pulse = (Math.sin(Date.now() / 200) + 1) / 2;
-        this.ctx.font = 'bold 26px Arial';
-        this.ctx.fillStyle = `rgba(255, 20, 147, ${0.7 + pulse * 0.3})`;
-        this.ctx.fillText('Presiona ESPACIO para Reiniciar', this.width / 2, 500);
-        
-        if (!this.isPlaying) {
-            this.gameOverAnimationId = requestAnimationFrame(() => this.showGameOverScreen());
-        }
-        
-        // Input handler de reinicio (one-time)
-        if (!this.restartHandlerAttached) {
-            const restartHandler = (e) => {
-                if ((e.key === ' ' || e.type === 'click') && !this.isPlaying) {
-                    cancelAnimationFrame(this.gameOverAnimationId);
-                    this.restartHandlerAttached = false;
-                    window.removeEventListener('keydown', restartHandler);
-                    this.canvas.removeEventListener('click', restartHandler);
-                    this.startGame();
-                } else if (e.key === 'Escape') {
-                    cancelAnimationFrame(this.gameOverAnimationId);
-                    this.closeGalaxyGame();
-                }
-            };
-            window.addEventListener('keydown', restartHandler);
-            this.canvas.addEventListener('click', restartHandler);
-            this.restartHandlerAttached = true;
-        }
-    }
+        if (this.state === 'start') { this._drawStart(); return; }
 
-    closeGalaxyGame() {
-        const modal = document.getElementById('galaxy-game-modal');
-        if (modal) modal.classList.remove('active');
-    }
-
-    draw() {
-        // Fondo con efecto de "trail" suave si hay shake
-        this.ctx.fillStyle = '#0a0a0f';
-        if (this.screenShake > 0) {
-            const dx = (Math.random() - 0.5) * this.screenShake;
-            const dy = (Math.random() - 0.5) * this.screenShake;
-            this.ctx.translate(dx, dy);
-            this.screenShake *= 0.9;
-            if (this.screenShake < 0.5) this.screenShake = 0;
-        }
-        
-        this.ctx.fillRect(0, 0, this.width, this.height);
-        
-        this.drawStars();
-        
-        if (!this.isPlaying) return;
-        
-        // Dibujar estela del jugador
-        this.player.trail.forEach(t => {
-            this.ctx.font = `${this.player.width * 0.8}px Arial`;
-            this.ctx.globalAlpha = t.alpha * 0.5;
-            this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(this.player.emoji, t.x + this.player.width/2, t.y + this.player.height/2);
-        });
-        this.ctx.globalAlpha = 1;
-
-        // Elementos
-        this.drawHearts();
-        this.drawMessages();
-        this.drawObstacles();
-        this.drawPowerUps();
-        this.drawParticles();
-        this.drawPlayer();
-        this.drawFloatingTexts();
-        this.drawUI();
-        
-        // Reset transform
-        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    }
-
-    drawStars() {
-        this.stars.forEach(star => {
-            this.ctx.globalAlpha = 0.8 + Math.sin(star.twinkle) * 0.2;
-            this.ctx.fillStyle = star.color;
-            this.ctx.beginPath();
-            this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-            this.ctx.fill();
-        });
-        this.ctx.globalAlpha = 1;
-    }
-
-    drawHearts() {
-        this.hearts.forEach(heart => {
-            this.ctx.save();
-            this.ctx.translate(heart.x + heart.width / 2, heart.y + heart.height / 2);
-            this.ctx.rotate(heart.rotation);
-            this.ctx.scale(heart.scale, heart.scale);
-            
-            // Brillo
-            this.ctx.shadowColor = '#ff69b4';
-            this.ctx.shadowBlur = 15;
-            
-            this.ctx.font = `${heart.width}px Arial`;
-            this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(heart.emoji, 0, 0);
-            this.ctx.restore();
-        });
-    }
-
-    drawMessages() {
-        this.messages.forEach(message => {
-            this.ctx.save();
-            this.ctx.shadowColor = message.color;
-            this.ctx.shadowBlur = message.glow;
-            this.ctx.fillStyle = message.color;
-            this.ctx.font = 'bold 16px Arial';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText(message.text, message.x + message.width / 2, message.y + message.height / 2);
-            this.ctx.restore();
-        });
-    }
-
-    drawObstacles() {
-        this.obstacles.forEach(obstacle => {
-            this.ctx.save();
-            this.ctx.translate(obstacle.x + obstacle.width / 2, obstacle.y + obstacle.height / 2);
-            this.ctx.rotate(obstacle.rotation);
-            this.ctx.font = `${obstacle.width}px Arial`;
-            this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(obstacle.emoji, 0, 0);
-            this.ctx.restore();
-        });
-    }
-
-    drawPowerUps() {
-        this.powerUps.forEach(powerUp => {
-            const scale = 1 + Math.sin(powerUp.pulse) * 0.2;
-            this.ctx.save();
-            this.ctx.translate(powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2);
-            this.ctx.scale(scale, scale);
-            this.ctx.shadowColor = powerUp.color;
-            this.ctx.shadowBlur = 20;
-            this.ctx.font = `${powerUp.width}px Arial`;
-            this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(powerUp.emoji, 0, 0);
-            this.ctx.restore();
-        });
-    }
-
-    drawPlayer() {
-        this.ctx.save();
-        this.ctx.translate(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
-        this.ctx.rotate(this.player.angle);
-
-        // Efecto Escudo
-        if (this.activeEffects.shield > 0) {
-            this.ctx.strokeStyle = `rgba(0, 255, 255, ${0.5 + Math.sin(this.frameCount * 0.2) * 0.3})`;
-            this.ctx.lineWidth = 4;
-            this.ctx.beginPath();
-            this.ctx.arc(0, 0, this.player.width * 0.8, 0, Math.PI * 2);
-            this.ctx.stroke();
+        // Items
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (const it of this.items) {
+            ctx.save();
+            ctx.translate(it.x, it.y);
+            ctx.rotate(it.rot);
+            ctx.font = (it.r * 2) + 'px serif';
+            ctx.fillText(it.emoji, 0, 2);
+            ctx.restore();
         }
 
-        // Efecto Imán
-        if (this.activeEffects.magnet > 0) {
-            this.ctx.strokeStyle = `rgba(255, 215, 0, 0.3)`;
-            this.ctx.lineWidth = 2;
-            this.ctx.beginPath();
-            this.ctx.arc(0, 0, 150, 0, Math.PI * 2);
-            this.ctx.stroke();
+        // Estela del jugador
+        for (let i = 0; i < this.player.trail.length; i++) {
+            const t = this.player.trail[i];
+            ctx.globalAlpha = (i / this.player.trail.length) * 0.35;
+            ctx.fillStyle = '#e29bb0';
+            ctx.beginPath(); ctx.arc(t.x, t.y, 10 * (i / this.player.trail.length), 0, Math.PI * 2); ctx.fill();
         }
+        ctx.globalAlpha = 1;
 
-        // Render Jugador
-        if (!this.player.invincible || Math.floor(this.frameCount / 5) % 2 === 0) {
-            this.ctx.font = `${this.player.width}px Arial`;
-            this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(this.player.emoji, 0, 0);
+        // Jugador (con halo de escudo si aplica)
+        if (this.effects.shield > 0) {
+            ctx.strokeStyle = 'rgba(159,216,230,0.9)';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(this.player.x, this.player.y, this.player.r + 8, 0, Math.PI * 2); ctx.stroke();
         }
-        
-        this.ctx.restore();
-    }
+        ctx.font = (this.player.r * 2) + 'px serif';
+        ctx.fillText('💖', this.player.x, this.player.y + 2);
 
-    drawParticles() {
-        this.particles.forEach(p => {
-            this.ctx.save();
-            this.ctx.globalAlpha = p.opacity;
-            this.ctx.translate(p.x, p.y);
-            this.ctx.rotate(p.rotation);
-            
-            if (p.emoji) {
-                this.ctx.font = `${p.size}px Arial`;
-                this.ctx.fillText(p.emoji, 0, 0);
+        // Partículas y textos flotantes
+        for (const p of this.particles) {
+            if (p.isText) {
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillStyle = '#fdeef1';
+                ctx.font = 'bold 16px Poppins, sans-serif';
+                ctx.fillText(p.text, p.x, p.y);
             } else {
-                this.ctx.fillStyle = p.color || '#fff';
-                this.ctx.beginPath();
-                this.ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
-                this.ctx.fill();
+                ctx.globalAlpha = Math.max(0, p.life);
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
             }
-            this.ctx.restore();
-        });
+        }
+        ctx.globalAlpha = 1;
+
+        this._drawHUD();
+        if (this.state === 'paused') this._drawCenterPanel('Pausa', 'Pulsa P o toca para continuar');
+        if (this.state === 'over') this._drawGameOver();
     }
 
-    drawFloatingTexts() {
-        this.floatingTexts.forEach(t => {
-            this.ctx.save();
-            this.ctx.globalAlpha = t.opacity;
-            this.ctx.translate(t.x, t.y);
-            this.ctx.scale(t.scale, t.scale);
-            this.ctx.font = `bold ${t.fontSize}px Arial`;
-            this.ctx.fillStyle = t.color;
-            this.ctx.shadowColor = '#000';
-            this.ctx.shadowBlur = 4;
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText(t.text, 0, 0);
-            this.ctx.restore();
-        });
-    }
-
-    drawUI() {
-        // Barra superior
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        this.ctx.fillRect(0, 0, this.width, 50);
-        this.ctx.fillStyle = 'rgba(255, 20, 147, 0.5)';
-        this.ctx.fillRect(0, 48, this.width, 2);
-
-        // Score
-        this.ctx.font = 'bold 24px Arial';
-        this.ctx.fillStyle = '#ffd700';
-        this.ctx.textAlign = 'left';
-        this.ctx.fillText(`💎 ${this.score}`, 20, 34);
-
-        // Nivel
-        this.ctx.textAlign = 'center';
-        this.ctx.fillStyle = '#00ffff';
-        this.ctx.fillText(`NIVEL ${this.level}`, this.width / 2, 34);
+    _drawHUD() {
+        const ctx = this.ctx;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#fdeef1';
+        ctx.font = 'bold 20px Poppins, sans-serif';
+        ctx.fillText('💞 ' + this.score, 16, 14);
+        ctx.font = '13px Poppins, sans-serif';
+        ctx.fillStyle = 'rgba(253,238,241,0.85)';
+        ctx.fillText('Nivel ' + this.level + (this.combo > 1 ? '   🔥 x' + this.combo : ''), 16, 40);
+        ctx.fillText('Récord: ' + this.highScore, 16, 58);
 
         // Vidas
-        this.ctx.textAlign = 'right';
-        this.ctx.fillStyle = '#ff1493';
-        let livesStr = '';
-        for (let i = 0; i < this.lives; i++) livesStr += '❤️';
-        this.ctx.fillText(livesStr, this.width - 20, 34);
+        ctx.textAlign = 'right';
+        ctx.font = '18px serif';
+        let hearts = '';
+        for (let i = 0; i < this.lives; i++) hearts += '❤️';
+        ctx.fillText(hearts || '—', this.width - 14, 16);
 
-        // Combo bar
-        if (this.combo > 1) {
-            const barWidth = 200;
-            const fillWidth = (this.comboTime / 150) * barWidth;
-            
-            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            this.ctx.fillRect(this.width/2 - barWidth/2, 60, barWidth, 10);
-            
-            this.ctx.fillStyle = '#ffd700';
-            this.ctx.fillRect(this.width/2 - barWidth/2, 60, fillWidth, 10);
-            
-            this.ctx.font = 'bold 20px Arial';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText(`${this.combo}x COMBO`, this.width/2, 95);
-        }
+        // Efectos activos
+        ctx.font = '14px serif';
+        let fx = '';
+        if (this.effects.shield > 0) fx += '🛡️';
+        if (this.effects.magnet > 0) fx += '🧲';
+        if (this.effects.x2 > 0) fx += '⭐';
+        if (this.effects.slow > 0) fx += '🐌';
+        if (fx) ctx.fillText(fx, this.width - 14, 42);
+    }
 
-        // Efectos activos (iconos)
-        let effectX = 20;
-        const effectY = 80;
-        
-        for (const effect in this.activeEffects) {
-            if (this.activeEffects[effect] > 0) {
-                const type = this.powerUpTypes.find(p => p.type === effect);
-                if (type) {
-                    this.ctx.font = '24px Arial';
-                    this.ctx.fillText(type.emoji, effectX, effectY);
-                    
-                    // Barra de duración pequeña debajo del icono
-                    const maxDuration = type.duration;
-                    const pct = this.activeEffects[effect] / maxDuration;
-                    
-                    this.ctx.fillStyle = '#333';
-                    this.ctx.fillRect(effectX - 10, effectY + 5, 30, 4);
-                    this.ctx.fillStyle = type.color;
-                    this.ctx.fillRect(effectX - 10, effectY + 5, 30 * pct, 4);
-                    
-                    effectX += 50;
-                }
-            }
-        }
+    _drawStart() {
+        const ctx = this.ctx;
+        this._dim();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fdeef1';
+        ctx.font = 'bold 34px "Playfair Display", serif';
+        ctx.fillText('🌌 Galaxia del Amor', this.width / 2, this.height / 2 - 70);
+        ctx.font = '16px Poppins, sans-serif';
+        ctx.fillStyle = 'rgba(253,238,241,0.9)';
+        ctx.fillText('Captura 💖 y 💌, evita 💔☄️, atrapa power-ups', this.width / 2, this.height / 2 - 24);
+        ctx.fillText('Ratón / dedo / flechas para moverte · P para pausar', this.width / 2, this.height / 2 + 2);
+        ctx.fillText('Récord: ' + this.highScore, this.width / 2, this.height / 2 + 30);
+        this._drawButton('▶  Jugar', this.width / 2, this.height / 2 + 78);
+    }
+
+    _drawGameOver() {
+        const ctx = this.ctx;
+        this._dim();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fdeef1';
+        ctx.font = 'bold 32px "Playfair Display", serif';
+        ctx.fillText('Fin de la partida 💔', this.width / 2, this.height / 2 - 70);
+        ctx.font = '20px Poppins, sans-serif';
+        ctx.fillText('Puntuación: ' + this.score, this.width / 2, this.height / 2 - 26);
+        ctx.font = '15px Poppins, sans-serif';
+        ctx.fillStyle = 'rgba(253,238,241,0.9)';
+        const best = this.score >= this.highScore ? '🏆 ¡Nuevo récord!' : 'Récord: ' + this.highScore;
+        ctx.fillText(best, this.width / 2, this.height / 2 + 2);
+        ctx.fillText('Combo máx: x' + this.maxCombo + ' · Nivel ' + this.level, this.width / 2, this.height / 2 + 26);
+        this._drawButton('↻  Jugar de nuevo', this.width / 2, this.height / 2 + 78);
+    }
+
+    _drawCenterPanel(title, sub) {
+        const ctx = this.ctx;
+        this._dim();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#fdeef1';
+        ctx.font = 'bold 30px "Playfair Display", serif';
+        ctx.fillText(title, this.width / 2, this.height / 2 - 10);
+        ctx.font = '15px Poppins, sans-serif';
+        ctx.fillStyle = 'rgba(253,238,241,0.85)';
+        ctx.fillText(sub, this.width / 2, this.height / 2 + 24);
+    }
+
+    _drawButton(label, cx, cy) {
+        const ctx = this.ctx;
+        const w = 220, h = 54;
+        ctx.fillStyle = '#d98aa3';
+        this._roundRect(cx - w / 2, cy - h / 2, w, h, 27);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 18px Poppins, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, cx, cy + 1);
+    }
+
+    _roundRect(x, y, w, h, r) {
+        const ctx = this.ctx;
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+    }
+
+    _dim() {
+        const ctx = this.ctx;
+        ctx.fillStyle = 'rgba(20, 12, 28, 0.55)';
+        ctx.fillRect(0, 0, this.width, this.height);
     }
 }
 
-// Inicialización global
+// ----------------------- API GLOBAL -----------------------
 let galaxyGame = null;
 
 function startGalaxyLoveGame() {
     const modal = document.getElementById('galaxy-game-modal');
-    if (modal) {
-        modal.classList.add('active');
-        modal.classList.add('full-screen'); // Añadir clase full-screen
-        
-        // Forzar reflow para asegurar que el navegador registre el cambio de clase antes de init
-        void modal.offsetWidth; 
-        
-        if (!galaxyGame) galaxyGame = new GalaxyLoveGame();
-        
-        // Pequeño delay para asegurar que el modal está visible y tiene dimensiones
-        setTimeout(() => galaxyGame.init('galaxy-game-container'), 100);
-    }
+    if (!modal) return;
+    modal.classList.add('active');
+    modal.classList.add('full-screen');
+    void modal.offsetWidth; // forzar reflow para medir el contenedor
+
+    if (!galaxyGame) galaxyGame = new GalaxyLoveGame();
+    setTimeout(() => galaxyGame.init('galaxy-game-container'), 80);
 }
 
 function closeGalaxyGame() {
     const modal = document.getElementById('galaxy-game-modal');
     if (modal) {
         modal.classList.remove('active');
-        modal.classList.remove('full-screen'); // Quitar clase
-        if (galaxyGame) {
-            galaxyGame.isPlaying = false;
-            // Cancelar animaciones pendientes del menú o game over para evitar fugas
-            if (galaxyGame.menuAnimationId) cancelAnimationFrame(galaxyGame.menuAnimationId);
-            if (galaxyGame.gameOverAnimationId) cancelAnimationFrame(galaxyGame.gameOverAnimationId);
-        }
+        modal.classList.remove('full-screen');
     }
+    if (galaxyGame) galaxyGame.destroy();
 }
 
 window.startGalaxyLoveGame = startGalaxyLoveGame;
