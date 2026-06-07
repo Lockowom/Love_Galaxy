@@ -75,7 +75,7 @@ graph TD
 | 6 | `galaxy-game.js` | Mini-juego arcade "Galaxia del Amor" (canvas). |
 | 7 | `dome-gallery.js` | Galería tipo cúpula 3D. |
 | 8 | `main.js` (~1.058 líneas) | **Orquestador**: arranque, navegación, contadores, mensajes/chat, recuerdos, poemas, modales, helpers compartidos; llama al `init` de cada módulo. |
-| 9 | `love-games.js` | **6 juegos románticos** (memoria, razones, ruleta, piropos, test, pregunta). Autocontenido. |
+| 9 | `galaxy-game.js` + `galaxy.wasm` | **Galaxia del Amor**: motor en C++ → WebAssembly (`wasm/galaxy.cpp`) + render en canvas. Único juego. |
 
 **Módulos ES** (`type="module"`, se ejecutan tras el parseo y antes de `DOMContentLoaded`):
 
@@ -117,7 +117,7 @@ graph TD
 | `#timeline` | "Nuestra Historia" (eventos editables) | `timeline_events` |
 | `#gallery` | Galería de fotos por categoría | `gallery_photos` + Storage `love_gallery` |
 | `#memories` | "Libro de Recuerdos" | `memories` |
-| `#games` | **Juegos del Amor** (7 juegos) | `game_scores`, `question_answers` |
+| `#games` | **Galaxia del Amor** (C++ → WASM) | `game_scores` (récord) |
 | `#love-meter` | Amor-ómetro | local / efecto UI |
 | `#messages` | Chat / mensajes de amor | `custom_messages` |
 | `#poems` | Poemas cósmicos | estáticos en `main.js` |
@@ -272,39 +272,43 @@ Políticas: lectura/edición/borrado solo del **dueño** del objeto; subida para
 
 ---
 
-## 9. Módulo de juegos (`love-games.js`)
+## 9. Juego "Galaxia del Amor" (C++ → WebAssembly)
 
-Módulo **autocontenido**: crea su propio modal (`#lg-modal`) e inyecta sus propios estilos (prefijo `lg-`). No depende de `onclick` inline; se cablea por **delegación de eventos + enlace directo**.
+Es el **único** juego (los antiguos mini-juegos y `love-games.js` se eliminaron). El
+motor (física, aparición de objetos, colisiones, puntuación) está escrito en **C++**
+(`wasm/galaxy.cpp`, *freestanding*, sin libc/STL) y compilado a **`galaxy.wasm`** con
+**clang** (`scripts/build-wasm.sh`). El renderizado y la entrada van en `galaxy-game.js`.
 
 ```mermaid
 flowchart TD
-    U[Usuario toca un botón .btn-game] --> D{Lanzador blindado}
-    D -- Captura en document --> L[launch key]
-    D -- Listener directo en el botón --> L
-    L --> G{games[key]}
-    G -- memory --> M[Memoria del Amor 🃏]
-    G -- reasons --> R[Razones para Amarte 💌]
-    G -- roulette --> RU[Ruleta del Amor 🎡]
-    G -- piropos --> P[Piropos para mi Diosa 🌹]
-    G -- compat --> C[Test de Compatibilidad 💞]
-    G -- question --> Q[Pregunta del Día ❓]
-    G -- galaxy --> GX[startGalaxyLoveGame · galaxy-game.js]
-    M & R & RU & P & C & Q --> MOD[openGame → modal #lg-modal .active]
-    C --> SC[saveScore → db.saveGameScore]
-    Q --> SA[db.saveQuestionAnswer]
+    U[Usuario toca 🚀 Despegar .btn-game data-game=galaxy] --> W[startGalaxyLoveGame]
+    W --> LD[fetch galaxy.wasm?v=buildId → WebAssembly.instantiate]
+    LD --> EX[exports: init/start/update/getters/renderPtr]
+    subgraph Bucle requestAnimationFrame
+      EX --> UP[update dt en C++]
+      UP --> RB[lee renderBuf de la memoria lineal]
+      RB --> DR[dibuja en canvas: estrellas, nave, corazones, asteroides, HUD]
+    end
+    UP -- fin de partida --> GO[game over → saveBest]
+    GO --> DB[db.saveGameScore galaxyLove + localStorage]
 ```
 
-| Juego | `data-game` | Persiste |
-|---|---|---|
-| Memoria del Amor | `memory` | puntuación |
-| Razones para Amarte | `reasons` | — |
-| Ruleta del Amor | `roulette` | — |
-| Piropos para mi Diosa | `piropos` | — |
-| Test de Compatibilidad | `compat` | puntuación |
-| Pregunta del Día | `question` | respuesta |
-| Galaxia del Amor | `galaxy` | récord (en `galaxy-game.js`) |
+**Interfaz C++ ↔ JS** (todo por la memoria lineal exportada):
 
-> ✅ **Verificado en pruebas headless (jsdom):** cargando todos los scripts y simulando clics, los 6 juegos abren su modal correctamente y `window.LoveGames` queda registrado. El lanzador es robusto (captura + enlace directo + reintentos).
+| Export (C++) | Para qué |
+|---|---|
+| `init(seed,w,h)` / `resize(w,h)` / `start(seed)` | preparar / redimensionar / empezar |
+| `setPointer(y)` | mover la nave hacia el puntero/dedo |
+| `update(dt) → estado` | avanzar la simulación (0=listo,1=jugando,2=fin) |
+| `getScore/getLives/getBest/getShield/shieldPct` | HUD |
+| `playerXf/playerYf/playerRf` | posición de la nave |
+| `evtPickup/evtMsg/evtHit` | eventos del frame (sonido/frases) |
+| `renderPtr/renderCount/floatsPer` | buffer plano de entidades a dibujar |
+
+> ✅ **Verificado:** `npm test` instancia `galaxy.wasm` en Node y valida init/start/update,
+> puntuación y formato del buffer; en jsdom, `galaxy-game.js` registra
+> `window.startGalaxyLoveGame`. El botón se cablea por delegación en captura.
+> El `.wasm` se versiona compilado; Render no necesita toolchain de C++.
 
 ---
 
@@ -388,7 +392,7 @@ graph TB
             SCL[supabase-client.js]
             DBJS[db.js · window.db]
             MAIN[main.js · núcleo]
-            LG[love-games.js]
+            LG[galaxy-game.js + galaxy.wasm]
             GG[galaxy-game.js]
             ACH[achievements.js]
             ANIM[animations.js]

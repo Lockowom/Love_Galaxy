@@ -1,589 +1,380 @@
-// ================================================
-// GALAXIA DEL AMOR — juego arcade (versión pulida)
-// Vuela con tu corazón, captura corazones y mensajes de amor,
-// evita los obstáculos, consigue power-ups y haz combos.
-// Controles: ratón / dedo (arrastra) / flechas o WASD. P = pausa.
-// ================================================
+/* ==========================================================================
+   GALAXIA DEL AMOR — render + control (motor en C++ → WebAssembly).
+   Para Tamara, mi diosa Freya 💛
 
-class GalaxyLoveGame {
-    constructor() {
-        this.canvas = null;
-        this.ctx = null;
-        this.dpr = window.devicePixelRatio || 1;
-        this.width = 0;
-        this.height = 0;
+   El motor (física, colisiones, puntuación) vive en galaxy.wasm (compilado de
+   wasm/galaxy.cpp). Aquí solo: cargar el wasm, leer su estado cada frame y
+   dibujarlo en un <canvas>, además de la entrada (táctil/ratón/teclado) y la UI.
 
-        this.state = 'start';        // 'start' | 'playing' | 'paused' | 'over'
-        this.rafId = null;
-        this.lastTs = 0;
+   Script clásico (no módulo). Expone window.startGalaxyLoveGame() y
+   window.closeGalaxyGame() (las usa el HTML).
+   ========================================================================== */
+(function () {
+    'use strict';
 
-        this.highScore = 0;
-        this.loadHighScore();
+    // Marca de versión para el badge de diagnóstico.
+    window.LG_BUILD = '11';
 
-        this.loveMessages = [
-            "Te Amo", "Eres Mi Vida", "Mi Corazón Es Tuyo", "Amor Eterno",
-            "Juntos Por Siempre", "Eres Mi Todo", "Mi Alma Gemela", "Te Adoro",
-            "Mi Inspiración", "Eres Perfecta", "Contigo Soy Feliz", "Mi Estrella",
-            "Eres Mi Luz", "Mi Tesoro", "Eres Única", "Eres Mi Paraíso",
-            "Mi Ángel", "Eres Magia", "Mi Razón de Vivir", "Te Amo Más Cada Día"
-        ];
+    var HER = 'Tamara', NICK = 'mi diosa Freya';
+    var PHRASES = [
+        'Te amo, ' + HER + ' 💖',
+        'Eres mi universo 🌌',
+        'Mi diosa Freya ✨',
+        'Contigo todo brilla 💫',
+        'Mi lugar favorito eres tú 🏠',
+        'Por siempre, tú y yo 💞',
+        'Eres mi estrella polar ⭐',
+        'Late mi corazón por ti 💓'
+    ];
 
-        this.powerTypes = [
-            { type: 'shield', emoji: '🛡️', name: 'Escudo' },
-            { type: 'magnet', emoji: '🧲', name: 'Imán' },
-            { type: 'x2',     emoji: '⭐', name: 'Puntos x2' },
-            { type: 'slow',   emoji: '🐌', name: 'Cámara lenta' },
-            { type: 'life',   emoji: '❤️', name: 'Vida extra' }
-        ];
-
-        // Vínculos de eventos (para poder removerlos)
-        this._onPointerMove = this._onPointerMove.bind(this);
-        this._onPointerDown = this._onPointerDown.bind(this);
-        this._onKeyDown = this._onKeyDown.bind(this);
-        this._onKeyUp = this._onKeyUp.bind(this);
-        this._onResize = this._onResize.bind(this);
-        this._loop = this._loop.bind(this);
-    }
-
-    async loadHighScore() {
+    // Resolver la URL del wasm con la MISMA versión que este script (cache-busting).
+    var WASM_URL = (function () {
         try {
-            if (window.db && window.db.getHighScore) {
-                this.highScore = await window.db.getHighScore('galaxyLove') || 0;
-            } else {
-                this.highScore = parseInt(localStorage.getItem('galaxyLoveHighScore')) || 0;
-            }
-        } catch (e) { this.highScore = 0; }
+            var s = document.currentScript && document.currentScript.src;
+            if (s) { var q = s.indexOf('?'); return 'galaxy.wasm' + (q >= 0 ? s.slice(q) : ''); }
+        } catch (e) {}
+        return 'galaxy.wasm';
+    })();
+
+    // --------------------------------------------------------------- WASM
+    var instance = null, loadingPromise = null;
+    function loadWasm() {
+        if (instance) return Promise.resolve(instance);
+        if (loadingPromise) return loadingPromise;
+        loadingPromise = fetch(WASM_URL)
+            .then(function (r) { if (!r.ok) throw new Error('No se pudo descargar el juego (HTTP ' + r.status + ')'); return r.arrayBuffer(); })
+            .then(function (buf) { return WebAssembly.instantiate(buf, {}); })
+            .then(function (res) { instance = res.instance; return instance; });
+        return loadingPromise;
     }
 
-    // ----------------------------------------------------------------
-    init(containerId) {
-        const container = document.getElementById(containerId);
+    // --------------------------------------------------------------- estado UI
+    var ex = null;                 // exports del wasm
+    var canvas, ctx, hudEl, startEl, overEl, container;
+    var raf = 0, lastT = 0, running = false, started = false, builtUI = false;
+    var dpr = 1, W = 0, H = 0;
+    var stars = [], trail = [], floaters = [];
+    var savedBest = 0;
+    var audioCtx = null;
+
+    // --------------------------------------------------------------- sonido
+    function beep(freq, dur, type, vol) {
+        try {
+            if (!audioCtx) { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; audioCtx = new AC(); }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = type || 'sine'; o.frequency.value = freq;
+            g.gain.value = vol || 0.05;
+            o.connect(g); g.connect(audioCtx.destination);
+            var t = audioCtx.currentTime;
+            g.gain.setValueAtTime(g.gain.value, t);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + (dur || 0.15));
+            o.start(t); o.stop(t + (dur || 0.15));
+        } catch (e) {}
+    }
+
+    // --------------------------------------------------------------- récord
+    function loadBest() {
+        try {
+            var ls = parseInt(localStorage.getItem('galaxyLoveBest') || '0', 10);
+            if (!isNaN(ls)) savedBest = ls;
+        } catch (e) {}
+        if (window.db && window.db.getHighScore) {
+            Promise.resolve(window.db.getHighScore('galaxyLove')).then(function (v) {
+                if (typeof v === 'number' && v > savedBest) savedBest = v;
+            }).catch(function () {});
+        }
+    }
+    function saveBest(score) {
+        if (score <= savedBest) return;
+        savedBest = score;
+        try { localStorage.setItem('galaxyLoveBest', String(score)); } catch (e) {}
+        try { if (window.db && window.db.saveGameScore) window.db.saveGameScore('galaxyLove', score); } catch (e) {}
+        try { if (window.achievements && window.achievements.unlock) window.achievements.unlock('galaxy_explorer'); } catch (e) {}
+    }
+
+    // --------------------------------------------------------------- UI (DOM)
+    function buildUI() {
+        if (builtUI) return;
+        container = document.getElementById('galaxy-game-container');
         if (!container) return;
-        this.container = container;
         container.innerHTML = '';
+        container.style.position = 'relative';
+        container.style.touchAction = 'none';
 
-        this.canvas = document.createElement('canvas');
-        this.canvas.style.cssText = 'display:block; touch-action:none; cursor:none; border-radius:0;';
-        container.appendChild(this.canvas);
-        this.ctx = this.canvas.getContext('2d');
+        canvas = document.createElement('canvas');
+        canvas.style.cssText = 'display:block;width:100%;height:100%;border-radius:12px;cursor:none;';
+        container.appendChild(canvas);
+        ctx = canvas.getContext('2d');
 
-        this._resizeToContainer();
+        hudEl = document.createElement('div');
+        hudEl.style.cssText = 'position:absolute;top:10px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;' +
+            'font-family:inherit;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.6);pointer-events:none;font-size:clamp(13px,3.4vw,18px);font-weight:600;';
+        hudEl.innerHTML = '<span id="gg-score">💖 0</span><span id="gg-shield"></span><span id="gg-best">🏆 0</span>';
+        container.appendChild(hudEl);
 
-        // Listeners
-        this.canvas.addEventListener('pointermove', this._onPointerMove);
-        this.canvas.addEventListener('pointerdown', this._onPointerDown);
-        window.addEventListener('keydown', this._onKeyDown);
-        window.addEventListener('keyup', this._onKeyUp);
-        window.addEventListener('resize', this._onResize);
+        startEl = overlay();
+        startEl.innerHTML =
+            '<div style="font-size:clamp(34px,12vw,72px);line-height:1">🌌</div>' +
+            '<h2 style="margin:.4rem 0;font-family:var(--font-elegant,\'Playfair Display\',serif);color:#ffd3e6">Galaxia del Amor</h2>' +
+            '<p style="max-width:30rem;margin:.3rem auto 1rem;opacity:.92;line-height:1.5">' +
+            'Pilota la nave 🚀 y captura <b>corazones</b> 💖 y <b>mensajes</b> 💌 esquivando los <b>asteroides</b> ☄️. ' +
+            'Recoge el <b>escudo</b> 🛡️ para protegerte.</p>' +
+            '<p style="opacity:.8;font-size:.92em;margin-bottom:1.2rem">Móvil: <b>desliza el dedo</b> arriba/abajo · PC: <b>mueve el ratón</b> o <b>↑ ↓</b></p>' +
+            '<button id="gg-play" class="btn btn-primary" style="font-size:1.05rem;padding:.8rem 2rem;border-radius:999px">🚀 Despegar</button>';
+        container.appendChild(startEl);
 
-        this._initStars();
-        this._resetGame();
-        this.state = 'start';
+        overEl = overlay();
+        overEl.style.display = 'none';
+        container.appendChild(overEl);
 
-        // Arrancar el bucle
-        if (this.rafId) cancelAnimationFrame(this.rafId);
-        this.lastTs = performance.now();
-        this.rafId = requestAnimationFrame(this._loop);
+        canvas.addEventListener('pointermove', onPointer);
+        canvas.addEventListener('touchmove', onTouch, { passive: false });
+        startEl.querySelector('#gg-play').addEventListener('click', beginPlay);
+
+        builtUI = true;
     }
 
-    destroy() {
-        if (this.rafId) cancelAnimationFrame(this.rafId);
-        this.rafId = null;
-        if (this.canvas) {
-            this.canvas.removeEventListener('pointermove', this._onPointerMove);
-            this.canvas.removeEventListener('pointerdown', this._onPointerDown);
-        }
-        window.removeEventListener('keydown', this._onKeyDown);
-        window.removeEventListener('keyup', this._onKeyUp);
-        window.removeEventListener('resize', this._onResize);
+    function overlay() {
+        var d = document.createElement('div');
+        d.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;' +
+            'color:#fff;padding:1.2rem;background:radial-gradient(circle at 50% 35%,rgba(40,12,55,.72),rgba(10,4,20,.92));' +
+            'backdrop-filter:blur(3px);border-radius:12px;font-family:inherit;z-index:3;';
+        return d;
     }
 
-    _resizeToContainer() {
-        const rect = this.container.getBoundingClientRect();
-        this.width = Math.max(320, Math.floor(rect.width));
-        this.height = Math.max(360, Math.floor(rect.height));
-        this.dpr = window.devicePixelRatio || 1;
-        this.canvas.width = this.width * this.dpr;
-        this.canvas.height = this.height * this.dpr;
-        this.canvas.style.width = this.width + 'px';
-        this.canvas.style.height = this.height + 'px';
-        this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    function onPointer(e) { if (!ex) return; var r = canvas.getBoundingClientRect(); ex.setPointer((e.clientY - r.top) * dpr); }
+    function onTouch(e) {
+        if (!ex || !e.touches.length) return;
+        e.preventDefault();
+        var r = canvas.getBoundingClientRect();
+        ex.setPointer((e.touches[0].clientY - r.top) * dpr);
+    }
+    function onKey(e) {
+        if (!ex || !running) return;
+        var step = H * 0.08;
+        if (e.key === 'ArrowUp') { ex.setPointer(Math.max(0, ex.playerYf() - step)); e.preventDefault(); }
+        else if (e.key === 'ArrowDown') { ex.setPointer(Math.min(H, ex.playerYf() + step)); e.preventDefault(); }
+        else if (e.key === 'p' || e.key === 'P') { running = !running; if (running) { lastT = performance.now(); loop(lastT); } }
     }
 
-    _onResize() {
-        if (!this.canvas) return;
-        this._resizeToContainer();
-        this._initStars();
-        // Mantener al jugador dentro
-        if (this.player) {
-            this.player.x = Math.min(this.player.x, this.width - 30);
-            this.player.y = Math.min(this.player.y, this.height - 30);
-        }
+    function fit() {
+        if (!container || !canvas) return;
+        var rect = container.getBoundingClientRect();
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        W = Math.max(2, Math.round(rect.width * dpr));
+        H = Math.max(2, Math.round(rect.height * dpr));
+        canvas.width = W; canvas.height = H;
+        if (ex) ex.resize(W, H);
+        makeStars();
     }
 
-    _initStars() {
-        this.stars = [];
-        const n = Math.floor((this.width * this.height) / 9000);
-        for (let i = 0; i < n; i++) {
-            this.stars.push({
-                x: Math.random() * this.width,
-                y: Math.random() * this.height,
-                r: Math.random() * 1.6 + 0.3,
-                tw: Math.random() * Math.PI * 2,
-                sp: Math.random() * 18 + 6
-            });
-        }
-    }
-
-    _resetGame() {
-        this.score = 0;
-        this.lives = 3;
-        this.level = 1;
-        this.combo = 0;
-        this.comboTimer = 0;
-        this.maxCombo = 0;
-        this.time = 0;
-        this.spawnTimer = 0;
-        this.items = [];
-        this.particles = [];
-        this.effects = { shield: 0, magnet: 0, x2: 0, slow: 0 };
-        this.keys = {};
-        this.player = {
-            x: this.width / 2,
-            y: this.height * 0.75,
-            r: 24,
-            tx: this.width / 2,
-            ty: this.height * 0.75,
-            trail: []
-        };
-    }
-
-    // ----------------------- INPUT -----------------------
-    _pointerPos(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    }
-    _onPointerMove(e) {
-        if (this.state !== 'playing') return;
-        const p = this._pointerPos(e);
-        this.player.tx = p.x;
-        this.player.ty = p.y;
-    }
-    _onPointerDown(e) {
-        if (this.state === 'start') { this._startGame(); return; }
-        if (this.state === 'over') { this._startGame(); return; }
-        if (this.state === 'paused') { this.state = 'playing'; return; }
-        if (this.state === 'playing') {
-            const p = this._pointerPos(e);
-            this.player.tx = p.x;
-            this.player.ty = p.y;
-        }
-    }
-    _onKeyDown(e) {
-        // Solo actuar si el juego está visible
-        const modal = document.getElementById('galaxy-game-modal');
-        if (!modal || !modal.classList.contains('active')) return;
-
-        if (e.key === 'p' || e.key === 'P') {
-            if (this.state === 'playing') this.state = 'paused';
-            else if (this.state === 'paused') this.state = 'playing';
-            return;
-        }
-        if ((e.key === 'Enter' || e.key === ' ') && (this.state === 'start' || this.state === 'over')) {
-            this._startGame();
-            e.preventDefault();
-            return;
-        }
-        this.keys[e.key] = true;
-        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
-    }
-    _onKeyUp(e) { this.keys[e.key] = false; }
-
-    _startGame() {
-        this._resetGame();
-        this.state = 'playing';
-    }
-
-    // ----------------------- LÓGICA -----------------------
-    _spawn() {
-        const r = Math.random();
-        let kind;
-        if (r < 0.62) kind = 'heart';
-        else if (r < 0.78) kind = 'message';
-        else if (r < 0.95) kind = 'bad';
-        else kind = 'power';
-
-        // Posición y velocidad desde un borde aleatorio hacia el interior
-        const speed = (1.1 + this.level * 0.18) * (this.effects.slow > 0 ? 0.45 : 1);
-        const edge = Math.floor(Math.random() * 4);
-        let x, y, vx, vy;
-        const m = 40;
-        if (edge === 0) { x = Math.random() * this.width; y = -m; }
-        else if (edge === 1) { x = this.width + m; y = Math.random() * this.height; }
-        else if (edge === 2) { x = Math.random() * this.width; y = this.height + m; }
-        else { x = -m; y = Math.random() * this.height; }
-        // Velocidad hacia una zona central con algo de aleatoriedad
-        const cx = this.width * (0.3 + Math.random() * 0.4);
-        const cy = this.height * (0.3 + Math.random() * 0.4);
-        const ang = Math.atan2(cy - y, cx - x);
-        vx = Math.cos(ang) * speed;
-        vy = Math.sin(ang) * speed;
-
-        const item = { kind, x, y, vx, vy, r: 18, rot: 0, vr: (Math.random() - 0.5) * 0.05 };
-        if (kind === 'heart') { item.emoji = ['💖', '💗', '💕', '💝'][Math.floor(Math.random() * 4)]; item.r = 18; }
-        else if (kind === 'message') { item.emoji = '💌'; item.text = this.loveMessages[Math.floor(Math.random() * this.loveMessages.length)]; item.r = 20; }
-        else if (kind === 'bad') { item.emoji = ['💔', '☄️', '🪨'][Math.floor(Math.random() * 3)]; item.r = 20; }
-        else { const p = this.powerTypes[Math.floor(Math.random() * this.powerTypes.length)]; item.emoji = p.emoji; item.power = p.type; item.name = p.name; item.r = 19; }
-        this.items.push(item);
-    }
-
-    _addParticles(x, y, color, n = 10) {
-        for (let i = 0; i < n; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const sp = Math.random() * 3 + 1;
-            this.particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, color, r: Math.random() * 3 + 1.5 });
+    function makeStars() {
+        stars = [];
+        var n = Math.round((W * H) / 16000);
+        if (n > 220) n = 220;
+        for (var i = 0; i < n; i++) {
+            stars.push({ x: Math.random() * W, y: Math.random() * H, z: 0.3 + Math.random() * 1.7, s: Math.random() * 1.6 + 0.4, tw: Math.random() * 6.28 });
         }
     }
 
-    _update(dt) {
-        if (this.state !== 'playing') return;
-        this.time += dt;
+    // --------------------------------------------------------------- flujo
+    function beginPlay() {
+        if (!ex) return;
+        startEl.style.display = 'none';
+        overEl.style.display = 'none';
+        trail = []; floaters = [];
+        ex.start((Date.now() & 0x7fffffff) >>> 0);
+        started = true; running = true;
+        beep(660, 0.18, 'triangle', 0.06);
+        lastT = performance.now();
+        cancelAnimationFrame(raf);
+        loop(lastT);
+    }
 
-        // Nivel sube cada 18s o cada 25 corazones aprox
-        this.level = 1 + Math.floor(this.time / 18) + Math.floor(this.score / 400);
+    function gameOver() {
+        running = false;
+        var score = ex.getScore();
+        saveBest(score);
+        var best = Math.max(savedBest, ex.getBest());
+        beep(180, 0.5, 'sawtooth', 0.05);
+        overEl.innerHTML =
+            '<div style="font-size:clamp(30px,10vw,60px)">💫</div>' +
+            '<h2 style="margin:.3rem 0;font-family:var(--font-elegant,\'Playfair Display\',serif);color:#ffd3e6">Fin del viaje</h2>' +
+            '<p style="font-size:clamp(20px,6vw,30px);margin:.2rem 0"><b>💖 ' + score + '</b></p>' +
+            '<p style="opacity:.9;margin-bottom:1rem">🏆 Récord: ' + best + '</p>' +
+            '<p style="max-width:28rem;opacity:.85;margin-bottom:1.1rem">' + PHRASES[Math.floor(Math.random() * PHRASES.length)] + '</p>' +
+            '<button id="gg-again" class="btn btn-primary" style="font-size:1.05rem;padding:.8rem 2rem;border-radius:999px">💞 Volver a jugar</button>';
+        overEl.style.display = 'flex';
+        overEl.querySelector('#gg-again').addEventListener('click', beginPlay);
+    }
 
-        // Combo decae
-        if (this.comboTimer > 0) { this.comboTimer -= dt; if (this.comboTimer <= 0) this.combo = 0; }
+    // --------------------------------------------------------------- bucle
+    function loop(now) {
+        if (!running) return;
+        var dt = (now - lastT) / 1000; lastT = now;
+        if (dt < 0) dt = 0;
+        var st = ex.update(dt);
 
-        // Efectos decaen
-        for (const k of ['shield', 'magnet', 'x2', 'slow']) {
-            if (this.effects[k] > 0) this.effects[k] = Math.max(0, this.effects[k] - dt);
+        // eventos -> sonido + frases flotantes
+        if (ex.evtPickup()) {
+            if (ex.evtMsg()) { floaters.push({ t: PHRASES[Math.floor(Math.random() * PHRASES.length)], x: ex.playerXf(), y: ex.playerYf(), a: 1, big: 1 }); beep(880, 0.2, 'sine', 0.06); }
+            else { floaters.push({ t: '+10', x: ex.playerXf(), y: ex.playerYf(), a: 1, big: 0 }); beep(760, 0.1, 'sine', 0.05); }
         }
+        if (ex.evtHit()) beep(140, 0.25, 'square', 0.07);
 
-        // Movimiento del jugador: teclado mueve el objetivo; el cuerpo sigue suave
-        const ks = 7;
-        if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A']) this.player.tx -= ks;
-        if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) this.player.tx += ks;
-        if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) this.player.ty -= ks;
-        if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) this.player.ty += ks;
-        this.player.tx = Math.max(this.player.r, Math.min(this.width - this.player.r, this.player.tx));
-        this.player.ty = Math.max(this.player.r, Math.min(this.height - this.player.r, this.player.ty));
-        this.player.x += (this.player.tx - this.player.x) * 0.2;
-        this.player.y += (this.player.ty - this.player.y) * 0.2;
+        draw(dt);
+        updateHud();
 
-        // Estela
-        this.player.trail.push({ x: this.player.x, y: this.player.y });
-        if (this.player.trail.length > 12) this.player.trail.shift();
+        if (st === 2) { gameOver(); return; }
+        raf = requestAnimationFrame(loop);
+    }
 
-        // Spawn
-        this.spawnTimer -= dt;
-        const interval = Math.max(0.35, 0.95 - this.level * 0.05);
-        if (this.spawnTimer <= 0) { this._spawn(); this.spawnTimer = interval; }
-
-        // Actualizar items
-        const slowF = this.effects.slow > 0 ? 0.45 : 1;
-        for (let i = this.items.length - 1; i >= 0; i--) {
-            const it = this.items[i];
-            // Imán: atrae corazones/mensajes
-            if (this.effects.magnet > 0 && (it.kind === 'heart' || it.kind === 'message')) {
-                const dx = this.player.x - it.x, dy = this.player.y - it.y;
-                const d = Math.hypot(dx, dy) || 1;
-                if (d < 260) { it.vx += (dx / d) * 0.6; it.vy += (dy / d) * 0.6; }
-            }
-            it.x += it.vx * slowF * dt * 60;
-            it.y += it.vy * slowF * dt * 60;
-            it.rot += it.vr;
-
-            // Fuera de pantalla
-            if (it.x < -60 || it.x > this.width + 60 || it.y < -60 || it.y > this.height + 60) {
-                this.items.splice(i, 1);
-                continue;
-            }
-
-            // Colisión con jugador
-            const dist = Math.hypot(this.player.x - it.x, this.player.y - it.y);
-            if (dist < this.player.r + it.r - 6) {
-                this._collide(it);
-                this.items.splice(i, 1);
-            }
-        }
-
-        // Partículas
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            const p = this.particles[i];
-            p.x += p.vx; p.y += p.vy; p.vy += 0.04; p.life -= dt * 1.6;
-            if (p.life <= 0) this.particles.splice(i, 1);
+    function updateHud() {
+        var sc = document.getElementById('gg-score'); if (sc) sc.textContent = '💖 ' + ex.getScore();
+        var be = document.getElementById('gg-best'); if (be) be.textContent = '🏆 ' + Math.max(savedBest, ex.getBest());
+        var sh = document.getElementById('gg-shield');
+        if (sh) {
+            if (ex.getShield()) { sh.textContent = '🛡️ ' + Math.ceil(ex.shieldPct() * 6) + 's'; }
+            else { var lives = ex.getLives(); sh.textContent = '❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, 3 - lives)); }
         }
     }
 
-    _collide(it) {
-        if (it.kind === 'heart') {
-            this.combo++; this.comboTimer = 2.5; this.maxCombo = Math.max(this.maxCombo, this.combo);
-            const base = 10 + Math.min(this.combo, 10) * 2;
-            this.score += base * (this.effects.x2 > 0 ? 2 : 1);
-            this._addParticles(it.x, it.y, '#e29bb0', 10);
-        } else if (it.kind === 'message') {
-            this.combo++; this.comboTimer = 2.5; this.maxCombo = Math.max(this.maxCombo, this.combo);
-            this.score += 30 * (this.effects.x2 > 0 ? 2 : 1);
-            this._addParticles(it.x, it.y, '#c9b3d9', 16);
-            this._float(it.text || 'Te Amo', it.x, it.y);
-        } else if (it.kind === 'power') {
-            this._applyPower(it.power, it.name);
-            this._addParticles(it.x, it.y, '#f0bfa8', 18);
-        } else { // bad
-            if (this.effects.shield > 0) {
-                this.effects.shield = 0; // el escudo absorbe el golpe
-                this._addParticles(it.x, it.y, '#9fd8e6', 18);
-                this._float('🛡️ ¡Escudo!', it.x, it.y);
-            } else {
-                this.lives--; this.combo = 0;
-                this._addParticles(this.player.x, this.player.y, '#e08a8a', 20);
-                this._float('💔', it.x, it.y);
-                if (this.lives <= 0) this._gameOver();
-            }
-        }
-    }
+    // --------------------------------------------------------------- dibujo
+    var EMO = ['💖', '💌', '☄️', '🛡️'];
+    function draw(dt) {
+        // fondo
+        var g = ctx.createRadialGradient(W * 0.5, H * 0.35, 0, W * 0.5, H * 0.35, Math.max(W, H) * 0.85);
+        g.addColorStop(0, '#241038'); g.addColorStop(0.6, '#140a24'); g.addColorStop(1, '#070310');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
-    _applyPower(type, name) {
-        if (type === 'life') { this.lives = Math.min(5, this.lives + 1); }
-        else if (type === 'shield') this.effects.shield = 6;
-        else if (type === 'magnet') this.effects.magnet = 7;
-        else if (type === 'x2') this.effects.x2 = 9;
-        else if (type === 'slow') this.effects.slow = 5;
-        this._float('✨ ' + (name || ''), this.player.x, this.player.y - 30);
-    }
-
-    _float(text, x, y) {
-        this.particles.push({ x, y, vx: 0, vy: -0.6, life: 1.2, color: '#fff', text, r: 0, isText: true });
-    }
-
-    async _gameOver() {
-        this.state = 'over';
-        if (this.score > this.highScore) this.highScore = this.score;
-        try {
-            if (window.db && window.db.saveGameScore) {
-                await window.db.saveGameScore('galaxyLove', this.score, { level: this.level, maxCombo: this.maxCombo });
-            } else {
-                const prev = parseInt(localStorage.getItem('galaxyLoveHighScore')) || 0;
-                if (this.score > prev) localStorage.setItem('galaxyLoveHighScore', String(this.score));
-            }
-            if (window.achievements && window.achievements.unlock) window.achievements.unlock('galaxy_explorer');
-        } catch (e) { /* noop */ }
-    }
-
-    // ----------------------- DIBUJO -----------------------
-    _loop(ts) {
-        const dt = Math.min(0.05, (ts - this.lastTs) / 1000) || 0;
-        this.lastTs = ts;
-        this._update(dt);
-        this._draw(dt);
-        this.rafId = requestAnimationFrame(this._loop);
-    }
-
-    _draw(dt) {
-        const ctx = this.ctx;
-        if (!ctx) return;
-
-        // Fondo: degradado plomo/ciruela suave
-        const g = ctx.createLinearGradient(0, 0, 0, this.height);
-        g.addColorStop(0, '#241a30');
-        g.addColorStop(1, '#171022');
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, this.width, this.height);
-
-        // Estrellas
-        for (const s of this.stars) {
+        // estrellas (parallax)
+        for (var i = 0; i < stars.length; i++) {
+            var s = stars[i];
+            s.x -= s.z * 60 * dt * dpr;
             s.tw += dt * 3;
-            s.y += s.sp * dt;
-            if (s.y > this.height) s.y = 0;
-            const a = 0.4 + Math.abs(Math.sin(s.tw)) * 0.6;
-            ctx.globalAlpha = a;
-            ctx.fillStyle = '#f3e6ee';
-            ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+            if (s.x < 0) { s.x = W; s.y = Math.random() * H; }
+            ctx.globalAlpha = 0.4 + 0.4 * Math.sin(s.tw);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(s.x, s.y, s.s * dpr, s.s * dpr);
         }
         ctx.globalAlpha = 1;
 
-        if (this.state === 'start') { this._drawStart(); return; }
+        if (!ex) return;
 
-        // Items
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        for (const it of this.items) {
+        // entidades
+        var ptr = ex.renderPtr(), cnt = ex.renderCount(), fp = ex.floatsPer();
+        var mem = new Float32Array(instance.exports.memory.buffer, ptr, cnt * fp);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        for (var k = 0; k < cnt; k++) {
+            var type = mem[k * fp] | 0, x = mem[k * fp + 1], y = mem[k * fp + 2], r = mem[k * fp + 3], ph = mem[k * fp + 4];
+            var size = r * 2.3;
             ctx.save();
-            ctx.translate(it.x, it.y);
-            ctx.rotate(it.rot);
-            ctx.font = (it.r * 2) + 'px serif';
-            ctx.fillText(it.emoji, 0, 2);
+            ctx.translate(x, y);
+            if (type === 2) ctx.rotate(ph); // asteroides giran
+            ctx.font = size + 'px serif';
+            ctx.shadowColor = type === 2 ? 'rgba(255,150,90,.6)' : 'rgba(255,120,190,.7)';
+            ctx.shadowBlur = r * 0.7;
+            ctx.fillText(EMO[type] || '✨', 0, 0);
             ctx.restore();
         }
+        ctx.shadowBlur = 0;
 
-        // Estela del jugador
-        for (let i = 0; i < this.player.trail.length; i++) {
-            const t = this.player.trail[i];
-            ctx.globalAlpha = (i / this.player.trail.length) * 0.35;
-            ctx.fillStyle = '#e29bb0';
-            ctx.beginPath(); ctx.arc(t.x, t.y, 10 * (i / this.player.trail.length), 0, Math.PI * 2); ctx.fill();
+        // nave + estela + escudo
+        var px = ex.playerXf(), py = ex.playerYf(), pr = ex.playerRf();
+        trail.push({ x: px, y: py });
+        if (trail.length > 14) trail.shift();
+        for (var tt = 0; tt < trail.length; tt++) {
+            var tp = trail[tt], al = tt / trail.length;
+            ctx.globalAlpha = al * 0.5;
+            ctx.fillStyle = tt % 2 ? '#ff8ac2' : '#ffd36e';
+            ctx.beginPath(); ctx.arc(tp.x - pr * 0.7, tp.y, pr * 0.28 * al, 0, 6.2832); ctx.fill();
         }
         ctx.globalAlpha = 1;
 
-        // Jugador (con halo de escudo si aplica)
-        if (this.effects.shield > 0) {
-            ctx.strokeStyle = 'rgba(159,216,230,0.9)';
-            ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(this.player.x, this.player.y, this.player.r + 8, 0, Math.PI * 2); ctx.stroke();
+        if (ex.getShield()) {
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(120,200,255,' + (0.5 + 0.4 * Math.sin(performance.now() / 120)) + ')';
+            ctx.lineWidth = Math.max(2, pr * 0.16);
+            ctx.arc(px, py, pr * 1.35, 0, 6.2832); ctx.stroke();
         }
-        ctx.font = (this.player.r * 2) + 'px serif';
-        ctx.fillText('💖', this.player.x, this.player.y + 2);
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.font = (pr * 2.4) + 'px serif';
+        ctx.shadowColor = 'rgba(255,170,90,.9)'; ctx.shadowBlur = pr * 0.9;
+        ctx.rotate(0.785398); // 🚀 apunta arriba-derecha; girar para que mire a la derecha
+        ctx.fillText('🚀', 0, 0);
+        ctx.restore();
+        ctx.shadowBlur = 0;
 
-        // Partículas y textos flotantes
-        for (const p of this.particles) {
-            if (p.isText) {
-                ctx.globalAlpha = Math.max(0, p.life);
-                ctx.fillStyle = '#fdeef1';
-                ctx.font = 'bold 16px Poppins, sans-serif';
-                ctx.fillText(p.text, p.x, p.y);
-            } else {
-                ctx.globalAlpha = Math.max(0, p.life);
-                ctx.fillStyle = p.color;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
-            }
+        // frases flotantes
+        for (var fI = floaters.length - 1; fI >= 0; fI--) {
+            var fl = floaters[fI];
+            fl.y -= 26 * dt * dpr; fl.a -= dt * (fl.big ? 0.7 : 1.4);
+            if (fl.a <= 0) { floaters.splice(fI, 1); continue; }
+            ctx.globalAlpha = Math.max(0, fl.a);
+            ctx.fillStyle = fl.big ? '#ffd3e6' : '#ffe6a0';
+            ctx.font = (fl.big ? Math.max(14, pr * 0.9) : Math.max(12, pr * 0.8)) + 'px ' + (fl.big ? 'sans-serif' : 'serif');
+            ctx.fillText(fl.t, fl.x, fl.y);
         }
         ctx.globalAlpha = 1;
-
-        this._drawHUD();
-        if (this.state === 'paused') this._drawCenterPanel('Pausa', 'Pulsa P o toca para continuar');
-        if (this.state === 'over') this._drawGameOver();
     }
 
-    _drawHUD() {
-        const ctx = this.ctx;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillStyle = '#fdeef1';
-        ctx.font = 'bold 20px Poppins, sans-serif';
-        ctx.fillText('💞 ' + this.score, 16, 14);
-        ctx.font = '13px Poppins, sans-serif';
-        ctx.fillStyle = 'rgba(253,238,241,0.85)';
-        ctx.fillText('Nivel ' + this.level + (this.combo > 1 ? '   🔥 x' + this.combo : ''), 16, 40);
-        ctx.fillText('Récord: ' + this.highScore, 16, 58);
+    // Pinta un frame estático mientras está la pantalla de inicio.
+    function drawIdle() { if (!ctx) return; if (ex) ex.update(0); draw(0.016); }
 
-        // Vidas
-        ctx.textAlign = 'right';
-        ctx.font = '18px serif';
-        let hearts = '';
-        for (let i = 0; i < this.lives; i++) hearts += '❤️';
-        ctx.fillText(hearts || '—', this.width - 14, 16);
-
-        // Efectos activos
-        ctx.font = '14px serif';
-        let fx = '';
-        if (this.effects.shield > 0) fx += '🛡️';
-        if (this.effects.magnet > 0) fx += '🧲';
-        if (this.effects.x2 > 0) fx += '⭐';
-        if (this.effects.slow > 0) fx += '🐌';
-        if (fx) ctx.fillText(fx, this.width - 14, 42);
+    // --------------------------------------------------------------- API pública
+    function startGalaxyLoveGame() {
+        var modal = document.getElementById('galaxy-game-modal');
+        if (!modal) return;
+        modal.classList.add('active', 'full-screen');
+        loadBest();
+        buildUI();
+        loadWasm().then(function (inst) {
+            ex = inst.exports;
+            void modal.offsetWidth; // reflow para medir el contenedor
+            fit();
+            ex.init((Date.now() & 0x7fffffff) >>> 0, W, H);
+            started = false; running = false;
+            startEl.style.display = 'flex';
+            overEl.style.display = 'none';
+            drawIdle();
+        }).catch(function (err) {
+            if (window.__lgShowErr) window.__lgShowErr('Galaxia: ' + (err && err.message ? err.message : err));
+            if (container) container.innerHTML = '<div style="color:#fff;text-align:center;padding:2rem">No se pudo cargar el juego 😢<br><small style="opacity:.7">' +
+                (err && err.message ? err.message : err) + '</small></div>';
+        });
     }
 
-    _drawStart() {
-        const ctx = this.ctx;
-        this._dim();
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#fdeef1';
-        ctx.font = 'bold 34px "Playfair Display", serif';
-        ctx.fillText('🌌 Galaxia del Amor', this.width / 2, this.height / 2 - 70);
-        ctx.font = '16px Poppins, sans-serif';
-        ctx.fillStyle = 'rgba(253,238,241,0.9)';
-        ctx.fillText('Captura 💖 y 💌, evita 💔☄️, atrapa power-ups', this.width / 2, this.height / 2 - 24);
-        ctx.fillText('Ratón / dedo / flechas para moverte · P para pausar', this.width / 2, this.height / 2 + 2);
-        ctx.fillText('Récord: ' + this.highScore, this.width / 2, this.height / 2 + 30);
-        this._drawButton('▶  Jugar', this.width / 2, this.height / 2 + 78);
+    function closeGalaxyGame() {
+        running = false;
+        cancelAnimationFrame(raf);
+        var modal = document.getElementById('galaxy-game-modal');
+        if (modal) modal.classList.remove('active', 'full-screen');
     }
 
-    _drawGameOver() {
-        const ctx = this.ctx;
-        this._dim();
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#fdeef1';
-        ctx.font = 'bold 32px "Playfair Display", serif';
-        ctx.fillText('Fin de la partida 💔', this.width / 2, this.height / 2 - 70);
-        ctx.font = '20px Poppins, sans-serif';
-        ctx.fillText('Puntuación: ' + this.score, this.width / 2, this.height / 2 - 26);
-        ctx.font = '15px Poppins, sans-serif';
-        ctx.fillStyle = 'rgba(253,238,241,0.9)';
-        const best = this.score >= this.highScore ? '🏆 ¡Nuevo récord!' : 'Récord: ' + this.highScore;
-        ctx.fillText(best, this.width / 2, this.height / 2 + 2);
-        ctx.fillText('Combo máx: x' + this.maxCombo + ' · Nivel ' + this.level, this.width / 2, this.height / 2 + 26);
-        this._drawButton('↻  Jugar de nuevo', this.width / 2, this.height / 2 + 78);
+    // Pausar si se oculta la pestaña; reanudar al volver.
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) running = false;
+        else if (started && ex && ex.getState() === 1 && !running) { running = true; lastT = performance.now(); loop(lastT); }
+    });
+    window.addEventListener('resize', function () {
+        var m = document.getElementById('galaxy-game-modal');
+        if (m && m.classList.contains('active')) fit();
+    });
+    window.addEventListener('keydown', onKey);
+
+    // Cableado del botón "Despegar" (robusto: delegación en captura).
+    function wireButtons() {
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest && e.target.closest('[data-game="galaxy"]');
+            if (btn) { e.preventDefault(); startGalaxyLoveGame(); }
+        }, true);
     }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireButtons);
+    else wireButtons();
 
-    _drawCenterPanel(title, sub) {
-        const ctx = this.ctx;
-        this._dim();
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#fdeef1';
-        ctx.font = 'bold 30px "Playfair Display", serif';
-        ctx.fillText(title, this.width / 2, this.height / 2 - 10);
-        ctx.font = '15px Poppins, sans-serif';
-        ctx.fillStyle = 'rgba(253,238,241,0.85)';
-        ctx.fillText(sub, this.width / 2, this.height / 2 + 24);
-    }
-
-    _drawButton(label, cx, cy) {
-        const ctx = this.ctx;
-        const w = 220, h = 54;
-        ctx.fillStyle = '#d98aa3';
-        this._roundRect(cx - w / 2, cy - h / 2, w, h, 27);
-        ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 18px Poppins, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(label, cx, cy + 1);
-    }
-
-    _roundRect(x, y, w, h, r) {
-        const ctx = this.ctx;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
-        ctx.closePath();
-    }
-
-    _dim() {
-        const ctx = this.ctx;
-        ctx.fillStyle = 'rgba(20, 12, 28, 0.55)';
-        ctx.fillRect(0, 0, this.width, this.height);
-    }
-}
-
-// ----------------------- API GLOBAL -----------------------
-let galaxyGame = null;
-
-function startGalaxyLoveGame() {
-    const modal = document.getElementById('galaxy-game-modal');
-    if (!modal) return;
-    modal.classList.add('active');
-    modal.classList.add('full-screen');
-    void modal.offsetWidth; // forzar reflow para medir el contenedor
-
-    if (!galaxyGame) galaxyGame = new GalaxyLoveGame();
-    setTimeout(() => galaxyGame.init('galaxy-game-container'), 80);
-}
-
-function closeGalaxyGame() {
-    const modal = document.getElementById('galaxy-game-modal');
-    if (modal) {
-        modal.classList.remove('active');
-        modal.classList.remove('full-screen');
-    }
-    if (galaxyGame) galaxyGame.destroy();
-}
-
-window.startGalaxyLoveGame = startGalaxyLoveGame;
-window.closeGalaxyGame = closeGalaxyGame;
+    window.startGalaxyLoveGame = startGalaxyLoveGame;
+    window.closeGalaxyGame = closeGalaxyGame;
+    window.GalaxyGame = { start: startGalaxyLoveGame, close: closeGalaxyGame, loadWasm: loadWasm };
+})();

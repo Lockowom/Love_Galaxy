@@ -182,7 +182,7 @@ Todo se guarda en **localStorage** del navegador:
 2. 📖 **Nuestra Historia** - Timeline editable
 3. 🖼️ **Galería** - Sube y ve fotos
 4. 📝 **Recuerdos** - Libro de momentos especiales
-5. 🎮 **Juegos** - 7 juegos interactivos
+5. 🎮 **Juegos** - Galaxia del Amor (juego en WebAssembly)
 6. 💗 **Amor-ómetro** - Estadísticas de relación
 7. 💌 **Mensajes** - Frases de amor
 8. 🎵 **Playlist** - Canciones especiales
