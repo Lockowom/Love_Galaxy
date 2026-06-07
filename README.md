@@ -182,31 +182,35 @@
 
 ## 🚀 Instalación y Uso
 
-### Opción 1: Uso Directo (Recomendado)
+> ⚠️ **Importante:** la app usa módulos ES (`<script type="module">`), que **no
+> cargan desde `file://`**. Debes abrirla a través de un **servidor HTTP** (local o
+> Render). Abrir `index.html` con doble clic ya **no** funciona.
 
-1. **Clona o descarga el repositorio**:
+### Opción 1: Servidor Local (Recomendado)
+
+1. **Clona el repositorio**:
 ```bash
 git clone https://github.com/Lockowom/Love_Galaxy.git
 cd Love_Galaxy
 ```
 
-2. **Abre el archivo `index.html` en tu navegador**:
-   - Doble clic en `index.html`
-   - O arrastra el archivo a tu navegador
-   - O usa la extensión Live Server de VS Code
-
-3. **¡Listo!** La aplicación funciona completamente offline.
-
-### Opción 2: Servidor Local
-
+2. **Arranca un servidor estático**:
 ```bash
 # Con Python 3
-python -m http.server 8000
+python -m http.server 8000      # o:  npm run dev
 
 # Con Node.js y http-server
 npx http-server
 
 # Luego abre: http://localhost:8000
+```
+
+### Scripts de npm
+
+```bash
+npm test          # Tests de humo (Jest + jsdom): db y juegos cargan bien
+npm run build     # Sella ?v=<buildId> en index.html (cache-busting; lo usa Render)
+npm run dev       # Servidor local de desarrollo (python http.server)
 ```
 
 ### Opción 3: GitHub Pages
@@ -261,43 +265,60 @@ const loveQuotes = [
 ```
 Love_Galaxy/
 │
-├── index.html              # Página principal HTML
+├── index.html              # Página principal (todas las secciones)
 ├── styles.css              # Estilos globales y componentes
 ├── mobile-styles.css       # Estilos específicos para móviles y touch
-├── supabase-client.js      # Inicialización de Supabase y autenticación
-├── db.js                   # Capa de datos (Supabase + localStorage)
-├── main.js                 # Lógica principal y funcionalidades
-├── particles.js            # Sistema de partículas y efectos visuales
-├── games.js                # Juegos interactivos
-├── animations.js           # Animaciones avanzadas
-├── extras.js               # Características extras (logros, poemas, estadísticas)
+├── theme-minimal.css       # Tema pastel minimalista
+│
+├── supabase-client.js      # Inicialización de Supabase, auth y banner offline
+├── db.js                   # Capa de datos (Supabase + respaldo localStorage)
+├── main.js                 # Orquestador: init, navegación, contadores, mensajes,
+│                           #   recuerdos, modales y carga de los módulos
+│
+│   # Módulos ES (type="module") extraídos de main.js:
+├── auth-ui.js              # Gate de autenticación (login/registro)
+├── gallery-manager.js      # Galería de fotos
+├── playlist-manager.js     # Música y playlist (HTML5 + YouTube)
+├── timeline-manager.js     # Historia / línea de tiempo editable
+│
+├── love-games.js           # 6 juegos románticos + lanzador
+├── galaxy-game.js          # Juego de la Galaxia del Amor (canvas)
 ├── achievements.js         # Sistema de logros
-├── audio-visualizer.js     # Visualizador de audio
+├── animations.js           # Animaciones (cursor, partículas, scroll-reveal)
+├── extras.js               # Poemas, estadísticas, exportar datos
 ├── dome-gallery.js         # Galería tipo cúpula 3D
-├── galaxy-game.js          # Juego de la Galaxia del Amor
-├── romantic-effects.js     # Efectos románticos adicionales
+│
+├── scripts/stamp-version.js  # Cache-busting: sella ?v=<buildId> en el build
+├── love-galaxy.test.js     # Tests (Jest + jsdom)
+├── render.yaml             # Config de despliegue (cache headers + build)
 └── README.md               # Documentación (este archivo)
 ```
 
 ### 📄 Descripción de Archivos
 
-- **index.html** (~723 líneas): Estructura completa con 8 secciones principales + juego de galaxia
-- **styles.css** (~3,084 líneas): Sistema de diseño completo con variables CSS, responsive y efectos especiales
-- **mobile-styles.css** (~766 líneas): Estilos dedicados para móviles, tablets y touch
-- **supabase-client.js** (~138 líneas): Cliente de Supabase, autenticación y gestión de sesión
-- **db.js** (~632 líneas): Capa de datos con persistencia en Supabase y respaldo en localStorage
-- **main.js** (~2,223 líneas): Funcionalidad principal, galería, timeline editable, controles táctiles
-- **particles.js** (~459 líneas): Efectos de partículas, mouse trail, explosiones
-- **games.js** (~530 líneas): Juegos completos interactivos
-- **animations.js** (~682 líneas): Biblioteca de animaciones reutilizables
-- **extras.js** (~638 líneas): Sistema de logros, generador de poemas, estadísticas
-- **achievements.js** (~229 líneas): Sistema de logros e insignias
-- **audio-visualizer.js** (~156 líneas): Visualizador de audio reactivo
-- **dome-gallery.js** (~291 líneas): Galería de fotos tipo cúpula 3D
-- **galaxy-game.js** (~1,151 líneas): Juego espacial completo con físicas, colisiones, power-ups
-- **romantic-effects.js** (~566 líneas): Efectos románticos interactivos y panel de control
+- **index.html**: Estructura completa con todas las secciones + modales. Carga los
+  scripts clásicos y los 4 módulos ES.
+- **supabase-client.js**: Cliente de Supabase, autenticación, evento `cloud-status`
+  y banner de "modo sin conexión".
+- **db.js**: Capa de datos con persistencia en Supabase y respaldo en localStorage.
+- **main.js** (~1.058 líneas): Orquestador. Inicializa los módulos
+  (`AuthUI/GalleryManager/PlaylistManager/TimelineManager`), navegación, contadores,
+  mensajes/chat, recuerdos, poemas, modales y helpers compartidos
+  (`showToast`, `showNotification`, `escapeHtml`, ...).
+- **auth-ui.js / gallery-manager.js / playlist-manager.js / timeline-manager.js**:
+  Módulos ES que encapsulan cada dominio. Cada uno expone `window.XManager = { init }`
+  y publica en `window` las funciones que usan los `onclick` inline.
+- **love-games.js**: Memoria, Razones, Ruleta, Piropos, Test de Compatibilidad y
+  Pregunta del Día (modal autocontenido).
+- **galaxy-game.js**: Juego espacial con físicas, colisiones y power-ups.
+- **achievements.js / animations.js / extras.js / dome-gallery.js**: Logros,
+  animaciones, extras (poemas/estadísticas) y galería 3D.
+- **scripts/stamp-version.js**: Reescribe `?v=<buildId>` en index.html durante el build.
+- **love-galaxy.test.js**: Tests de humo con Jest + jsdom.
 
-**Total: ~12,000 líneas de código**
+> Nota de arquitectura: `main.js` se dividió en módulos por dominio para reducir su
+> tamaño y acoplamiento. Se eliminó código muerto (`particles.js`,
+> `romantic-effects.js`, `audio-visualizer.js`) que no se cargaba.
 
 ---
 

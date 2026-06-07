@@ -137,7 +137,43 @@ function updateConnectionStatusUI(isConnected) {
             indicator.title = "No se pudo conectar a la base de datos";
         }
     }
+
+    // Notificar el estado de conexión al resto de la app (banner offline, etc.)
+    window.__cloudOnline = isConnected;
+    window.dispatchEvent(new CustomEvent('cloud-status', { detail: { online: isConnected } }));
 }
+
+/**
+ * Muestra u oculta un banner fijo de "modo sin conexión".
+ * Se activa con el evento global 'cloud-status' (emitido aquí y desde db.js
+ * cuando una operación cae a localStorage).
+ */
+function toggleOfflineBanner(show) {
+    let banner = document.getElementById('offline-banner');
+    if (show) {
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'offline-banner';
+            banner.setAttribute('role', 'status');
+            banner.setAttribute('aria-live', 'polite');
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:30000;background:#b3261e;color:#fff;font-size:.9rem;line-height:1.3;text-align:center;padding:.55rem 2.4rem;box-shadow:0 2px 8px rgba(0,0,0,.25);font-family:inherit;';
+            banner.innerHTML = '⚠️ Sin conexión con la nube — los cambios se guardan solo en este dispositivo.' +
+                '<button id="offline-banner-close" aria-label="Cerrar" style="position:absolute;right:.6rem;top:50%;transform:translateY(-50%);background:transparent;border:none;color:#fff;font-size:1.2rem;line-height:1;cursor:pointer;">&times;</button>';
+            (document.body || document.documentElement).appendChild(banner);
+            const closeBtn = banner.querySelector('#offline-banner-close');
+            if (closeBtn) closeBtn.addEventListener('click', () => banner.remove());
+        } else {
+            banner.style.display = '';
+        }
+    } else if (banner) {
+        banner.remove();
+    }
+}
+
+// Un único listener gestiona el banner según el estado de la nube.
+window.addEventListener('cloud-status', (e) => {
+    toggleOfflineBanner(!(e.detail && e.detail.online));
+});
 
 // Iniciar cuando el DOM esté listo o inmediatamente si ya lo está
 if (document.readyState === 'loading') {

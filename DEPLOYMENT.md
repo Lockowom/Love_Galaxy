@@ -1,5 +1,41 @@
 # 🚀 Guía de Despliegue en Render
 
+## ⚙️ Configuración actual (automática vía `render.yaml`)
+
+El repositorio incluye `render.yaml`, que define TODO el despliegue. No necesitas
+configurar el build a mano si conectas el repo como **Blueprint**:
+
+- **Build Command:** `node scripts/stamp-version.js` → sella `?v=<buildId>` en
+  `index.html` para invalidar la caché de los assets en cada deploy.
+- **Publish directory:** `.`
+- **Caché (cabeceras):**
+  - HTML (`/`, `/index.html`, `/*.html`) → `no-store, must-revalidate` (siempre fresco).
+  - Assets (`/*.js`, `/*.css`, `/*.png`) → `public, max-age=31536000, immutable`.
+- **Seguridad:** CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`.
+- **Rewrite SPA:** `/* → /index.html`.
+
+> Resultado: el HTML nunca se queda pegado en caché y los assets se cachean fuerte
+> pero se invalidan solos al cambiar `?v=`. Esto elimina el problema de "los cambios
+> no se ven".
+
+### 🔄 Forzar un deploy limpio (y limpiar caché del CDN)
+
+```bash
+# 1) Cualquier push a la rama conectada dispara el auto-deploy:
+git push origin <rama-conectada>
+
+# 2) Para limpiar también la caché del CDN de Render:
+#    Dashboard → servicio love-galaxy → Manual Deploy → "Clear build cache & deploy"
+```
+
+Antes de desplegar conviene ejecutar `npm test` (debe salir verde).
+
+> Nota: `render.yaml` incluye `healthCheckPath: /`. Es propio de *web services*; en
+> *static sites* Render suele ignorarlo. Si un deploy fallara por validación de ese
+> campo, elimínalo del `render.yaml` (no es necesario para un sitio estático).
+
+---
+
 ## Opción 1: Despliegue Automático desde GitHub (Recomendado)
 
 ### Paso 1: Preparar el Repositorio
@@ -23,8 +59,9 @@ En el formulario de configuración:
 
 - **Name**: `love-galaxy` (o el nombre que prefieras)
 - **Repository**: Conecta tu repositorio `Lockowom/Love_Galaxy`
-- **Branch**: `main`
-- **Build Command**: Dejar vacío (no necesita build)
+- **Branch**: la rama que quieras desplegar (este proyecto se desarrolla en
+  `claude/project-review-an7jj`; usa la rama que tengas conectada en Render)
+- **Build Command**: `node scripts/stamp-version.js` (lo define `render.yaml`)
 - **Publish Directory**: `.` (raíz del proyecto)
 
 ### Paso 4: Configuración Avanzada (Opcional)
@@ -57,7 +94,7 @@ Headers:
 3. Selecciona **"Deploy from GitHub"**
 4. Conecta el repositorio `Lockowom/Love_Galaxy`
 5. Configuración:
-   - Build Command: *(dejar vacío)*
+   - Build Command: `node scripts/stamp-version.js`
    - Publish directory: `.`
 6. Clic en **"Create Static Site"**
 
@@ -119,7 +156,9 @@ lovegalaxytamara.com → CNAME → love-galaxy.onrender.com
 ## 🚨 Troubleshooting
 
 ### Problema: "Build Failed"
-**Solución**: Para un sitio estático, el Build Command debe estar vacío.
+**Solución**: El Build Command es `node scripts/stamp-version.js` (requiere Node, que
+Render provee por defecto). Si falla por el campo `healthCheckPath`, elimínalo de
+`render.yaml`. Verifica también que `scripts/stamp-version.js` exista en el repo.
 
 ### Problema: "404 Not Found"
 **Solución**: Verifica que `index.html` esté en la raíz del proyecto.

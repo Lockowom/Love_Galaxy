@@ -17,6 +17,10 @@ const db = {
         if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
             try { window.showToast('⚠️ ' + userMsg); } catch (e) { /* noop */ }
         }
+        // Señalar modo "sin conexión a la nube" (muestra el banner offline).
+        if (typeof window !== 'undefined') {
+            try { window.dispatchEvent(new CustomEvent('cloud-status', { detail: { online: false } })); } catch (e) { /* noop */ }
+        }
     },
 
     // ================================================

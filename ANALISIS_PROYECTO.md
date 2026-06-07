@@ -63,32 +63,49 @@ graph TD
 
 ### Scripts cargados (en orden, al final del `<body>`)
 
-| # | Archivo | Tamaño | Rol |
-|---|---|---|---|
-| 1 | `supabase-client.js` | 6 KB | Inicializa el cliente Supabase y expone `authSignIn/Up/Out`. Emite el evento `auth-change`. |
-| 2 | `db.js` | 26 KB | **Capa de datos** (`window.db`). CRUD de todas las tablas + Storage + *fallback* a `localStorage`. |
-| 3 | `achievements.js` | 8 KB | Sistema de logros/medallas. |
-| 4 | `animations.js` | 20 KB | Cursor personalizado, partículas en canvas, scroll-reveal. |
-| 5 | `extras.js` | 24 KB | Funciones complementarias de UI/efectos. |
-| 6 | `galaxy-game.js` | 24 KB | Mini-juego arcade "Galaxia del Amor" (canvas). |
-| 7 | `dome-gallery.js` | 11 KB | Galería tipo cúpula 3D. |
-| 8 | `main.js` | 87 KB | **Núcleo**: arranque, auth-gate, navegación, contadores, secciones, playlist YouTube, timeline, etc. |
-| 9 | `love-games.js` | 19 KB | **Módulo de 6 juegos románticos** (memoria, razones, ruleta, piropos, test, pregunta). Autocontenido. |
+**Scripts clásicos** (se ejecutan durante el parseo):
+
+| # | Archivo | Rol |
+|---|---|---|
+| 1 | `supabase-client.js` | Inicializa el cliente Supabase, expone `authSignIn/Up/Out`, emite `auth-change` y `cloud-status`, y muestra el banner offline. |
+| 2 | `db.js` | **Capa de datos** (`window.db`). CRUD de todas las tablas + Storage + *fallback* a `localStorage`. |
+| 3 | `achievements.js` | Sistema de logros/medallas. |
+| 4 | `animations.js` | Cursor personalizado, partículas en canvas, scroll-reveal. |
+| 5 | `extras.js` | Poemas, estadísticas, exportar datos. |
+| 6 | `galaxy-game.js` | Mini-juego arcade "Galaxia del Amor" (canvas). |
+| 7 | `dome-gallery.js` | Galería tipo cúpula 3D. |
+| 8 | `main.js` (~1.058 líneas) | **Orquestador**: arranque, navegación, contadores, mensajes/chat, recuerdos, poemas, modales, helpers compartidos; llama al `init` de cada módulo. |
+| 9 | `love-games.js` | **6 juegos románticos** (memoria, razones, ruleta, piropos, test, pregunta). Autocontenido. |
+
+**Módulos ES** (`type="module"`, se ejecutan tras el parseo y antes de `DOMContentLoaded`):
+
+| Módulo | Expone | Rol |
+|---|---|---|
+| `auth-ui.js` | `window.AuthUI={init}`, `handleLogout` | Gate de autenticación. |
+| `gallery-manager.js` | `window.GalleryManager={init,loadGalleryPhotos}` + fns onclick | Galería de fotos. |
+| `playlist-manager.js` | `window.PlaylistManager={init,loadPlaylist}` + fns onclick | Música/playlist (HTML5 + YouTube). |
+| `timeline-manager.js` | `window.TimelineManager={init,loadTimelineEvents}` + fns onclick | Historia editable. |
+
+> Cada módulo lee los helpers globales (`db`, `showToast`, `escapeHtml`, …) y publica
+> en `window` las funciones invocadas por los `onclick` inline, de modo que `main.js`
+> (clásico) los orquesta vía `window.XManager.init()`.
 
 ### Otros archivos
 
 | Archivo | Rol |
 |---|---|
-| `index.html` | Estructura única de la app (todas las secciones). |
-| `styles.css` (66 KB) | Estilos base. |
-| `mobile-styles.css` / `theme-minimal.css` | Responsive + tema pastel minimalista. |
-| `supabase-setup.sql` | Esquema completo + RLS + buckets (script a ejecutar en Supabase). |
+| `index.html` | Estructura única de la app. Meta anti-caché + carga de scripts/módulos. |
+| `styles.css` / `mobile-styles.css` / `theme-minimal.css` | Estilos base + responsive + tema pastel. |
+| `supabase-setup.sql` | Esquema completo + RLS + buckets. |
 | `migrate_to_auth.sql`, `update_schema.sql`, `fix_permissions.sql` | Migraciones/parches SQL. |
-| `render.yaml` | Configuración de despliegue en Render (headers, cache, rewrite SPA). |
-| `particles.js`, `romantic-effects.js`, `audio-visualizer.js` | **Presentes pero NO referenciados** en `index.html` (código muerto). |
+| `render.yaml` | Despliegue en Render (cache headers, buildCommand, rewrite SPA). |
+| `scripts/stamp-version.js` | Cache-busting: sella `?v=<buildId>` en el build. |
+| `love-galaxy.test.js` | Tests de humo (Jest + jsdom). |
 | `*.md`, `INSTRUCCIONES_RENDER.txt` | Documentación. |
 
-> ⚠️ **Hallazgo:** `particles.js`, `romantic-effects.js` y `audio-visualizer.js` existen en el repo pero ningún `<script>` los carga. Son candidatos a eliminar o integrar.
+> ✅ **Actualización:** el código muerto (`particles.js`, `romantic-effects.js`,
+> `audio-visualizer.js`) se **eliminó**, y `main.js` (antes ~87 KB) se **dividió** en
+> los 4 módulos ES de arriba.
 
 ---
 
@@ -346,15 +363,18 @@ Un **deploy antiguo** sirvió `index.html` con una caché de larga duración. El
 - Seguridad sólida (RLS + storage privado + URLs firmadas + CSP).
 - Módulo de juegos desacoplado y robusto.
 
-### 🟡 Mejoras sugeridas (prioridad media)
-1. **Eliminar código muerto:** `particles.js`, `romantic-effects.js`, `audio-visualizer.js` no se cargan.
-2. **`main.js` es muy grande (87 KB)**: convendría dividirlo por dominios (auth, galería, playlist, timeline…).
-3. **Caché:** mantener `no-cache` en HTML pero permitir caché larga **solo** para assets versionados (`?v=`), para mejorar velocidad sin perder frescura.
-4. **Funciones duplicadas:** existen dos `deletePhoto(...)` y dos `getCategoryName(...)` en `main.js` (líneas 896/972 y 886/1054) — la segunda definición pisa a la primera. Conviene unificar.
-5. Limpiar el `<div id="lg-build">` (diagnóstico) cuando el problema de despliegue esté confirmado como resuelto.
+### ✅ Mejoras ya implementadas
+1. **Código muerto eliminado:** `particles.js`, `romantic-effects.js`, `audio-visualizer.js`.
+2. **`main.js` dividido** en 4 módulos ES (auth, galería, playlist, timeline); pasó de ~2.383 a ~1.058 líneas.
+3. **Caché definitiva:** HTML `no-store`, assets `immutable` + versionado automático `?v=<buildId>` (`scripts/stamp-version.js`).
+4. **Duplicados unificados:** una sola `deletePhoto(id, button?)` (arregla un crash latente) y una sola `getCategoryName` (emojis). Además se implementó `deleteSong()`, que se invocaba pero no existía.
+5. **Indicador offline:** banner accesible vía evento global `cloud-status`.
+6. **Tests:** Jest + jsdom (`love-galaxy.test.js`).
 
-### 🔴 Acción pendiente (el problema reportado)
-- Confirmar **qué rama despliega Render** y que el último deploy esté *Live*. Es la causa raíz más probable de que "los cambios no se vean".
+### 🟡 Pendientes / siguientes
+- Consolidar las guías markdown solapadas (README, GUIA_*, INSTRUCCIONES_RENDER).
+- Confirmar en el panel de Render que el último deploy queda *Live* (el auto-deploy se dispara con cada push a la rama conectada).
+- (Opcional) Retirar el `<div id="lg-build">` de diagnóstico cuando ya no haga falta.
 
 ---
 
