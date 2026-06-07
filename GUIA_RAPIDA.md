@@ -23,15 +23,14 @@
 3. Selecciona una imagen de tu dispositivo
 4. ¡La foto se guardará automáticamente!
 
-### 🎮 Jugar Juegos
+### 🎮 Jugar a Galaxia del Amor
 1. Ve a la sección "Juegos"
-2. Selecciona cualquier juego:
-   - **Memoria del Amor**: Encuentra parejas de corazones
-   - **Pregunta del Día**: Responde preguntas románticas
-   - **Ruleta del Amor**: Descubre actividades románticas
-   - **Test de Compatibilidad**: Mide tu compatibilidad
-   - **Generador de Citas**: Obtén ideas para salir
-   - **Carta de Amor**: Genera mensajes románticos
+2. Pulsa **🚀 Despegar**
+3. Mueve la nave (desliza el dedo en el móvil, o ratón/flechas ↑↓ en PC):
+   - Captura corazones 💖 y mensajes de amor 💌
+   - Esquiva los asteroides ☄️ (tienes 3 vidas)
+   - Recoge el escudo 🛡️ para protegerte
+   - ¡Supera tu récord! (se guarda automáticamente)
 
 ### 💌 Mensajes Especiales
 1. Ve a la sección "Mensajes"

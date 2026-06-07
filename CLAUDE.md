@@ -26,7 +26,19 @@ No dejes la documentación desincronizada con el código.
   2. **publica en `window`** las funciones usadas por `onclick` inline,
   3. expone `window.XManager = { init, ... }`.
 - Scripts **clásicos** (no módulos): `supabase-client.js`, `db.js`, `achievements.js`,
-  `animations.js`, `extras.js`, `galaxy-game.js`, `dome-gallery.js`, `main.js`, `love-games.js`.
+  `animations.js`, `extras.js`, `galaxy-game.js`, `dome-gallery.js`, `main.js`.
+
+### 🎮 Juego "Galaxia del Amor" (C++ → WebAssembly)
+- Es el **único** juego (los antiguos mini-juegos y `love-games.js` se eliminaron).
+- **Motor**: `wasm/galaxy.cpp` → se compila a `galaxy.wasm` con **clang** (target
+  `wasm32`, *freestanding*, sin Emscripten). Ver `scripts/build-wasm.sh` / `npm run build:wasm`.
+- El `.wasm` **se versiona en git ya compilado**; Render no necesita toolchain de C++.
+  Si tocas `wasm/galaxy.cpp`, **recompila** (`npm run build:wasm`) y commitea `galaxy.wasm`.
+- **Render JS**: `galaxy-game.js` carga el wasm, lee su buffer de estado cada frame y
+  dibuja en `<canvas>`. Pide `galaxy.wasm?v=<buildId>` reusando el `?v` de su propio `src`.
+- **CSP**: WebAssembly requiere `'wasm-unsafe-eval'` en `script-src` (ya está en `render.yaml`),
+  y `galaxy.wasm` se sirve con `Content-Type: application/wasm`.
+- Tests del motor en `love-galaxy.test.js` (instancia `galaxy.wasm` en Node).
 
 ### Convenciones importantes
 - El HTML usa muchos `onclick="fn()"`. Si mueves o creas una función llamada desde el

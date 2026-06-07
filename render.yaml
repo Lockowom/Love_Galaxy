@@ -18,7 +18,8 @@ services:
         value: strict-origin-when-cross-origin
       - path: /*
         name: Content-Security-Policy
-        value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://www.youtube.com https://www.youtube-nocookie.com; base-uri 'self'"
+        # 'wasm-unsafe-eval' es necesario para compilar/instanciar el juego en WebAssembly.
+        value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://unpkg.com https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://www.youtube.com https://www.youtube-nocookie.com; base-uri 'self'"
       # --- HTML: nunca cachear (siempre se revalida, evita quedarse pegado) ---
       - path: /
         name: Cache-Control
@@ -39,6 +40,13 @@ services:
       - path: /*.png
         name: Cache-Control
         value: public, max-age=31536000, immutable
+      # El .wasm del juego se descarga con ?v=<buildId>, así que es cacheable.
+      - path: /*.wasm
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*.wasm
+        name: Content-Type
+        value: application/wasm
     routes:
       - type: rewrite
         source: /*

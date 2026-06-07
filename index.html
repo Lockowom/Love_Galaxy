@@ -345,59 +345,11 @@
             <p class="section-subtitle">Hechos con amor para mi diosa Freya 💛</p>
 
             <div class="games-grid">
-                <!-- Memoria del Amor -->
-                <div class="game-card">
-                    <div class="game-icon">🃏</div>
-                    <h3>Memoria del Amor</h3>
-                    <p>Encuentra las parejas de corazones, Tamara. ¿Cuántos movimientos necesitas?</p>
-                    <button class="btn-game" data-game="memory">Jugar</button>
-                </div>
-
-                <!-- Razones para Amarte -->
-                <div class="game-card">
-                    <div class="game-icon">💌</div>
-                    <h3>Razones para Amarte</h3>
-                    <p>Descubre, una a una, todas las razones por las que te amo.</p>
-                    <button class="btn-game" data-game="reasons">Descubrir</button>
-                </div>
-
-                <!-- Ruleta del Amor -->
-                <div class="game-card">
-                    <div class="game-icon">🎡</div>
-                    <h3>Ruleta del Amor</h3>
-                    <p>Gira la ruleta y descubre qué premio romántico te toca hoy.</p>
-                    <button class="btn-game" data-game="roulette">Girar</button>
-                </div>
-
-                <!-- Piropos para mi Diosa -->
-                <div class="game-card">
-                    <div class="game-icon">🌹</div>
-                    <h3>Piropos para mi Diosa</h3>
-                    <p>Palabras bonitas pensadas solo para ti, mi diosa Freya.</p>
-                    <button class="btn-game" data-game="piropos">Recibir</button>
-                </div>
-
-                <!-- Test de Compatibilidad -->
-                <div class="game-card">
-                    <div class="game-icon">💞</div>
-                    <h3>Test de Compatibilidad</h3>
-                    <p>Responde y descubre lo mucho que encajamos.</p>
-                    <button class="btn-game" data-game="compat">Jugar</button>
-                </div>
-
-                <!-- Pregunta del Día -->
-                <div class="game-card">
-                    <div class="game-icon">❓</div>
-                    <h3>Pregunta del Día</h3>
-                    <p>Una pregunta romántica al día; guarda tus respuestas y revívelas.</p>
-                    <button class="btn-game" data-game="question">Responder</button>
-                </div>
-
-                <!-- Galaxia del Amor -->
+                <!-- Galaxia del Amor (juego en C++ → WebAssembly) -->
                 <div class="game-card featured-game">
                     <div class="game-icon galaxy-icon">🌌</div>
                     <h3>Galaxia del Amor</h3>
-                    <p>Vuela por la galaxia, captura corazones y mensajes de amor, esquiva obstáculos y consigue power-ups.</p>
+                    <p>Pilota tu nave por la galaxia, captura corazones 💖 y mensajes de amor 💌, esquiva los asteroides ☄️ y consigue el escudo 🛡️. ¿Hasta dónde llegarás, mi diosa Freya?</p>
                     <div class="game-features">
                         <span class="feature-tag">🎮 Interactivo</span>
                         <span class="feature-tag">💕 Power-ups</span>
@@ -672,17 +624,14 @@
         </div>
     </div>
 
-    <!-- Los juegos (memoria, ruleta, razones, piropos, compatibilidad,
-         pregunta del día) crean su modal dinámicamente desde love-games.js -->
-
-    <!-- Modal de Galaxia del Amor -->
+    <!-- Modal de Galaxia del Amor (motor en C++ → WebAssembly) -->
     <div id="galaxy-game-modal" class="modal game-modal">
         <div class="modal-content galaxy-modal-content">
             <span class="modal-close" onclick="closeGalaxyGame()">&times;</span>
             <h2>🌌 Galaxia del Amor 💕</h2>
             <div class="galaxy-instructions">
-                <p>¡Navega por la galaxia y captura corazones y mensajes de amor!</p>
-                <p>Usa las flechas ⌨️ o el mouse 🖱️ para moverte. Presiona <strong>P</strong> para pausar.</p>
+                <p>¡Pilota tu nave y captura corazones 💖 y mensajes 💌 esquivando asteroides ☄️!</p>
+                <p>Móvil: <strong>desliza el dedo</strong> · PC: <strong>ratón</strong> o <strong>↑ ↓</strong>. Pulsa <strong>P</strong> para pausar.</p>
             </div>
             <div id="galaxy-game-container" class="galaxy-game-container">
                 <!-- El canvas del juego se generará aquí -->
@@ -735,7 +684,6 @@
     <script type="module" src="playlist-manager.js?v=b9ab9f2"></script>
     <script type="module" src="timeline-manager.js?v=b9ab9f2"></script>
     <script src="main.js?v=b9ab9f2"></script>
-    <script src="love-games.js?v=b9ab9f2"></script>
 
     <!-- Indicador de versión (diagnóstico): muestra la versión cargada y si los juegos se inicializaron -->
     <div id="lg-build" style="position:fixed; bottom:6px; left:8px; font-size:11px; color:#c96f8e; background:rgba(255,255,255,.9); padding:2px 8px; border-radius:10px; z-index:9; box-shadow:0 1px 4px rgba(0,0,0,.12);">cargando…</div>
@@ -743,9 +691,9 @@
         function lgUpdateBadge() {
             var b = document.getElementById('lg-build');
             if (!b) return;
-            // window.LG_BUILD solo existe si el love-games.js NUEVO se ejecutó.
+            // window.LG_BUILD lo define galaxy-game.js (versión cargada en el navegador).
             var build = window.LG_BUILD || '?';
-            var ok = window.LoveGames ? '✓' : '✗';
+            var ok = (typeof window.startGalaxyLoveGame === 'function') ? '✓' : '✗';
             // Estado de los módulos ES: A=Auth G=Galería P=Playlist T=Timeline.
             // Si alguno aparece como ✗, ese módulo NO se ejecutó en el navegador.
             var mods = 'A' + (window.AuthUI ? '✓' : '✗') +
@@ -755,9 +703,9 @@
             // Estado de autenticación: cli = cliente Supabase creado; auth = sesión activa.
             var authState = ' · cli' + (window.supabaseClient ? '✓' : '✗') +
                             ' auth' + (window.__authenticated ? '✓' : '✗');
-            b.textContent = 'build ' + build + ' · juegos ' + ok + ' · ' + mods + authState;
-            // Si NO muestra 10 => el navegador sirve una versión vieja en caché.
-            if (build !== '10') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
+            b.textContent = 'build ' + build + ' · galaxia ' + ok + ' · ' + mods + authState;
+            // Si NO muestra 11 => el navegador sirve una versión vieja en caché.
+            if (build !== '11') { b.style.background = '#ffd5d5'; b.textContent += ' (CACHÉ VIEJO)'; }
             // Si algún módulo falta, resaltar en ámbar.
             else if (!(window.AuthUI && window.GalleryManager && window.PlaylistManager && window.TimelineManager)) {
                 b.style.background = '#ffe9c7';

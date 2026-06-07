@@ -68,23 +68,16 @@
 - Organización cronológica
 - Sistema de almacenamiento persistente
 
-#### 🎮 **Juegos del Amor**
-1. **Juego de Memoria**: Encuentra parejas de corazones
-2. **Pregunta del Día**: Preguntas románticas para conocerse mejor
-3. **Ruleta del Amor**: Generador de actividades románticas
-4. **Test de Compatibilidad**: Cuestionario interactivo
-5. **Generador de Citas**: Ideas creativas para salir
-6. **Carta de Amor**: Genera mensajes románticos personalizados
-7. **🌌 Galaxia del Amor ¡NUEVO!**: Juego espacial altamente interactivo
-   - Navega por una galaxia llena de corazones en movimiento
-   - Captura mensajes de amor aleatorios
-   - Sistema de puntuación y combos
-   - Power-ups especiales (Escudo, Imán, x2 Puntos, Cámara Lenta, Vida Extra)
-   - Niveles de dificultad progresivos
-   - Récords guardados
-   - Controles con teclado y mouse
-   - Efectos visuales impresionantes
-   - Estadísticas de partida (nivel, tiempo, combo máximo)
+#### 🎮 **Galaxia del Amor** (único juego, motor en C++ → WebAssembly)
+Pilota una nave por la galaxia capturando corazones y mensajes de amor mientras
+esquivas asteroides. El motor (física, colisiones, puntuación) está escrito en
+**C++** y compilado a **WebAssembly** (`galaxy.wasm`); el renderizado va en
+`<canvas>` con JavaScript.
+- Captura corazones 💖 (+10) y mensajes de amor 💌 (+30, muestra una frase)
+- Esquiva asteroides ☄️ (3 vidas); recoge el escudo 🛡️ para protegerte
+- Dificultad progresiva, récord guardado (Supabase + `localStorage`)
+- Control táctil (deslizar), ratón o flechas ↑↓; pausa con **P**
+- Estrellas con parallax, estela de la nave, sonidos y frases flotantes
 
 #### 💗 **Amor-ómetro**
 - Medidor visual del nivel de amor (sempre al 100%)
@@ -208,8 +201,9 @@ npx http-server
 ### Scripts de npm
 
 ```bash
-npm test          # Tests de humo (Jest + jsdom): db y juegos cargan bien
+npm test          # Tests (Jest + jsdom): db, juego y motor WASM
 npm run build     # Sella ?v=<buildId> en index.html (cache-busting; lo usa Render)
+npm run build:wasm # Recompila wasm/galaxy.cpp → galaxy.wasm (requiere clang+wasm32)
 npm run dev       # Servidor local de desarrollo (python http.server)
 ```
 
@@ -281,15 +275,17 @@ Love_Galaxy/
 ├── playlist-manager.js     # Música y playlist (HTML5 + YouTube)
 ├── timeline-manager.js     # Historia / línea de tiempo editable
 │
-├── love-games.js           # 6 juegos románticos + lanzador
-├── galaxy-game.js          # Juego de la Galaxia del Amor (canvas)
+├── galaxy-game.js          # Galaxia del Amor: carga el WASM y dibuja en canvas
+├── wasm/galaxy.cpp         # Motor del juego en C++ (fuente)
+├── galaxy.wasm             # Motor compilado a WebAssembly (se versiona en git)
 ├── achievements.js         # Sistema de logros
 ├── animations.js           # Animaciones (cursor, partículas, scroll-reveal)
 ├── extras.js               # Poemas, estadísticas, exportar datos
 ├── dome-gallery.js         # Galería tipo cúpula 3D
 │
 ├── scripts/stamp-version.js  # Cache-busting: sella ?v=<buildId> en el build
-├── love-galaxy.test.js     # Tests (Jest + jsdom)
+├── scripts/build-wasm.sh     # Compila wasm/galaxy.cpp → galaxy.wasm (clang)
+├── love-galaxy.test.js     # Tests (Jest + jsdom + motor WASM)
 ├── render.yaml             # Config de despliegue (cache headers + build)
 └── README.md               # Documentación (este archivo)
 ```
@@ -308,12 +304,16 @@ Love_Galaxy/
 - **auth-ui.js / gallery-manager.js / playlist-manager.js / timeline-manager.js**:
   Módulos ES que encapsulan cada dominio. Cada uno expone `window.XManager = { init }`
   y publica en `window` las funciones que usan los `onclick` inline.
-- **love-games.js**: Memoria, Razones, Ruleta, Piropos, Test de Compatibilidad y
-  Pregunta del Día (modal autocontenido).
-- **galaxy-game.js**: Juego espacial con físicas, colisiones y power-ups.
+- **galaxy-game.js**: "Galaxia del Amor". Carga `galaxy.wasm`, lee su estado cada
+  frame y lo dibuja en `<canvas>`; gestiona entrada (táctil/ratón/teclado), HUD,
+  sonidos y récord. Es el único juego.
+- **wasm/galaxy.cpp → galaxy.wasm**: motor del juego en C++ (freestanding) compilado
+  a WebAssembly con clang. Recompílalo con `npm run build:wasm` tras editar el `.cpp`
+  y commitea el `.wasm` (Render no compila C++; solo sirve el binario).
 - **achievements.js / animations.js / extras.js / dome-gallery.js**: Logros,
   animaciones, extras (poemas/estadísticas) y galería 3D.
 - **scripts/stamp-version.js**: Reescribe `?v=<buildId>` en index.html durante el build.
+- **scripts/build-wasm.sh**: Compila el motor C++ a `galaxy.wasm` (requiere clang con target wasm32).
 - **love-galaxy.test.js**: Tests de humo con Jest + jsdom.
 
 > Nota de arquitectura: `main.js` se dividió en módulos por dominio para reducir su
@@ -361,61 +361,28 @@ ver **[GUIA_SUPABASE.md](GUIA_SUPABASE.md)**.
 
 ---
 
-## 🎮 Guía de Juegos
+## 🎮 Guía del juego: Galaxia del Amor
 
-### 1️⃣ Juego de Memoria del Amor
+**Objetivo**: sumar la mayor puntuación pilotando la nave por la galaxia.
 
-**Objetivo**: Encuentra todas las parejas de corazones emparejados.
+- **Mueve la nave** 🚀: en móvil desliza el dedo arriba/abajo; en PC mueve el ratón
+  o usa las flechas **↑ ↓**. Pulsa **P** para pausar.
+- **Captura** corazones 💖 (+10) y mensajes de amor 💌 (+30, con frase dedicada).
+- **Esquiva** los asteroides ☄️: tienes **3 vidas**.
+- **Recoge el escudo** 🛡️: te protege de un golpe durante unos segundos.
+- La **dificultad** sube con el tiempo; tu **récord** se guarda (Supabase + localStorage).
 
-- Haz clic en una carta para voltearla
-- Encuentra su pareja haciendo clic en otra carta
-- El juego registra tus movimientos y tiempo
-- ¡Intenta completarlo con el menor número de movimientos!
+### 🛠️ ¿Cómo está hecho? (C++ → WebAssembly)
 
-### 2️⃣ Pregunta del Día
+- El motor del juego (movimiento, aparición de objetos, colisiones, puntuación) está
+  en **`wasm/galaxy.cpp`**, escrito en C++ *freestanding* (sin librerías).
+- Se compila a **`galaxy.wasm`** con **clang** (`npm run build:wasm`). El `.wasm` se
+  versiona en git ya compilado: Render no necesita compilador de C++.
+- **`galaxy-game.js`** carga el `.wasm`, lee su estado cada frame y lo **dibuja en
+  `<canvas>`** (estrellas con parallax, nave con estela, HUD, sonidos).
 
-**Objetivo**: Conocerse mejor a través de preguntas reflexivas.
-
-- Cada día una pregunta diferente sobre el amor
-- Escribe tu respuesta y se guardará
-- Revisa respuestas anteriores en LocalStorage
-- 20+ preguntas únicas disponibles
-
-### 3️⃣ Ruleta del Amor
-
-**Objetivo**: Descubrir qué actividad romántica hacer.
-
-- Haz clic en "Girar"
-- La ruleta seleccionará una actividad al azar
-- 12 actividades románticas diferentes
-- ¡Acepta el reto y hazlo realidad!
-
-### 4️⃣ Test de Compatibilidad
-
-**Objetivo**: Medir la compatibilidad de la pareja.
-
-- Responde 4 preguntas sobre preferencias
-- Cada respuesta suma puntos
-- Resultado final en porcentaje
-- Mensaje personalizado según el resultado
-
-### 5️⃣ Generador de Citas
-
-**Objetivo**: Obtener ideas creativas para citas.
-
-- 20+ ideas diferentes de citas
-- Desde románticas hasta aventureras
-- Clic para generar una nueva idea
-- ¡Sorpréndete con sugerencias únicas!
-
-### 6️⃣ Generador de Cartas de Amor
-
-**Objetivo**: Crear mensajes románticos personalizados.
-
-- Combina aleatoriamente frases románticas
-- Genera cartas únicas cada vez
-- Copia y envía a tu pareja
-- Personalizable con tus propias frases
+> ⚠️ Si editas `wasm/galaxy.cpp`, ejecuta `npm run build:wasm` y commitea el
+> `galaxy.wasm` resultante. Requiere `clang`/`clang++` con target `wasm32`.
 
 ---
 
